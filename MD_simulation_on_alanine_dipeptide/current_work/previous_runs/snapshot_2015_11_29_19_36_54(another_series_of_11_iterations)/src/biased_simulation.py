@@ -40,10 +40,10 @@ state_data_reporter_file = '%s/biased_report_fc_%s_x1_%s_x2_%s.txt' %(folder_to_
 
 # check if the file exist
 if os.path.isfile(pdb_reporter_file):
-    os.rename(pdb_reporter_file, pdb_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
+    os.rename(pdb_reporter_file, pdb_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
 
 if os.path.isfile(state_data_reporter_file):
-    os.rename(state_data_reporter_file, state_data_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+    os.rename(state_data_reporter_file, state_data_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
 
 k1 = force_constant
 k2 = force_constant
