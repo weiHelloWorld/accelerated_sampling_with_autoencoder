@@ -30,8 +30,6 @@ class neural_network_for_simulation(object):
                  list_of_coor_data_files, # accept multiple files of training coordinate data
                  energy_expression_file = None,
                  training_data_interval = 1,
-                 preprocessing_settings = None,
-                 whether_preprecess_data = False,  # by default, turn off preprocessing
                  in_layer = None, hidden_layers = None, out_layer = None, # different layers
                  connection_between_layers = None, connection_with_bias_layers = None,
                  node_num = None, # the structure of ANN
@@ -49,10 +47,6 @@ class neural_network_for_simulation(object):
             self._energy_expression_file = energy_expression_file
 
         self._data_set = self.get_many_cossin_from_coordiantes_in_file(list_of_coor_data_files)
-        self._preprocessing_settings = preprocessing_settings
-        self._whether_preprecess_data = whether_preprecess_data # need to be removed later
-        if not self._whether_preprecess_data:
-            self._preprocessing_settings = [(1, 0) for item in range(8)]
 
         if not in_layer is None: self._in_layer = in_layer
         if not hidden_layers is None: self._hidden_layers = hidden_layers
@@ -87,8 +81,8 @@ class neural_network_for_simulation(object):
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2);
         normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
-        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :];normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
-        diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2]; # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
+        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
+        diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
         cos_of_angles = range(len(normal_vectors_normalized_1))
         sin_of_angles_vec = range(len(normal_vectors_normalized_1))
@@ -123,38 +117,6 @@ class neural_network_for_simulation(object):
 
         return result
 
-    def mapminmax(self, my_list): # for preprocessing in network
-        my_min = min(my_list)
-        my_max = max(my_list)
-        mul_factor = 2.0 / (my_max - my_min)
-        offset = (my_min + my_max) / 2.0
-        result_list = map(lambda x : (x - offset) * mul_factor, my_list)
-        return (result_list, (mul_factor, offset)) # also return the parameters for processing
-
-    def get_mapminmax_preprocess_result_and_coeff(self, data=None):
-        if data is None:
-            data = self._data_set
-
-        data = np.transpose(np.array(data))
-        result = []; params = []
-        for item in data:
-            temp_result, preprocess_params = self.mapminmax(item)
-            result.append(temp_result)
-            params.append(preprocess_params)
-        return (np.transpose(np.array(result)), params)
-
-    def mapminmax_preprocess_using_coeff(self, input_data=None, preprocessing_settings=None):
-        if preprocessing_settings is None:
-            preprocessing_settings = self._preprocessing_settings
-
-        temp_setttings = np.transpose(np.array(preprocessing_settings))
-        result = []
-
-        for item in input_data:
-            item = np.multiply(item - temp_setttings[1], temp_setttings[0])
-            result.append(item)
-
-        return result
 
     def get_expression_of_network(self, connection_between_layers=None, connection_with_bias_layers=None):
         if connection_between_layers is None:
@@ -183,8 +145,8 @@ class neural_network_for_simulation(object):
         for i in range(len(index_of_backbone_atoms) - 3):
             index_of_coss = i
             index_of_sins = i + 4
-            expression += 'layer_0_unit_%d = (raw_layer_0_unit_%d - %f) * %f;\n' % (index_of_coss, index_of_coss, self._preprocessing_settings[index_of_coss][1], self._preprocessing_settings[index_of_coss][0])
-            expression += 'layer_0_unit_%d = (raw_layer_0_unit_%d - %f) * %f;\n' % (index_of_sins, index_of_sins, self._preprocessing_settings[index_of_sins][1], self._preprocessing_settings[index_of_sins][0])
+            expression += 'layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
+            expression += 'layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
             expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
             expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, i)
             expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
@@ -209,11 +171,7 @@ class neural_network_for_simulation(object):
         temp_mid_result_in = range(4)
         mid_result = []
 
-        # first may need to do preprocessing
-        if self._whether_preprecess_data:
-            data_as_input_to_network = self.mapminmax_preprocess_using_coeff(input_data, self._preprocessing_settings)
-        else:
-            data_as_input_to_network = input_data
+        data_as_input_to_network = input_data
 
         hidden_and_out_layers = self._hidden_layers + [self._out_layer]
         # hidden_and_out_layers = [TanhLayer(node_num[1], "HL1"),
@@ -286,11 +244,7 @@ class neural_network_for_simulation(object):
         data_set = SupervisedDataSet(node_num[0], node_num[4])
 
         sincos = self._data_set[::self._training_data_interval]  # pick some of the data to train
-        if self._whether_preprecess_data:
-            (sincos_after_process, self._preprocessing_settings) = self.get_mapminmax_preprocess_result_and_coeff(data = sincos)
-            data_as_input_to_network = sincos_after_process
-        else:  # otherwise no preprocessing
-            data_as_input_to_network = sincos
+        data_as_input_to_network = sincos
 
         for item in data_as_input_to_network:
             data_set.addSample(item, item)
@@ -306,21 +260,12 @@ class neural_network_for_simulation(object):
 
     def get_training_error(self):
         # it turns out that this error info cannot be a good measure of the quality of the autoencoder
-        if not self._whether_preprecess_data:
-            input_data = np.array(self._data_set)
-        else:
-            print("having done this yet!\n")
-            pass
-
+        input_data = np.array(self._data_set)
         output_data = np.array([item[3] for item in self.get_mid_result()])
         return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
 
     def get_fraction_of_variance_explained(self):
-        if self._whether_preprecess_data == False:
-            input_data = np.array(self._data_set)
-        else:
-            print("having done this yet!\n")
-            pass
+        input_data = np.array(self._data_set)
 
         output_data = np.array([item[3] for item in self.get_mid_result()])
         var_of_input = sum(np.var(input_data, axis=0))
