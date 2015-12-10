@@ -32,6 +32,7 @@ class neural_network_for_simulation(object):
                  training_data_interval = 1,
                  preprocessing_settings = None,
                  whether_preprecess_data = False,  # by default, turn off preprocessing
+                 in_layer = None, hidden_layers = None, out_layer = None, # different layers
                  connection_between_layers = None, connection_with_bias_layers = None,
                  node_num = None, # the structure of ANN
                  network_parameters = None, # includes [learningrate,momentum, weightdecay, lrdecay]
@@ -49,9 +50,13 @@ class neural_network_for_simulation(object):
 
         self._data_set = self.get_many_cossin_from_coordiantes_in_file(list_of_coor_data_files)
         self._preprocessing_settings = preprocessing_settings
-        self._whether_preprecess_data = whether_preprecess_data
+        self._whether_preprecess_data = whether_preprecess_data # need to be removed later
         if not self._whether_preprecess_data:
             self._preprocessing_settings = [(1, 0) for item in range(8)]
+
+        if not in_layer is None: self._in_layer = in_layer
+        if not hidden_layers is None: self._hidden_layers = hidden_layers
+        if not out_layer is None: self._out_layer = out_layer
 
         self._connection_between_layers = connection_between_layers
         self._connection_with_bias_layers = connection_with_bias_layers
@@ -210,8 +215,9 @@ class neural_network_for_simulation(object):
         else:
             data_as_input_to_network = input_data
 
-        hidden_and_out_layers = [TanhLayer(node_num[1], "HL1"),
-                         CircularLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3"), LinearLayer(node_num[4], "OL")]
+        hidden_and_out_layers = self._hidden_layers + [self._out_layer]
+        # hidden_and_out_layers = [TanhLayer(node_num[1], "HL1"),
+        #                  CircularLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3"), LinearLayer(node_num[4], "OL")]
                                 # this is a temporary solution,
                                 # hard code the hidden_layers info into the function, need to be refactored later
                                 # assume that this should be an attribute of the class
@@ -222,24 +228,9 @@ class neural_network_for_simulation(object):
                 bias_coef = connection_with_bias_layers[i].params
                 previous_result = item if i == 0 else temp_mid_result[i - 1]
                 temp_mid_result_in[i] = np.dot(mul_coef, previous_result) + bias_coef
-                # should replace the following part with more direct way to calculate middle result, try _forwardImplementation
                 output_of_this_hidden_layer = range(len(temp_mid_result_in[i]))  # initialization
                 hidden_and_out_layers[i]._forwardImplementation(temp_mid_result_in[i], output_of_this_hidden_layer)
                 temp_mid_result[i] = output_of_this_hidden_layer
-                # if i == 0 or i == 2:
-                #     temp_mid_result[i] = map(tanh, temp_mid_result[i])
-                # elif i == 1:
-                #     assert(node_num[2] % 2 == 0)
-                #     radius = range(node_num[2] / 2) # initialization
-                #     for index_of_nodes_in_hidden_layer in range(node_num[2] / 2):
-                #         index_0 = 2 * index_of_nodes_in_hidden_layer
-                #         index_1 = 2 * index_of_nodes_in_hidden_layer + 1
-                #         radius[index_of_nodes_in_hidden_layer] = sqrt(temp_mid_result[1][index_0] ** 2 \
-                #                     + temp_mid_result[1][index_1] ** 2)
-                #
-                #         temp_mid_result[1][index_0] = temp_mid_result[1][index_0] / radius[index_of_nodes_in_hidden_layer]
-                #         temp_mid_result[1][index_1] = temp_mid_result[1][index_1] / radius[index_of_nodes_in_hidden_layer]
-
 
             mid_result.append(copy.deepcopy(temp_mid_result)) # note that should use deepcopy
         return mid_result
@@ -260,6 +251,10 @@ class neural_network_for_simulation(object):
         hidden_layers = [TanhLayer(node_num[1], "HL1"), CircularLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3")]
         bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
         out_layer = LinearLayer(node_num[4], "OL")
+
+        self._in_layer = in_layer
+        self._out_layer = out_layer
+        self._hidden_layers = hidden_layers
 
         layer_list = [in_layer] + hidden_layers + [out_layer]
 
@@ -318,7 +313,7 @@ class neural_network_for_simulation(object):
             pass
 
         output_data = np.array([item[3] for item in self.get_mid_result()])
-        return np.linalg.norm(input_data - output_data) / sqrt(8 * len(input_data))
+        return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
 
     def get_fraction_of_variance_explained(self):
         if self._whether_preprecess_data == False:
