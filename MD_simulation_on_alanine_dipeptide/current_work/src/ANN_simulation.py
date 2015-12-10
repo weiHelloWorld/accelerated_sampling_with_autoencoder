@@ -3,6 +3,7 @@ from scipy import io as sciio
 import numpy as np
 from math import *
 from pybrain.structure import *
+from pybrain.structure.modules.circularlayer import *
 from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
