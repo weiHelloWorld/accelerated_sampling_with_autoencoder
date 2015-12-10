@@ -215,16 +215,20 @@ class neural_network_for_simulation(object):
                 bias_coef = connection_with_bias_layers[i].params
                 previous_result = item if i == 0 else temp_mid_result[i - 1]
                 temp_mid_result[i] = np.dot(mul_coef, previous_result) + bias_coef
-                if i == 0: # first two layers
+                if i == 0 or i == 2: 
                     temp_mid_result[i] = map(tanh, temp_mid_result[i])
                 elif i == 1:
-                    assert(len(temp_mid_result[1]) == 4)
-                    radius_1 = sqrt(temp_mid_result[1][0] ** 2 + temp_mid_result[1][1] ** 2)
-                    radius_2 = sqrt(temp_mid_result[1][2] ** 2 + temp_mid_result[1][3] ** 2)
-                    temp_mid_result[1][0] = temp_mid_result[1][0] / radius_1
-                    temp_mid_result[1][1] = temp_mid_result[1][1] / radius_1
-                    temp_mid_result[1][2] = temp_mid_result[1][2] / radius_2
-                    temp_mid_result[1][3] = temp_mid_result[1][3] / radius_2
+                    assert(node_num[2] % 2 == 0)
+                    radius = range(node_num / 2) # initialization
+                    for index_of_nodes_in_hidden_layer in range(node_num / 2):
+                        index_0 = 2 * index_of_nodes_in_hidden_layer
+                        index_1 = 2 * index_of_nodes_in_hidden_layer + 1
+                        radius[index_of_nodes_in_hidden_layer] = sqrt(temp_mid_result[1][index_0] ** 2 \
+                                    + temp_mid_result[1][index_1] ** 2)
+                    
+                        temp_mid_result[1][index_0] = temp_mid_result[1][index_0] / radius_1
+                        temp_mid_result[1][index_1] = temp_mid_result[1][index_1] / radius_1
+          
                 
             mid_result.append(copy.deepcopy(temp_mid_result)) # note that should use deepcopy
         return mid_result
