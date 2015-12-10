@@ -219,15 +219,15 @@ class neural_network_for_simulation(object):
                     temp_mid_result[i] = map(tanh, temp_mid_result[i])
                 elif i == 1:
                     assert(node_num[2] % 2 == 0)
-                    radius = range(node_num / 2) # initialization
-                    for index_of_nodes_in_hidden_layer in range(node_num / 2):
+                    radius = range(node_num[2] / 2) # initialization
+                    for index_of_nodes_in_hidden_layer in range(node_num[2] / 2):
                         index_0 = 2 * index_of_nodes_in_hidden_layer
                         index_1 = 2 * index_of_nodes_in_hidden_layer + 1
                         radius[index_of_nodes_in_hidden_layer] = sqrt(temp_mid_result[1][index_0] ** 2 \
                                     + temp_mid_result[1][index_1] ** 2)
                     
-                        temp_mid_result[1][index_0] = temp_mid_result[1][index_0] / radius_1
-                        temp_mid_result[1][index_1] = temp_mid_result[1][index_1] / radius_1
+                        temp_mid_result[1][index_0] = temp_mid_result[1][index_0] / radius[index_of_nodes_in_hidden_layer]
+                        temp_mid_result[1][index_1] = temp_mid_result[1][index_1] / radius[index_of_nodes_in_hidden_layer]
           
                 
             mid_result.append(copy.deepcopy(temp_mid_result)) # note that should use deepcopy
