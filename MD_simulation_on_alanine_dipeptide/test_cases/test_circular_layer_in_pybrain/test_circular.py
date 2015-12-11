@@ -60,7 +60,6 @@ class neural_network_for_simulation(object):
         self._PCs = PCs
         return
 
-
     def save_into_file(self, filename = None):
         if filename is None:
             filename = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
@@ -72,7 +71,6 @@ class neural_network_for_simulation(object):
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
 
         return
-
 
     def get_cossin_from_a_coordinate(self, a_coordinate):
         num_of_coordinates = len(a_coordinate) / 3
@@ -174,11 +172,6 @@ class neural_network_for_simulation(object):
         data_as_input_to_network = input_data
 
         hidden_and_out_layers = self._hidden_layers + [self._out_layer]
-        # hidden_and_out_layers = [TanhLayer(node_num[1], "HL1"),
-        #                  CircularLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3"), LinearLayer(node_num[4], "OL")]
-                                # this is a temporary solution,
-                                # hard code the hidden_layers info into the function, need to be refactored later
-                                # assume that this should be an attribute of the class
 
         for item in data_as_input_to_network:
             for i in range(4):
@@ -311,6 +304,7 @@ class plotting(object):
     '''
 
     def __init__(self, network):
+        assert isinstance(network, neural_network_for_simulation)
         self._network = network
         pass
 
