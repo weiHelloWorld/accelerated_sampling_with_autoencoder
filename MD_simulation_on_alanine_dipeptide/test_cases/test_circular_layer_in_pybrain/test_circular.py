@@ -22,6 +22,21 @@ class coordinates_data_files(object):
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         return
 
+class coordinates_file(object):
+    """this object contains information of a generated coordinates file, including
+     - filename
+     - potential centers
+     - force constants
+     - num of coordinates
+     - coordinates data
+    """
+    def __init__(self, filename):  # filename if the path to the file
+        self._filename = filename
+        self._force_constant = float(filename.split('biased_output_fc_')[1].split('_x1_')[0])
+        self._potential_center = [float(filename.split('_x1_')[1].split('_x2_')[0]), float(filename.split('_x2_')[1].split('_coordinates.txt')[0])]
+        self._num_of_coors = float(subprocess.check_output(['wc', '-l', filename]).split()[0])  # there would be some problems if using int
+        pass
+
 class neural_network_for_simulation(object):
     """the neural network for simulation"""
 
@@ -272,7 +287,7 @@ class neural_network_for_simulation(object):
         coords = []
         umbOP = []
         for item in list_of_coor_data_files:
-            print('processing %s' %item)
+            # print('processing %s' %item)
             temp_force_constant = float(item.split('biased_output_fc_')[1].split('_x1_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
             harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
