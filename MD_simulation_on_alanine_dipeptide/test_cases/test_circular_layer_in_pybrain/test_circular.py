@@ -499,22 +499,24 @@ exit 0
                     break
                 else:
                     temp_count += 1
-                    temp_potential_center = [round(min_coor_in_PC_space_0 + index[0] * bin_width_0, 2), \
+                    temp_potential_center = [round(min_coor_in_PC_space_0 + index[0] * bin_width_0, 2),
                                              round(min_coor_in_PC_space_1 + index[1] * bin_width_1, 2)]
                     potential_centers.append(temp_potential_center)
 
         return potential_centers
 
-    def get_num_of_running_jobs(self):
+    @staticmethod
+    def get_num_of_running_jobs():
         output = subprocess.check_output(['qstat'])
         num_of_running_jobs = len(re.findall('weichen9', output))
         print('checking number of running jobs = %d\n' % num_of_running_jobs)
         return num_of_running_jobs
 
-    def submit_sge_jobs_and_archive_files(self, job_file_lists,
-                                          num, # num is the max number of jobs submitted each time
+    @staticmethod
+    def submit_sge_jobs_and_archive_files(job_file_lists,
+                                          num,  # num is the max number of jobs submitted each time
                                           flag_of_whether_to_record_qsub_commands = False
-                                        ):
+                                          ):
         dir_to_archive_files = '../sge_files/archive/'
 
         if not os.path.exists(dir_to_archive_files):
@@ -528,12 +530,14 @@ exit 0
             subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
         return
 
-    def get_sge_files_list(self):
+    @staticmethod
+    def get_sge_files_list():
         result = filter(lambda x: x[-3:] == "sge",subprocess.check_output(['ls', '../sge_files']).split('\n'))
         result = map(lambda x: '../sge_files/' + x, result)
         return result
 
-    def del_all_jobs(self):
+    @staticmethod
+    def del_all_jobs():
         # TODO
         output = subprocess.check_output(['qstat'])
         return
@@ -568,7 +572,8 @@ exit 0
             time.sleep(10)
         return
 
-    def generate_coordinates_from_pdb_files(self, folder_for_pdb = '../target'):
+    @staticmethod
+    def generate_coordinates_from_pdb_files(folder_for_pdb ='../target'):
         filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
 
         index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
