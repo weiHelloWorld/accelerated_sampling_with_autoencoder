@@ -22,6 +22,7 @@ class coordinates_data_files(object):
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         return
 
+
 class coordinates_file(object):
     """this object contains information of a generated coordinates file, including
      - filename
@@ -35,20 +36,25 @@ class coordinates_file(object):
         self._force_constant = float(filename.split('biased_output_fc_')[1].split('_x1_')[0])
         self._potential_center = [float(filename.split('_x1_')[1].split('_x2_')[0]), float(filename.split('_x2_')[1].split('_coordinates.txt')[0])]
         self._num_of_coors = float(subprocess.check_output(['wc', '-l', filename]).split()[0])  # there would be some problems if using int
-        pass
+        # TODO: get coordinates data
+        self._coor_data = np.loadtxt(filename, float)
+        assert (self._coor_data.shape[0] == self._num_of_coors)
+        assert (self._coor_data.shape[1] == 21)
+        return
+
 
 class neural_network_for_simulation(object):
     """the neural network for simulation"""
 
     def __init__(self,
-                 index, # the index of the current network
-                 list_of_coor_data_files, # accept multiple files of training coordinate data
+                 index,  # the index of the current network
+                 list_of_coor_data_files,  # accept multiple files of training coordinate data
                  energy_expression_file = None,
                  training_data_interval = 1,
-                 in_layer = None, hidden_layers = None, out_layer = None, # different layers
+                 in_layer = None, hidden_layers = None, out_layer = None,  # different layers
                  connection_between_layers = None, connection_with_bias_layers = None,
-                 node_num = None, # the structure of ANN
-                 network_parameters = None, # includes [learningrate,momentum, weightdecay, lrdecay]
+                 node_num = [8, 12, 2, 12, 8],  # the structure of ANN
+                 network_parameters = [0.002, 0.4, 0.1, 1],  # includes [learningrate,momentum, weightdecay, lrdecay]
                  max_num_of_training = 100,
                  PCs = None,  # principal components
                  ):
@@ -69,8 +75,8 @@ class neural_network_for_simulation(object):
 
         self._connection_between_layers = connection_between_layers
         self._connection_with_bias_layers = connection_with_bias_layers
-        self._node_num = [8, 12, 2, 12, 8] if node_num is None else node_num
-        self._network_parameters = [0.002, 0.4, 0.1, 1] if network_parameters is None else network_parameters
+        self._node_num = node_num
+        self._network_parameters = network_parameters
         self._max_num_of_training = max_num_of_training
         self._PCs = PCs
         return
@@ -87,7 +93,8 @@ class neural_network_for_simulation(object):
 
         return
 
-    def get_cossin_from_a_coordinate(self, a_coordinate):
+    @staticmethod
+    def get_cossin_from_a_coordinate(a_coordinate):
         num_of_coordinates = len(a_coordinate) / 3
         a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
         diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
@@ -344,9 +351,9 @@ class plotting(object):
             temp_mid_result = network.get_mid_result(input_data = temp_sincos)
             PCs_to_plot = [item[1] for item in temp_mid_result]
 
-            # (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
-            (x, y) = ([np.arccos(item[0]) * np.sign(item[1]) for item in PCs_to_plot],
-                      [np.arccos(item[2]) * np.sign(item[3]) for item in PCs_to_plot])
+            (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
+            # (x, y) = ([np.arccos(item[0]) * np.sign(item[1]) for item in PCs_to_plot],
+            #           [np.arccos(item[2]) * np.sign(item[3]) for item in PCs_to_plot])
             labels = ["PC1", "PC2"]
 
         elif plotting_space == "phipsi":
@@ -375,10 +382,6 @@ class plotting(object):
 
         return fig
 
-    def plotting_of_expansion_path(self, list_of_coordinate_files_for_plotting):
-        temp_mngm = simulation_management(self._network)
-
-        return
 
 class simulation_management(object):
     def __init__(self, mynetwork):
