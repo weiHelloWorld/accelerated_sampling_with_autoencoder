@@ -3,10 +3,16 @@ This program takes a "terminal command" (should be within quotation mark) as an 
 generate corresponding sge file, and qsub it.
 '''
 
-import sys, subprocess
 
-whether_to_qsub = sys.argv[1]
-command_in_sge_file = sys.argv[2]
+import argparse, subprocess
+
+parser = argparse.ArgumentParser()
+parser.add_argument("command", type=str, help="command to run")
+parser.add_argument("--submit", help="submit the job", action="store_true")
+args = parser.parse_args()
+
+whether_to_qsub = args.submit
+command_in_sge_file = args.command
 
 content_for_sge_file = '''#!/bin/bash
 
@@ -31,7 +37,7 @@ exit 0
 sge_filename = '../sge_files/' + command_in_sge_file.replace(' ', '_') + '.sge'
 
 with open(sge_filename, 'w') as sge_file:
-	sge_file.write(content_for_sge_file)
+    sge_file.write(content_for_sge_file)
 
-if whether_to_qsub == '1':
-	subprocess.check_output(['qsub', sge_filename])
+if whether_to_qsub:
+    subprocess.check_output(['qsub', sge_filename])

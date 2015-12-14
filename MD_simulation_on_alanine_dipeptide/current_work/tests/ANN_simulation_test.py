@@ -21,6 +21,7 @@ class test_coordinates_file(object):
             assert_equal(my_file._coor_data[0][item], expected[item])
 
         assert_equal(my_file._coor_data.shape[0], 100)
+        return
 
 
 class test_ANN_simulation(object):

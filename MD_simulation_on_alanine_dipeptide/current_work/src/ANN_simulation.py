@@ -36,7 +36,6 @@ class coordinates_file(object):
         self._force_constant = float(filename.split('biased_output_fc_')[1].split('_x1_')[0])
         self._potential_center = [float(filename.split('_x1_')[1].split('_x2_')[0]), float(filename.split('_x2_')[1].split('_coordinates.txt')[0])]
         self._num_of_coors = float(subprocess.check_output(['wc', '-l', filename]).split()[0])  # there would be some problems if using int
-        # TODO: get coordinates data
         self._coor_data = np.loadtxt(filename, float)
         assert (self._coor_data.shape[0] == self._num_of_coors)
         assert (self._coor_data.shape[1] == 21)

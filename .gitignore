@@ -5,3 +5,5 @@
 *.md
 *.pyc
 */current_work/.idea/*
+*.sge
+*.sge.*
