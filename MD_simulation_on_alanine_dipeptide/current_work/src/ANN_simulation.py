@@ -3,14 +3,13 @@ from scipy import io as sciio
 import numpy as np
 from math import *
 from pybrain.structure import *
-# from pybrain.structure.modules.circularlayer import *
+from pybrain.structure.modules.circularlayer import *
 from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
 
 
 class coordinates_data_files(object):
-    '''this class holds the information of data files'''
     def __init__(self,
                 list_of_dir_of_coor_data_files = ['../target/'], # this is the directory that holds corrdinates data files
                 ):
@@ -220,7 +219,7 @@ class neural_network_for_simulation(object):
         node_num = self._node_num
 
         in_layer = LinearLayer(node_num[0], "IL")
-        hidden_layers = [TanhLayer(node_num[1], "HL1"), TanhLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3")]
+        hidden_layers = [TanhLayer(node_num[1], "HL1"), CircularLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3")]
         bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
         out_layer = LinearLayer(node_num[4], "OL")
 
