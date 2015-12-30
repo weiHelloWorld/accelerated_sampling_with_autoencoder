@@ -7,11 +7,11 @@ from pybrain.structure.modules.circularlayer import *
 from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
-
+import config  # configuration file
 
 class coordinates_data_files(object):
     def __init__(self,
-                list_of_dir_of_coor_data_files = ['../target/'], # this is the directory that holds corrdinates data files
+                list_of_dir_of_coor_data_files = CONFIG_1 # this is the directory that holds corrdinates data files
                 ):
         self._list_of_dir_of_coor_data_files = list_of_dir_of_coor_data_files
         self._list_of_coor_data_files = []
@@ -48,12 +48,12 @@ class neural_network_for_simulation(object):
                  index,  # the index of the current network
                  list_of_coor_data_files,  # accept multiple files of training coordinate data
                  energy_expression_file = None,
-                 training_data_interval = 1,
+                 training_data_interval = CONFIG_2,
                  in_layer = None, hidden_layers = None, out_layer = None,  # different layers
                  connection_between_layers = None, connection_with_bias_layers = None,
-                 node_num = [8, 12, 2, 12, 8],  # the structure of ANN
-                 network_parameters = [0.002, 0.4, 0.1, 1],  # includes [learningrate,momentum, weightdecay, lrdecay]
-                 max_num_of_training = 100,
+                 node_num = CONFIG_3,  # the structure of ANN
+                 network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
+                 max_num_of_training = CONFIG_5,
                  PCs = None,  # principal components
                  ):
 
@@ -79,7 +79,7 @@ class neural_network_for_simulation(object):
         self._PCs = PCs
         return
 
-    def save_into_file(self, filename = None):
+    def save_into_file(self, filename = CONFIG_6):
         if filename is None:
             filename = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
 
@@ -130,6 +130,7 @@ class neural_network_for_simulation(object):
         temp = self.get_many_cossin_from_coordiantes_in_file(list_of_files)
         result = []
         for item in temp:
+            assert (len(item) == 8)
             temp_angle = np.multiply(np.arccos(item[0:4]), np.sign(item[4:8]))
             result += [list(temp_angle)]
 
@@ -219,7 +220,7 @@ class neural_network_for_simulation(object):
         node_num = self._node_num
 
         in_layer = LinearLayer(node_num[0], "IL")
-        hidden_layers = [TanhLayer(node_num[1], "HL1"), CircularLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3")]
+        hidden_layers = CONFIG_7
         bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
         out_layer = LinearLayer(node_num[4], "OL")
 
@@ -387,9 +388,9 @@ class simulation_management(object):
         return
 
     def create_sge_files_for_simulation(self,list_of_potential_center = None,
-                                        num_of_simulation_steps = 2000,
+                                        num_of_simulation_steps = CONFIG_8,
                                         energy_expression_file=None,
-                                        force_constant_for_biased = 500):
+                                        force_constant_for_biased = CONFIG_9):
 
         if list_of_potential_center is None:
             list_of_potential_center = self.get_boundary_points_2()
@@ -436,7 +437,7 @@ exit 0
         return
 
 
-    def get_boundary_points(self, list_of_points = None, num_of_bins = 5):
+    def get_boundary_points(self, list_of_points = None, num_of_bins = CONFIG_10):
         if list_of_points is None: list_of_points = self._mynetwork._PCs
 
         x = [item[0] for item in list_of_points]
@@ -473,7 +474,7 @@ exit 0
 
         return potential_centers
 
-    def get_boundary_points_2(self, list_of_points = None, num_of_bins = 5, num_of_boundary_points = 10):
+    def get_boundary_points_2(self, list_of_points = None, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11):
         '''This is another version of get_boundary_points() function'''
         if list_of_points is None: list_of_points = self._mynetwork._PCs
 
@@ -552,17 +553,13 @@ exit 0
         result = map(lambda x: '../sge_files/' + x, result)
         return result
 
-    @staticmethod
-    def del_all_jobs():
-        # TODO
-        output = subprocess.check_output(['qstat'])
-        return
 
     def submit_new_jobs_if_there_are_too_few_jobs(self, num):
         if self.get_num_of_running_jobs() < num:
             job_list = self.get_sge_files_list()
             self.submit_sge_jobs_and_archive_files(job_list, num)
         return
+
 
     def monitor_status_and_submit_periodically(self, num,
                                             num_of_running_jobs_when_allowed_to_stop = 0,
@@ -575,7 +572,7 @@ exit 0
 
         num_of_unsubmitted_jobs = len(self.get_sge_files_list())
         # first check if there are unsubmitted jobs
-        while num_of_unsubmitted_jobs != min_num_of_unsubmitted_jobs:
+        while num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
             time.sleep(10)
             try:
                 self.submit_new_jobs_if_there_are_too_few_jobs(num)
@@ -589,7 +586,7 @@ exit 0
         return
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(folder_for_pdb ='../target'):
+    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
         filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
 
         index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
@@ -615,14 +612,12 @@ exit 0
 
 class iteration(object):
     def __init__(self, index,
-                 network=None, # if you want to start with existing network, assign value to "network"
-                 num_of_simulation_steps = 3000
+                 network=None # if you want to start with existing network, assign value to "network"
                  ):
         self._index = index
         self._network = network
-        self._num_of_simulation_steps = num_of_simulation_steps
 
-    def train_network_and_save(self, training_interval=None, num_of_trainings = 5):
+    def train_network_and_save(self, training_interval=None, num_of_trainings = CONFIG_13):
         '''num_of_trainings is the number of trainings that we are going to run, and 
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
@@ -655,7 +650,7 @@ class iteration(object):
         self._network.write_expression_into_file()
 
         manager = simulation_management(self._network)
-        manager.create_sge_files_for_simulation(num_of_simulation_steps = self._num_of_simulation_steps)
+        manager.create_sge_files_for_simulation()
         return
 
     def run_simulation(self):
