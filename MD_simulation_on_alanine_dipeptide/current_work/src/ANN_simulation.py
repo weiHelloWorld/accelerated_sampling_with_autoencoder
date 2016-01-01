@@ -45,8 +45,9 @@ class single_simulation_coordinates_file(object):
         assert (self._coor_data.shape[1] == 21)
         return
 
-class simulation_utils(object):
-    '''this class contains some utility tools, that do not belong to **any object instance**
+class sutils(object):
+    '''sutils: simulation unilities
+    this class contains some utility tools, that do not belong to **any object instance**
     '''
     def __init__(self):
         return
@@ -74,14 +75,14 @@ class simulation_utils(object):
 
     @staticmethod
     def get_many_cossin_from_coordinates(coordinates):
-        return map(simulation_utils.get_cossin_from_a_coordinate, coordinates)
+        return map(sutils.get_cossin_from_a_coordinate, coordinates)
 
     @staticmethod
-    def get_many_cossin_from_coordiantes_in_file (list_of_files):
+    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
         result = []
         for item in list_of_files:
             coordinates = np.loadtxt(item)
-            temp = simulation_utils.get_many_cossin_from_coordinates(coordinates)
+            temp = sutils.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
         return result
@@ -90,7 +91,7 @@ class simulation_utils(object):
     def get_many_dihedrals_from_coordinates_in_file (list_of_files):
         # why we need to get dihedreals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = simulation_utils.get_many_cossin_from_coordiantes_in_file(list_of_files)
+        temp = sutils.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
         result = []
         for item in temp:
             assert (len(item) == 8)
@@ -108,14 +109,15 @@ class neural_network_for_simulation(object):
                  data_set_for_training,
                  energy_expression_file = None,
                  training_data_interval = CONFIG_2,
-                 in_layer = None, hidden_layers = None, out_layer = None,  # different layers
-                 connection_between_layers = None, connection_with_bias_layers = None,
+                 in_layer_type = LinearLayer, hidden_layers_types = [TanhLayer, TanhLayer, TanhLayer],
+                 out_layer_type = LinearLayer,  # different layers
                  node_num = CONFIG_3,  # the structure of ANN
                  network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
                  max_num_of_training = CONFIG_5
                  ):
 
         self._index = index
+        self._data_set = data_set_for_training
         self._list_of_coor_data_files = list_of_coor_data_files
         self._training_data_interval = training_data_interval
         if energy_expression_file is None:
@@ -123,12 +125,10 @@ class neural_network_for_simulation(object):
         else:
             self._energy_expression_file = energy_expression_file
 
-        if not in_layer is None: self._in_layer = in_layer
-        if not hidden_layers is None: self._hidden_layers = hidden_layers
-        if not out_layer is None: self._out_layer = out_layer
+        if not in_layer_type is None: self._in_layer_type = in_layer_type
+        if not hidden_layers_types is None: self._hidden_layers_type = hidden_layers_types
+        if not out_layer_type is None: self._out_layer_type = out_layer_type
 
-        self._connection_between_layers = connection_between_layers
-        self._connection_with_bias_layers = connection_with_bias_layers
         self._node_num = node_num
         self._network_parameters = network_parameters
         self._max_num_of_training = max_num_of_training
@@ -147,11 +147,9 @@ class neural_network_for_simulation(object):
         return
 
 
-    def get_expression_of_network(self, connection_between_layers=None, connection_with_bias_layers=None):
-        if connection_between_layers is None:
-            connection_between_layers = self._connection_between_layers
-        if connection_with_bias_layers is None:
-            connection_with_bias_layers = self._connection_with_bias_layers
+    def get_expression_of_network(self):
+        connection_between_layers = self._connection_between_layers
+        connection_with_bias_layers = self._connection_with_bias_layers
 
         node_num = self._node_num
         expression = ""
@@ -190,10 +188,10 @@ class neural_network_for_simulation(object):
             f_out.write(expression)
         return
 
-    def get_mid_result(self, input_data=None, connection_between_layers=None, connection_with_bias_layers=None):
+    def get_mid_result(self, input_data=None):
         if input_data is None: input_data = self._data_set
-        if connection_between_layers is None: connection_between_layers = self._connection_between_layers
-        if connection_with_bias_layers is None: connection_with_bias_layers = self._connection_with_bias_layers
+        connection_between_layers = self._connection_between_layers
+        connection_with_bias_layers = self._connection_with_bias_layers
 
         node_num = self._node_num
         temp_mid_result = range(4)
@@ -229,14 +227,16 @@ class neural_network_for_simulation(object):
         ####################### set up autoencoder begin #######################
         node_num = self._node_num
 
-        in_layer = LinearLayer(node_num[0], "IL")
-        hidden_layers = [(CONFIG_7[0])(node_num[1], "HL1"), (CONFIG_7[1])(node_num[2], "HL2"), (CONFIG_7[2])(node_num[3], "HL3")] 
+        in_layer = (self._in_layer_type)(node_num[0], "IL")
+        hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1"),
+                         (self._hidden_layers_type[1])(node_num[2], "HL2"),
+                         (self._hidden_layers_type[2])(node_num[3], "HL3")]
         bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
-        out_layer = LinearLayer(node_num[4], "OL")
+        out_layer = (self._out_layer_type)(node_num[4], "OL")
 
-        self._in_layer = in_layer
-        self._out_layer = out_layer
-        self._hidden_layers = hidden_layers
+        # self._in_layer = in_layer
+        # self._out_layer = out_layer
+        # self._hidden_layers = hidden_layers
 
         layer_list = [in_layer] + hidden_layers + [out_layer]
 
@@ -309,11 +309,11 @@ class neural_network_for_simulation(object):
             harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_mid_result = self.get_mid_result(self.get_many_cossin_from_coordiantes_in_file([item]))
+            temp_mid_result = self.get_mid_result(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             temp_coor = [a[1] for a in temp_mid_result]
             assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += temp_coor
-            temp_angles = self.get_many_dihedrals_from_coordinates_in_file([item])
+            temp_angles = sutils.get_many_dihedrals_from_coordinates_in_file([item])
             temp_umbOP = [a[1:3] for a in temp_angles]
             assert(temp_window_count == len(temp_umbOP))
             assert(2 == len(temp_umbOP[0]))
@@ -339,14 +339,14 @@ class plotting(object):
         self._network = network
         pass
 
-    def plotting_with_coloring_option(self, plotting_space, # means "PC" space or "phi-psi" space
+    def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
                                             network=None,
-                                            list_of_coordinate_files_for_plotting=None, # accept multiple files
+                                      list_of_coordinate_files_for_plotting=None,  # accept multiple files
                                             color_option='pure',
-                                            other_coloring=None,
-                                            title=None,
-                                            axis_ranges=None
-                                            ):
+                                      other_coloring=None,
+                                      title=None,
+                                      axis_ranges=None
+                                      ):
         '''
         by default, we are using training data, and we also allow external data input
         '''
@@ -355,7 +355,7 @@ class plotting(object):
             list_of_coordinate_files_for_plotting = network._list_of_coor_data_files
 
         if plotting_space == "PC":
-            temp_sincos = network.get_many_cossin_from_coordiantes_in_file(list_of_coordinate_files_for_plotting)
+            temp_sincos = sutils.get_many_cossin_from_coordiantes_in_file(list_of_coordinate_files_for_plotting)
 
             temp_mid_result = network.get_mid_result(input_data = temp_sincos)
             PCs_to_plot = [item[1] for item in temp_mid_result]
@@ -366,7 +366,7 @@ class plotting(object):
             labels = ["PC1", "PC2"]
 
         elif plotting_space == "phipsi":
-            temp_dihedrals = network.get_many_dihedrals_from_coordinates_in_file(list_of_coordinate_files_for_plotting)
+            temp_dihedrals = sutils.get_many_dihedrals_from_coordinates_in_file(list_of_coordinate_files_for_plotting)
 
             (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
             labels = ["phi", "psi"]
@@ -448,7 +448,7 @@ exit 0
 
 
     def get_boundary_points(self, list_of_points = None, num_of_bins = CONFIG_10):
-        if list_of_points is None: list_of_points = self._mynetwork._PCs
+        if list_of_points is None: list_of_points = self._mynetwork._PCs # FIXME: _PCs should be declared
 
         x = [item[0] for item in list_of_points]
         y = [item[1] for item in list_of_points]
@@ -563,13 +563,11 @@ exit 0
         result = map(lambda x: '../sge_files/' + x, result)
         return result
 
-
     def submit_new_jobs_if_there_are_too_few_jobs(self, num):
         if self.get_num_of_running_jobs() < num:
             job_list = self.get_sge_files_list()
             self.submit_sge_jobs_and_archive_files(job_list, num)
         return
-
 
     def monitor_status_and_submit_periodically(self, num,
                                             num_of_running_jobs_when_allowed_to_stop = 0,
@@ -633,13 +631,14 @@ class iteration(object):
         by doing this, we might avoid network with very poor quality
         '''
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
-        my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target'])._list_of_coor_data_files
+        my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target']).get_list_of_coor_data_files()
+        data_set = sutils.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
 
-        max_FVE = 0 #
+        max_FVE = 0
         current_network = None
         for item in range(num_of_trainings):
             temp_network = neural_network_for_simulation(index=self._index,
-                                                            list_of_coor_data_files = my_file_list,
+                                                            data_set_for_training= data_set,
                                                             training_data_interval=training_interval,
                                                             )
 
@@ -715,7 +714,7 @@ class single_biased_simulation_data(object):
         return
 
     def get_center_of_data_cloud_in_this_biased_simulation(self):
-        cossin = self._my_network.get_many_cossin_from_coordiantes_in_file([self._file_for_single_biased_simulation_coor])
+        cossin = sutils.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
         temp_mid_result = self._my_network.get_mid_result(input_data = cossin)
         PCs = [item[1] for item in temp_mid_result]
         assert(len(PCs[0]) == 2)

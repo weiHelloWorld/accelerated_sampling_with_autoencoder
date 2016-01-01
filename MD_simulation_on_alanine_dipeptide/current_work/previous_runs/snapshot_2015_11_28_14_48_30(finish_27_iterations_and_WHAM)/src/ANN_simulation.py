@@ -366,7 +366,7 @@ class plotting(object):
             list_of_coordinate_files_for_plotting = network._list_of_coor_data_files
             
         if plotting_space == "PC":
-            temp_sincos = network.get_many_cossin_from_coordiantes_in_file(list_of_coordinate_files_for_plotting)
+            temp_sincos = network.get_many_cossin_from_coordiantes_in_list_of_files(list_of_coordinate_files_for_plotting)
 
             temp_mid_result = network.get_mid_result(input_data = temp_sincos)
             PCs_to_plot = [item[1] for item in temp_mid_result]
@@ -666,7 +666,7 @@ class single_biased_simulation_data(object):
         '''see if the push in this biased simulation actually works, large distance means it
         does not work well
         '''
-        cossin = self._my_network.get_many_cossin_from_coordiantes_in_file([self._file_for_single_biased_simulation_coor])
+        cossin = self._my_network.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
         temp_mid_result = self._my_network.get_mid_result(input_data = cossin)
         PCs = [item[1] for item in temp_mid_result]
         assert(len(PCs[0]) == 2)

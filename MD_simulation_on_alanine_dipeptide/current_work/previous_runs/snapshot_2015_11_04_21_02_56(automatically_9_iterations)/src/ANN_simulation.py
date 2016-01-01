@@ -273,7 +273,7 @@ class plotting(object):
             list_of_coordinate_files_for_plotting = network._list_of_coor_data_files
             
         if plotting_space == "PC":
-            temp_sincos = network.get_many_cossin_from_coordiantes_in_file(list_of_coordinate_files_for_plotting)
+            temp_sincos = network.get_many_cossin_from_coordiantes_in_list_of_files(list_of_coordinate_files_for_plotting)
 
             temp_mid_result = network.get_mid_result(input_data = temp_sincos)
             PCs_to_plot = [item[1] for item in temp_mid_result]
