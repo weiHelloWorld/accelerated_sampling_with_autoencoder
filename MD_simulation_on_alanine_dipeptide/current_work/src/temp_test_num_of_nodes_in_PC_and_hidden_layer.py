@@ -1,7 +1,7 @@
 from ANN_simulation import *
 import sys
 
-my_file_list = coordinates_data_files(['../target/'])._list_of_coor_data_files
+my_file_list = coordinates_data_files_list(['../target/'])._list_of_coor_data_files
 # my_file_list = filter(lambda x: x.find('network_27') == -1, my_file_list)
 
 num_of_hidden_layer_nodes = int(sys.argv[1])

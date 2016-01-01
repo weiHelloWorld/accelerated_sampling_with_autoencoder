@@ -9,7 +9,9 @@ from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
 from config import * # configuration file
 
-class coordinates_data_files(object):
+
+
+class coordinates_data_files_list(object):
     def __init__(self,
                 list_of_dir_of_coor_data_files = CONFIG_1 # this is the directory that holds corrdinates data files
                 ):
@@ -21,8 +23,11 @@ class coordinates_data_files(object):
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         return
 
+    def get_list_of_coor_data_files(self):
+        return self._list_of_coor_data_files
 
-class coordinates_file(object):
+
+class single_simulation_coordinates_file(object):
     """this object contains information of a generated coordinates file, including
      - filename
      - potential centers
@@ -40,55 +45,10 @@ class coordinates_file(object):
         assert (self._coor_data.shape[1] == 21)
         return
 
-
-class neural_network_for_simulation(object):
-    """the neural network for simulation"""
-
-    def __init__(self,
-                 index,  # the index of the current network
-                 list_of_coor_data_files,  # accept multiple files of training coordinate data
-                 energy_expression_file = None,
-                 training_data_interval = CONFIG_2,
-                 in_layer = None, hidden_layers = None, out_layer = None,  # different layers
-                 connection_between_layers = None, connection_with_bias_layers = None,
-                 node_num = CONFIG_3,  # the structure of ANN
-                 network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
-                 max_num_of_training = CONFIG_5,
-                 PCs = None,  # principal components
-                 ):
-
-        self._index = index
-        self._list_of_coor_data_files = list_of_coor_data_files
-        self._training_data_interval = training_data_interval
-        if energy_expression_file is None:
-            self._energy_expression_file = "../resources/energy_expression_%d.txt" %(index)
-        else:
-            self._energy_expression_file = energy_expression_file
-
-        self._data_set = self.get_many_cossin_from_coordiantes_in_file(list_of_coor_data_files)
-
-        if not in_layer is None: self._in_layer = in_layer
-        if not hidden_layers is None: self._hidden_layers = hidden_layers
-        if not out_layer is None: self._out_layer = out_layer
-
-        self._connection_between_layers = connection_between_layers
-        self._connection_with_bias_layers = connection_with_bias_layers
-        self._node_num = node_num
-        self._network_parameters = network_parameters
-        self._max_num_of_training = max_num_of_training
-        self._PCs = PCs
-        return
-
-    def save_into_file(self, filename = CONFIG_6):
-        if filename is None:
-            filename = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
-
-        if os.path.isfile(filename):  # backup file if previous one exists
-            os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + '.pkl')
-
-        with open(filename, 'wb') as my_file:
-            pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
-
+class simulation_utils(object):
+    '''this class contains some utility tools, that do not belong to **any object instance**
+    '''
+    def __init__(self):
         return
 
     @staticmethod
@@ -112,22 +72,25 @@ class neural_network_for_simulation(object):
             sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]));
         return cos_of_angles + sin_of_angles
 
-    def get_many_cossin_from_coordinates(self, coordinates):
-        return map(self.get_cossin_from_a_coordinate, coordinates)
+    @staticmethod
+    def get_many_cossin_from_coordinates(coordinates):
+        return map(simulation_utils.get_cossin_from_a_coordinate, coordinates)
 
-    def get_many_cossin_from_coordiantes_in_file (self, list_of_files):
+    @staticmethod
+    def get_many_cossin_from_coordiantes_in_file (list_of_files):
         result = []
         for item in list_of_files:
             coordinates = np.loadtxt(item)
-            temp = self.get_many_cossin_from_coordinates(coordinates)
+            temp = simulation_utils.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
         return result
 
-    def get_many_dihedrals_from_coordinates_in_file (self, list_of_files):
+    @staticmethod
+    def get_many_dihedrals_from_coordinates_in_file (list_of_files):
         # why we need to get dihedreals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = self.get_many_cossin_from_coordiantes_in_file(list_of_files)
+        temp = simulation_utils.get_many_cossin_from_coordiantes_in_file(list_of_files)
         result = []
         for item in temp:
             assert (len(item) == 8)
@@ -135,6 +98,53 @@ class neural_network_for_simulation(object):
             result += [list(temp_angle)]
 
         return result
+
+
+class neural_network_for_simulation(object):
+    """the neural network for simulation"""
+
+    def __init__(self,
+                 index,  # the index of the current network
+                 data_set_for_training,
+                 energy_expression_file = None,
+                 training_data_interval = CONFIG_2,
+                 in_layer = None, hidden_layers = None, out_layer = None,  # different layers
+                 connection_between_layers = None, connection_with_bias_layers = None,
+                 node_num = CONFIG_3,  # the structure of ANN
+                 network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
+                 max_num_of_training = CONFIG_5
+                 ):
+
+        self._index = index
+        self._list_of_coor_data_files = list_of_coor_data_files
+        self._training_data_interval = training_data_interval
+        if energy_expression_file is None:
+            self._energy_expression_file = "../resources/energy_expression_%d.txt" %(index)
+        else:
+            self._energy_expression_file = energy_expression_file
+
+        if not in_layer is None: self._in_layer = in_layer
+        if not hidden_layers is None: self._hidden_layers = hidden_layers
+        if not out_layer is None: self._out_layer = out_layer
+
+        self._connection_between_layers = connection_between_layers
+        self._connection_with_bias_layers = connection_with_bias_layers
+        self._node_num = node_num
+        self._network_parameters = network_parameters
+        self._max_num_of_training = max_num_of_training
+        return
+
+    def save_into_file(self, filename = CONFIG_6):
+        if filename is None:
+            filename = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
+
+        if os.path.isfile(filename):  # backup file if previous one exists
+            os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + '.pkl')
+
+        with open(filename, 'wb') as my_file:
+            pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
+
+        return
 
 
     def get_expression_of_network(self, connection_between_layers=None, connection_with_bias_layers=None):
@@ -207,7 +217,7 @@ class neural_network_for_simulation(object):
             mid_result.append(copy.deepcopy(temp_mid_result)) # note that should use deepcopy
         return mid_result
 
-    def get_PC_and_save_it_to_network(self):
+    def get_PC_and_save_it_to_network(self):  # TODO: delete this function?
         '''get PCs and save the result into _PCs
         '''
         mid_result = self.get_mid_result()
@@ -623,7 +633,7 @@ class iteration(object):
         by doing this, we might avoid network with very poor quality
         '''
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
-        my_file_list = coordinates_data_files(list_of_dir_of_coor_data_files=['../target'])._list_of_coor_data_files
+        my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target'])._list_of_coor_data_files
 
         max_FVE = 0 #
         current_network = None

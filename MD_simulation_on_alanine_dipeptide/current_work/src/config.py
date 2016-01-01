@@ -37,7 +37,7 @@ CONFIG_6 = None # filename to save this network
 
 '''def train'''
 
-CONFIG_7 = [TanhLayer, CircularLayer, TanhLayer] 
+CONFIG_7 = [TanhLayer, TanhLayer, TanhLayer] 
 # hidden layers of this network
 
 '''class simulation_management'''

@@ -2,7 +2,7 @@ import sys
 
 from ANN_simulation import *
 
-file_list = coordinates_data_files(['../target/'])._list_of_coor_data_files
+file_list = coordinates_data_files_list(['../target/'])._list_of_coor_data_files
 
 myindex = int(sys.argv[1])
 learningrate = float(sys.argv[2])

@@ -12,7 +12,7 @@ from nose.tools import assert_equal
 class test_coordinates_file(object):
     def test_coor_data(self):
         filename = 'dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt'
-        my_file = coordinates_file(filename)
+        my_file = single_simulation_coordinates_file(filename)
         expected = np.array([1.875  , 2.791  , -0.215 , 3.338  , 2.897 ,  0.193   ,
             4.032  , 3.862 ,  -0.414 , 5.350  , 4.301  , 0.000   ,
             5.314 ,  5.734  , 0.511  , 5.119  , 6.718  , -0.370  ,
