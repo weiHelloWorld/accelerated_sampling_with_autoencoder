@@ -1,3 +1,13 @@
+import copy, pickle, re, os, time, subprocess, datetime, itertools
+from scipy import io as sciio
+import numpy as np
+from math import *
+from pybrain.structure import *
+from pybrain.structure.modules.circularlayer import *
+from pybrain.supervised.trainers import BackpropTrainer
+from pybrain.datasets.supervised import SupervisedDataSet
+import matplotlib.pyplot as plt
+
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
 '''
@@ -27,7 +37,7 @@ CONFIG_6 = None # filename to save this network
 
 '''def train'''
 
-CONFIG_7 = [TanhLayer(node_num[1], "HL1"), CircularLayer(node_num[2], "HL2"), TanhLayer(node_num[3], "HL3")] 
+CONFIG_7 = [TanhLayer, CircularLayer, TanhLayer] 
 # hidden layers of this network
 
 '''class simulation_management'''
@@ -55,8 +65,11 @@ CONFIG_12 = '../target'  # folder that contains all pdb files
 
 CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one with least FVE from them
 
-'''def prepare_simulation'''
 '''def run_simulation'''
+
+CONFIG_14 = 7  # max number of jobs submitted each time
+CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
+
 '''def get_plottings'''
 '''class simulation_with_ANN_main'''
 '''def __init__'''

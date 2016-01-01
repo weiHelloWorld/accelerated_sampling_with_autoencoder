@@ -7,7 +7,7 @@ from pybrain.structure.modules.circularlayer import *
 from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
-import config  # configuration file
+from config import * # configuration file
 
 class coordinates_data_files(object):
     def __init__(self,
@@ -220,7 +220,7 @@ class neural_network_for_simulation(object):
         node_num = self._node_num
 
         in_layer = LinearLayer(node_num[0], "IL")
-        hidden_layers = CONFIG_7
+        hidden_layers = [(CONFIG_7[0])(node_num[1], "HL1"), (CONFIG_7[1])(node_num[2], "HL2"), (CONFIG_7[2])(node_num[3], "HL3")] 
         bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
         out_layer = LinearLayer(node_num[4], "OL")
 
@@ -655,12 +655,9 @@ class iteration(object):
 
     def run_simulation(self):
         manager = simulation_management(self._network)
-        manager.monitor_status_and_submit_periodically(num = 7,
-                                        num_of_running_jobs_when_allowed_to_stop = 1)
+        manager.monitor_status_and_submit_periodically(num = CONFIG_14,
+                                        num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         manager.generate_coordinates_from_pdb_files()
-        return
-
-    def get_plottings(self):
         return
 
 
