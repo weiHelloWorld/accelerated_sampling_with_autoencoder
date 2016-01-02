@@ -203,7 +203,8 @@ class neural_network_for_simulation(object):
                  out_layer_type = LinearLayer,  # different layers
                  node_num = CONFIG_3,  # the structure of ANN
                  network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
-                 max_num_of_training = CONFIG_5
+                 max_num_of_training = CONFIG_5,
+                 filename_to_save_network = CONFIG_6
                  ):
 
         self._index = index
@@ -225,11 +226,15 @@ class neural_network_for_simulation(object):
         self._node_num = node_num
         self._network_parameters = network_parameters
         self._max_num_of_training = max_num_of_training
+        if filename_to_save_network is None:
+            self._filename_to_save_network = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
+        else:
+            self._filename_to_save_network = filename_to_save_network
         return
 
     def save_into_file(self, filename = CONFIG_6):
         if filename is None:
-            filename = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
+            filename = self._filename_to_save_network
 
         if os.path.isfile(filename):  # backup file if previous one exists
             os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + '.pkl')
@@ -478,14 +483,19 @@ class plotting(object):
 
 
 class simulation_management(object):
-    def __init__(self, mynetwork):
+    def __init__(self, mynetwork,
+                 num_of_simulation_steps = CONFIG_8,
+                 force_constant_for_biased = CONFIG_9
+                 ):
         self._mynetwork = mynetwork
+        self._num_of_simulation_steps = num_of_simulation_steps
+        self._force_constant_for_biased = force_constant_for_biased
         return
 
     def create_sge_files_for_simulation(self,list_of_potential_center = None,
-                                        num_of_simulation_steps = CONFIG_8,
+                                        num_of_simulation_steps = None,
                                         energy_expression_file=None,
-                                        force_constant_for_biased = CONFIG_9):
+                                        force_constant_for_biased = None):
 
         temp_mid_result = self._mynetwork.get_mid_result()
         PCs_of_network = [item[1] for item in temp_mid_result]
@@ -493,9 +503,13 @@ class simulation_management(object):
 
         if list_of_potential_center is None:
             list_of_potential_center = sutils.get_boundary_points_2(list_of_points= PCs_of_network)
+        if num_of_simulation_steps is None:
+            num_of_simulation_steps = self._num_of_simulation_steps
         if energy_expression_file is None:
             energy_expression_file = self._mynetwork._energy_expression_file
             filename_of_energy_expression = energy_expression_file.split('resources/')[1]
+        if force_constant_for_biased is None:
+            force_constant_for_biased = self._force_constant_for_biased
 
         for potential_center in list_of_potential_center:
 
@@ -534,8 +548,6 @@ exit 0
                 f_out.write("\n")
 
         return
-
-
 
     @staticmethod
     def get_num_of_running_jobs():
