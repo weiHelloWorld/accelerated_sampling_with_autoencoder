@@ -48,9 +48,9 @@ class single_simulation_coordinates_file(object):
         return
 
 class sutils(object):
-    '''sutils: simulation unilities
+    """sutils: simulation unilities
     this class contains some utility tools, that do not belong to **any object instance**
-    '''
+    """
     def __init__(self):
         return
 
@@ -657,9 +657,9 @@ class iteration(object):
         current_network = None
         for item in range(num_of_trainings):
             temp_network = neural_network_for_simulation(index=self._index,
-                                                            data_set_for_training= data_set,
-                                                            training_data_interval=training_interval,
-                                                            )
+                                                         data_set_for_training= data_set,
+                                                         training_data_interval=training_interval,
+                                                        )
 
             temp_network.train()
             print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))

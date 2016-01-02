@@ -1,7 +1,5 @@
 from pybrain.structure import *
 from pybrain.structure.modules.circularlayer import *
-from pybrain.supervised.trainers import BackpropTrainer
-from pybrain.datasets.supervised import SupervisedDataSet
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
@@ -10,6 +8,8 @@ it configures all default values/global parameters for constructors/functions
 ############################################################################
 
 '''config for ANN_simulation.py'''
+
+############################################################################
 
 '''class coordinates_data_files_list:'''
 
@@ -25,7 +25,7 @@ CONFIG_6 = None # filename to save this network
 
 '''class simulation_management'''
 
-CONFIG_8 = 2000 # num of simulation steps
+CONFIG_8 = 1000 # num of simulation steps
 CONFIG_9 = 500  # force constant for biased simulations
 
 '''class sutils'''

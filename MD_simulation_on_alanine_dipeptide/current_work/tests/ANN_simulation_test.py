@@ -11,6 +11,8 @@ from nose.tools import assert_equal, assert_almost_equal
 
 
 class test_coordinates_file(object):
+
+
     @staticmethod
     def test_coor_data():
         filename = 'dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt'
@@ -40,9 +42,15 @@ class test_simulation_utils(object):
 
     @staticmethod
     def test_get_many_dihedrals_from_cossin():
-        cossin = [[1, -1, 1, -1, 0, 0, 0, 0], [0, 0, 0, 0, 1, -1, 1, -1]]
+        angle = [.4, -.7, math.pi, -.45]
+        cossin = [[1, -1, 1, -1, 0, 0, 0, 0], [0, 0, 0, 0, 1, -1, 1, -1],
+                  map(cos, angle) + map(sin, angle)]
         actual = sutils.get_many_dihedrals_from_cossin(cossin)
-        assert_equal(actual, [[0,0,0,0],[math.pi / 2, -math.pi/2, math.pi/2,-math.pi/2]])
+        expected = [[0,0,0,0],[math.pi / 2, -math.pi/2, math.pi/2,-math.pi/2], angle]
+        for item in range(len(actual)):
+            for index in range(4):
+                assert_almost_equal(actual[item][index], expected[item][index], 4)
+
         return
 
 class test_neural_network_for_simulation(object):
