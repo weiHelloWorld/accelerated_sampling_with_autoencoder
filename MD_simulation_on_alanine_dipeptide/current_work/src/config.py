@@ -26,10 +26,10 @@ CONFIG_1 = ['../target/'] # list of directories that contains all coordinates fi
 
 '''def __init__'''
 
-CONFIG_2 = 1, # training data interval
-CONFIG_3 = [8, 12, 2, 12, 8],  # the structure of ANN: number of nodes in each layer
-CONFIG_4 = [0.002, 0.4, 0.1, 1],  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
-CONFIG_5 = 100, # max number of training steps
+CONFIG_2 = 1 # training data interval
+CONFIG_3 = [8, 12, 2, 12, 8]  # the structure of ANN: number of nodes in each layer
+CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
+CONFIG_5 = 100 # max number of training steps
 
 '''def save_into_file'''
 
@@ -46,11 +46,11 @@ CONFIG_7 = [TanhLayer, TanhLayer, TanhLayer]
 
 '''def create_sge_files_for_simulation'''
 
-CONFIG_8 = 2000, # num of simulation steps
+CONFIG_8 = 2000 # num of simulation steps
 CONFIG_9 = 500  # force constant for biased simulations
 
 '''def get_boundary_points'''
-'''def get_boundary_points_2'''
+'''def get_boundary_points_2'''git
 
 CONFIG_10 = 5   # num of bins
 CONFIG_11 = 10  # num of boundary points

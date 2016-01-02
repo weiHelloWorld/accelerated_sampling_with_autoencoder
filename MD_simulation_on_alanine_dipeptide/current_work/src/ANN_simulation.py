@@ -320,7 +320,7 @@ class neural_network_for_simulation(object):
         self._out_layer = out_layer
         self._hidden_layers = hidden_layers
 
-        layer_list = [in_layer] + hidden_layers + [out_layer]
+        layers_list = [in_layer] + hidden_layers + [out_layer]
 
         molecule_net = FeedForwardNetwork()
 
@@ -333,8 +333,8 @@ class neural_network_for_simulation(object):
         connection_between_layers = range(4); connection_with_bias_layers = range(4)
 
         for i in range(4):
-            connection_between_layers[i] = FullConnection(layer_list[i], layer_list[i+1])
-            connection_with_bias_layers[i] = FullConnection(bias_layers[i], layer_list[i+1])
+            connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])
+            connection_with_bias_layers[i] = FullConnection(bias_layers[i], layers_list[i+1])
             molecule_net.addConnection(connection_between_layers[i])  # connect two neighbor layers
             molecule_net.addConnection(connection_with_bias_layers[i])
 
