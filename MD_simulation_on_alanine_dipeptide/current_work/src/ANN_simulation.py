@@ -9,7 +9,9 @@ from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
 from config import * # configuration file
 
-
+"""note that all configurations for a class should be in function __init__(), and take configuration parameters
+from config.py
+"""
 
 class coordinates_data_files_list(object):
     def __init__(self,

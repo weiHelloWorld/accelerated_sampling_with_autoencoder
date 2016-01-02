@@ -50,7 +50,7 @@ CONFIG_8 = 2000 # num of simulation steps
 CONFIG_9 = 500  # force constant for biased simulations
 
 '''def get_boundary_points'''
-'''def get_boundary_points_2'''git
+'''def get_boundary_points_2'''
 
 CONFIG_10 = 5   # num of bins
 CONFIG_11 = 10  # num of boundary points
