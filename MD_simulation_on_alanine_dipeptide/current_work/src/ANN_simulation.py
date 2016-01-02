@@ -92,13 +92,101 @@ class sutils(object):
         # why we need to get dihedreals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
         temp = sutils.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
+        return sutils.get_many_dihedrals_from_cossin(temp)
+
+    @staticmethod
+    def get_many_dihedrals_from_cossin(cossin):
         result = []
-        for item in temp:
+        for item in cossin:
             assert (len(item) == 8)
             temp_angle = np.multiply(np.arccos(item[0:4]), np.sign(item[4:8]))
             result += [list(temp_angle)]
-
         return result
+
+    @staticmethod
+    def get_boundary_points(list_of_points, num_of_bins = CONFIG_10):
+
+        x = [item[0] for item in list_of_points]
+        y = [item[1] for item in list_of_points]
+
+        temp = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
+        hist_matrix = temp[0]
+        # add a set of zeros around this region
+        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
+        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
+        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins + 2), 1)
+        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins +2), 1)
+
+        sum_of_neighbors = np.zeros(np.shape(hist_matrix)) # number of neighbors occupied with some points
+        for i in range(np.shape(hist_matrix)[0]):
+            for j in range(np.shape(hist_matrix)[1]):
+                if i != 0: sum_of_neighbors[i,j] += hist_matrix[i - 1][j]
+                if j != 0: sum_of_neighbors[i,j] += hist_matrix[i][j - 1]
+                if i != np.shape(hist_matrix)[0] - 1: sum_of_neighbors[i,j] += hist_matrix[i + 1][j]
+                if j != np.shape(hist_matrix)[1] - 1: sum_of_neighbors[i,j] += hist_matrix[i][j + 1]
+
+        bin_width_0 = temp[1][1]-temp[1][0]
+        bin_width_1 = temp[2][1]-temp[2][0]
+        min_coor_in_PC_space_0 = temp[1][0] - 0.5 * bin_width_0  # multiply by 0.5 since we want the center of the grid
+        min_coor_in_PC_space_1 = temp[2][0] - 0.5 * bin_width_1
+
+        potential_centers = []
+
+        for i in range(np.shape(hist_matrix)[0]):
+            for j in range(np.shape(hist_matrix)[1]):
+                if hist_matrix[i,j] == 0 and sum_of_neighbors[i,j] != 0:  # no points in this block but there are points in neighboring blocks
+                    temp_potential_center = [round(min_coor_in_PC_space_0 + i * bin_width_0, 2), round(min_coor_in_PC_space_1 + j * bin_width_1, 2)]
+                    potential_centers.append(temp_potential_center)
+
+        return potential_centers
+
+    @staticmethod
+    def get_boundary_points_2(list_of_points, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11):
+        '''This is another version of get_boundary_points() function'''
+
+        x = [item[0] for item in list_of_points]
+        y = [item[1] for item in list_of_points]
+
+        temp = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
+        hist_matrix = temp[0]
+        # add a set of zeros around this region
+        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
+        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
+        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins + 2), 1)
+        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins +2), 1)
+
+        sum_of_neighbors = np.zeros(np.shape(hist_matrix)) # number of neighbors occupied with some points
+        for i in range(np.shape(hist_matrix)[0]):
+            for j in range(np.shape(hist_matrix)[1]):
+                if i != 0: sum_of_neighbors[i,j] += hist_matrix[i - 1][j]
+                if j != 0: sum_of_neighbors[i,j] += hist_matrix[i][j - 1]
+                if i != np.shape(hist_matrix)[0] - 1: sum_of_neighbors[i,j] += hist_matrix[i + 1][j]
+                if j != np.shape(hist_matrix)[1] - 1: sum_of_neighbors[i,j] += hist_matrix[i][j + 1]
+
+        bin_width_0 = temp[1][1]-temp[1][0]
+        bin_width_1 = temp[2][1]-temp[2][0]
+        min_coor_in_PC_space_0 = temp[1][0] - 0.5 * bin_width_0  # multiply by 0.5 since we want the center of the grid
+        min_coor_in_PC_space_1 = temp[2][0] - 0.5 * bin_width_1
+
+        potential_centers = []
+
+        # now sort these grids (that has no points in it)
+        # based on total number of points in its neighbors
+        index_of_grids = list(itertools.product(range(np.shape(hist_matrix)[0]), range(np.shape(hist_matrix)[1])))
+        print(index_of_grids)
+        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: sum_of_neighbors[x[0]][x[1]]) # sort based on histogram, return index values
+        temp_count = 0
+        for index in sorted_index_of_grids:
+            if hist_matrix[index] == 0 and sum_of_neighbors[index] != 0:
+                if temp_count >= num_of_boundary_points:
+                    break
+                else:
+                    temp_count += 1
+                    temp_potential_center = [round(min_coor_in_PC_space_0 + index[0] * bin_width_0, 2),
+                                             round(min_coor_in_PC_space_1 + index[1] * bin_width_1, 2)]
+                    potential_centers.append(temp_potential_center)
+
+        return potential_centers
 
 
 class neural_network_for_simulation(object):
@@ -118,7 +206,6 @@ class neural_network_for_simulation(object):
 
         self._index = index
         self._data_set = data_set_for_training
-        self._list_of_coor_data_files = list_of_coor_data_files
         self._training_data_interval = training_data_interval
         if energy_expression_file is None:
             self._energy_expression_file = "../resources/energy_expression_%d.txt" %(index)
@@ -128,6 +215,10 @@ class neural_network_for_simulation(object):
         if not in_layer_type is None: self._in_layer_type = in_layer_type
         if not hidden_layers_types is None: self._hidden_layers_type = hidden_layers_types
         if not out_layer_type is None: self._out_layer_type = out_layer_type
+
+        self._in_layer = None
+        self._out_layer = None
+        self._hidden_layers = None
 
         self._node_num = node_num
         self._network_parameters = network_parameters
@@ -143,9 +234,7 @@ class neural_network_for_simulation(object):
 
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
-
         return
-
 
     def get_expression_of_network(self):
         connection_between_layers = self._connection_between_layers
@@ -215,13 +304,6 @@ class neural_network_for_simulation(object):
             mid_result.append(copy.deepcopy(temp_mid_result)) # note that should use deepcopy
         return mid_result
 
-    def get_PC_and_save_it_to_network(self):  # TODO: delete this function?
-        '''get PCs and save the result into _PCs
-        '''
-        mid_result = self.get_mid_result()
-        self._PCs = [item[1] for item in mid_result]
-        return
-
     def train(self):
 
         ####################### set up autoencoder begin #######################
@@ -234,9 +316,9 @@ class neural_network_for_simulation(object):
         bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
         out_layer = (self._out_layer_type)(node_num[4], "OL")
 
-        # self._in_layer = in_layer
-        # self._out_layer = out_layer
-        # self._hidden_layers = hidden_layers
+        self._in_layer = in_layer
+        self._out_layer = out_layer
+        self._hidden_layers = hidden_layers
 
         layer_list = [in_layer] + hidden_layers + [out_layer]
 
@@ -330,9 +412,8 @@ class neural_network_for_simulation(object):
         return
 
 class plotting(object):
-    '''
-    this class implements different plottings
-    '''
+    """this class implements different plottings
+    """
 
     def __init__(self, network):
         assert isinstance(network, neural_network_for_simulation)
@@ -341,32 +422,30 @@ class plotting(object):
 
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
                                             network=None,
-                                      list_of_coordinate_files_for_plotting=None,  # accept multiple files
+                                            cossin_data_for_plotting=None,
                                             color_option='pure',
-                                      other_coloring=None,
-                                      title=None,
-                                      axis_ranges=None
+                                            other_coloring=None,
+                                            title=None,
+                                            axis_ranges=None
                                       ):
-        '''
+        """
         by default, we are using training data, and we also allow external data input
-        '''
+        """
         if network is None: network = self._network
-        if list_of_coordinate_files_for_plotting is None:
-            list_of_coordinate_files_for_plotting = network._list_of_coor_data_files
+        if cossin_data_for_plotting is None:
+            cossin_data = self._network._data_set
+        else:
+            cossin_data = cossin_data_for_plotting
 
         if plotting_space == "PC":
-            temp_sincos = sutils.get_many_cossin_from_coordiantes_in_file(list_of_coordinate_files_for_plotting)
-
-            temp_mid_result = network.get_mid_result(input_data = temp_sincos)
+            temp_mid_result = network.get_mid_result(input_data = cossin_data)
             PCs_to_plot = [item[1] for item in temp_mid_result]
 
             (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
-            # (x, y) = ([np.arccos(item[0]) * np.sign(item[1]) for item in PCs_to_plot],
-            #           [np.arccos(item[2]) * np.sign(item[3]) for item in PCs_to_plot])
             labels = ["PC1", "PC2"]
 
         elif plotting_space == "phipsi":
-            temp_dihedrals = sutils.get_many_dihedrals_from_coordinates_in_file(list_of_coordinate_files_for_plotting)
+            temp_dihedrals = sutils.get_many_dihedrals_from_cossin(cossin_data)
 
             (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
             labels = ["phi", "psi"]
@@ -402,8 +481,12 @@ class simulation_management(object):
                                         energy_expression_file=None,
                                         force_constant_for_biased = CONFIG_9):
 
+        temp_mid_result = self._mynetwork.get_mid_result()
+        PCs_of_network = [item[1] for item in temp_mid_result]
+        assert (len(PCs_of_network[0]) == 2)
+
         if list_of_potential_center is None:
-            list_of_potential_center = self.get_boundary_points_2()
+            list_of_potential_center = sutils.get_boundary_points_2(list_of_points= PCs_of_network)
         if energy_expression_file is None:
             energy_expression_file = self._mynetwork._energy_expression_file
             filename_of_energy_expression = energy_expression_file.split('resources/')[1]
@@ -447,90 +530,6 @@ exit 0
         return
 
 
-    def get_boundary_points(self, list_of_points = None, num_of_bins = CONFIG_10):
-        if list_of_points is None: list_of_points = self._mynetwork._PCs # FIXME: _PCs should be declared
-
-        x = [item[0] for item in list_of_points]
-        y = [item[1] for item in list_of_points]
-
-        temp = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
-        hist_matrix = temp[0]
-        # add a set of zeros around this region
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins + 2), 1)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins +2), 1)
-
-        sum_of_neighbors = np.zeros(np.shape(hist_matrix)) # number of neighbors occupied with some points
-        for i in range(np.shape(hist_matrix)[0]):
-            for j in range(np.shape(hist_matrix)[1]):
-                if i != 0: sum_of_neighbors[i,j] += hist_matrix[i - 1][j]
-                if j != 0: sum_of_neighbors[i,j] += hist_matrix[i][j - 1]
-                if i != np.shape(hist_matrix)[0] - 1: sum_of_neighbors[i,j] += hist_matrix[i + 1][j]
-                if j != np.shape(hist_matrix)[1] - 1: sum_of_neighbors[i,j] += hist_matrix[i][j + 1]
-
-        bin_width_0 = temp[1][1]-temp[1][0]
-        bin_width_1 = temp[2][1]-temp[2][0]
-        min_coor_in_PC_space_0 = temp[1][0] - 0.5 * bin_width_0  # multiply by 0.5 since we want the center of the grid
-        min_coor_in_PC_space_1 = temp[2][0] - 0.5 * bin_width_1
-
-        potential_centers = []
-
-        for i in range(np.shape(hist_matrix)[0]):
-            for j in range(np.shape(hist_matrix)[1]):
-                if hist_matrix[i,j] == 0 and sum_of_neighbors[i,j] != 0:  # no points in this block but there are points in neighboring blocks
-                    temp_potential_center = [round(min_coor_in_PC_space_0 + i * bin_width_0, 2), round(min_coor_in_PC_space_1 + j * bin_width_1, 2)]
-                    potential_centers.append(temp_potential_center)
-
-        return potential_centers
-
-    def get_boundary_points_2(self, list_of_points = None, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11):
-        '''This is another version of get_boundary_points() function'''
-        if list_of_points is None: list_of_points = self._mynetwork._PCs
-
-        x = [item[0] for item in list_of_points]
-        y = [item[1] for item in list_of_points]
-
-        temp = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
-        hist_matrix = temp[0]
-        # add a set of zeros around this region
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins + 2), 1)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins +2), 1)
-
-        sum_of_neighbors = np.zeros(np.shape(hist_matrix)) # number of neighbors occupied with some points
-        for i in range(np.shape(hist_matrix)[0]):
-            for j in range(np.shape(hist_matrix)[1]):
-                if i != 0: sum_of_neighbors[i,j] += hist_matrix[i - 1][j]
-                if j != 0: sum_of_neighbors[i,j] += hist_matrix[i][j - 1]
-                if i != np.shape(hist_matrix)[0] - 1: sum_of_neighbors[i,j] += hist_matrix[i + 1][j]
-                if j != np.shape(hist_matrix)[1] - 1: sum_of_neighbors[i,j] += hist_matrix[i][j + 1]
-
-        bin_width_0 = temp[1][1]-temp[1][0]
-        bin_width_1 = temp[2][1]-temp[2][0]
-        min_coor_in_PC_space_0 = temp[1][0] - 0.5 * bin_width_0  # multiply by 0.5 since we want the center of the grid
-        min_coor_in_PC_space_1 = temp[2][0] - 0.5 * bin_width_1
-
-        potential_centers = []
-
-        # now sort these grids (that has no points in it) 
-        # based on total number of points in its neighbors
-        index_of_grids = list(itertools.product(range(np.shape(hist_matrix)[0]), range(np.shape(hist_matrix)[1])))
-        print(index_of_grids)
-        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: sum_of_neighbors[x[0]][x[1]]) # sort based on histogram, return index values
-        temp_count = 0
-        for index in sorted_index_of_grids:
-            if hist_matrix[index] == 0 and sum_of_neighbors[index] != 0:
-                if temp_count >= num_of_boundary_points:
-                    break
-                else:
-                    temp_count += 1
-                    temp_potential_center = [round(min_coor_in_PC_space_0 + index[0] * bin_width_0, 2),
-                                             round(min_coor_in_PC_space_1 + index[1] * bin_width_1, 2)]
-                    potential_centers.append(temp_potential_center)
-
-        return potential_centers
 
     @staticmethod
     def get_num_of_running_jobs():
@@ -563,33 +562,35 @@ exit 0
         result = map(lambda x: '../sge_files/' + x, result)
         return result
 
-    def submit_new_jobs_if_there_are_too_few_jobs(self, num):
-        if self.get_num_of_running_jobs() < num:
-            job_list = self.get_sge_files_list()
-            self.submit_sge_jobs_and_archive_files(job_list, num)
+    @staticmethod
+    def submit_new_jobs_if_there_are_too_few_jobs(num):
+        if simulation_management.get_num_of_running_jobs() < num:
+            job_list = simulation_management.get_sge_files_list()
+            simulation_management.submit_sge_jobs_and_archive_files(job_list, num)
         return
 
-    def monitor_status_and_submit_periodically(self, num,
-                                            num_of_running_jobs_when_allowed_to_stop = 0,
-                                            monitor_mode = 'normal', # monitor_mode determines whether it can go out of first while loop
-                                            ):
+    @staticmethod
+    def monitor_status_and_submit_periodically(num,
+                                               num_of_running_jobs_when_allowed_to_stop = 0,
+                                               monitor_mode = 'normal',  # monitor_mode determines whether it can go out of first while loop
+                                               ):
         if monitor_mode == 'normal':
             min_num_of_unsubmitted_jobs = 0
         elif monitor_mode == 'always_wait_for_submit':
             min_num_of_unsubmitted_jobs = -1
 
-        num_of_unsubmitted_jobs = len(self.get_sge_files_list())
+        num_of_unsubmitted_jobs = len(simulation_management.get_sge_files_list())
         # first check if there are unsubmitted jobs
         while num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
             time.sleep(10)
             try:
-                self.submit_new_jobs_if_there_are_too_few_jobs(num)
-                num_of_unsubmitted_jobs = len(self.get_sge_files_list())
+                simulation_management.submit_new_jobs_if_there_are_too_few_jobs(num)
+                num_of_unsubmitted_jobs = len(simulation_management.get_sge_files_list())
             except:
                 print("not able to submit jobs!\n")
 
         # then check if all jobs are done
-        while self.get_num_of_running_jobs() > num_of_running_jobs_when_allowed_to_stop:
+        while simulation_management.get_num_of_running_jobs() > num_of_running_jobs_when_allowed_to_stop:
             time.sleep(10)
         return
 
@@ -643,7 +644,6 @@ class iteration(object):
                                                             )
 
             temp_network.train()
-            temp_network.get_PC_and_save_it_to_network()
             print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))
             if temp_network.get_fraction_of_variance_explained() > max_FVE:
                 max_FVE = temp_network.get_fraction_of_variance_explained()

@@ -2,6 +2,7 @@
 '''
 
 import sys
+import math
 
 sys.path.append('../src/')  # add the source file folder
 
@@ -25,7 +26,8 @@ class test_coordinates_file(object):
         return
 
 class test_simulation_utils(object):
-    def test_get_many_cossin_from_coordiantes_in_list_of_files(self):
+    @staticmethod
+    def test_get_many_cossin_from_coordiantes_in_list_of_files():
         list_of_files = ['dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
         actual = sutils.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
         assert_equal(100, len(actual))
@@ -36,5 +38,13 @@ class test_simulation_utils(object):
         assert_almost_equal(expected, actual[0])
         return
 
-class test_ANN_simulation(object):
+    @staticmethod
+    def test_get_many_dihedrals_from_cossin():
+        cossin = [[1, -1, 1, -1, 0, 0, 0, 0], [0, 0, 0, 0, 1, -1, 1, -1]]
+        actual = sutils.get_many_dihedrals_from_cossin(cossin)
+        assert_equal(actual, [[0,0,0,0],[math.pi / 2, -math.pi/2, math.pi/2,-math.pi/2]])
+        return
+
+class test_neural_network_for_simulation(object):
+
     pass
