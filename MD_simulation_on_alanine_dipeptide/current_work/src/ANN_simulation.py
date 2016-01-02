@@ -455,6 +455,10 @@ class plotting(object):
             coloring = 'red'
         elif color_option == 'step':
             coloring = range(len(x))
+        elif color_option == 'phi':
+            coloring = [item[1] for item in sutils.get_many_dihedrals_from_cossin(cossin_data)]
+        elif color_option == 'psi':
+            coloring = [item[2] for item in sutils.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'other':
             coloring = other_coloring
 
