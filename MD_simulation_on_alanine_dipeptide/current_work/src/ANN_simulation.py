@@ -107,7 +107,6 @@ class sutils(object):
 
     @staticmethod
     def get_boundary_points(list_of_points, num_of_bins = CONFIG_10):
-
         x = [item[0] for item in list_of_points]
         y = [item[1] for item in list_of_points]
 
@@ -411,12 +410,14 @@ class neural_network_for_simulation(object):
         window_counts = np.array(window_counts)
         sciio.savemat('WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
             'force_constants': force_constants, 'harmonic_centers': harmonic_centers,
-            'coords': coords, 'dim': 2,
+            'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[0],[0]],
+            'dF_tol': 0.0001
             })
         sciio.savemat('umbrella_OP.mat',
             {'umbOP': umbOP
             })
         return
+
 
 class plotting(object):
     """this class implements different plottings

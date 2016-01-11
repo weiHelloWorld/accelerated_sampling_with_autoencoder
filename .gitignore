@@ -7,3 +7,5 @@
 */current_work/.idea/*
 *.sge
 *.sge.*
+*.mat
+
