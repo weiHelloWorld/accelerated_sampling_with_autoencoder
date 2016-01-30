@@ -514,7 +514,7 @@ class simulation_management(object):
 
         for potential_center in list_of_potential_center:
 
-            parameter_list = ("50", str(num_of_simulation_steps), str(force_constant_for_biased),
+            parameter_list = ("200", str(num_of_simulation_steps), str(force_constant_for_biased),
                             str(potential_center[0]), str(potential_center[1]),
                             'network_' + str(self._mynetwork._index),
                             filename_of_energy_expression)
@@ -534,7 +534,7 @@ class simulation_management(object):
 #$ -M wei.herbert.chen@gmail.com         # email address
 
 #$ -q all.q               # queue name
-#$ -l h_rt=1:00:00       # run time (hh:mm:ss)
+#$ -l h_rt=24:00:00       # run time (hh:mm:ss)
 ####$ -l hostname=compute-0-3
 
 %s
