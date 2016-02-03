@@ -434,7 +434,8 @@ class plotting(object):
                                             color_option='pure',
                                             other_coloring=None,
                                             title=None,
-                                            axis_ranges=None
+                                            axis_ranges=None,
+                                            contain_colorbar=True
                                       ):
         """
         by default, we are using training data, and we also allow external data input
@@ -479,6 +480,9 @@ class plotting(object):
         if not axis_ranges is None:
             ax.set_xlim(axis_ranges[0])
             ax.set_ylim(axis_ranges[1])
+
+        if contain_colorbar:
+            fig.colorbar(im, ax=ax)
 
         return fig, ax, im
 
