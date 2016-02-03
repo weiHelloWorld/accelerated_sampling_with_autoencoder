@@ -410,7 +410,7 @@ class neural_network_for_simulation(object):
         window_counts = np.array(window_counts)
         sciio.savemat('WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
             'force_constants': force_constants, 'harmonic_centers': harmonic_centers,
-            'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[0],[0]],
+            'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[0.0],[0.0]],
             'dF_tol': 0.0001
             })
         sciio.savemat('umbrella_OP.mat',
