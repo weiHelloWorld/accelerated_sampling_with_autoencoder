@@ -471,7 +471,7 @@ class plotting(object):
             coloring = other_coloring
 
         fig, ax = plt.subplots()
-        ax.scatter(x,y, c=coloring)
+        im = ax.scatter(x,y, c=coloring)
         ax.set_xlabel(labels[0])
         ax.set_ylabel(labels[1])
         ax.set_title(title)
@@ -480,7 +480,7 @@ class plotting(object):
             ax.set_xlim(axis_ranges[0])
             ax.set_ylim(axis_ranges[1])
 
-        return fig
+        return fig, ax, im
 
 
 class simulation_management(object):
