@@ -203,7 +203,8 @@ class neural_network_for_simulation(object):
                  node_num = CONFIG_3,  # the structure of ANN
                  network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
                  max_num_of_training = CONFIG_5,
-                 filename_to_save_network = CONFIG_6
+                 filename_to_save_network = CONFIG_6,
+                 trainer = None
                  ):
 
         self._index = index
@@ -229,6 +230,8 @@ class neural_network_for_simulation(object):
             self._filename_to_save_network = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
         else:
             self._filename_to_save_network = filename_to_save_network
+
+        self._trainer = trainer  # save the trainer so that we could train this network step by step later
         return
 
     def save_into_file(self, filename = CONFIG_6):
@@ -361,13 +364,14 @@ class neural_network_for_simulation(object):
         for item in data_as_input_to_network:
             data_set.addSample(item, item)
 
-        print('start training network with index = %d\n' % self._index)
+        print('start training network with index = %d, training maxEpochs = %d\n' % (self._index, self._max_num_of_training))
         trainer.trainUntilConvergence(data_set, maxEpochs=self._max_num_of_training)
 
         self._connection_between_layers = connection_between_layers
         self._connection_with_bias_layers = connection_with_bias_layers
 
-        print('Done training network with index = %d\n' % self._index)
+        print('Done training network with index = %d, training maxEpochs = %d\n' % (self._index, self._max_num_of_training))
+        self._trainer = trainer
         return
 
     def get_training_error(self):
