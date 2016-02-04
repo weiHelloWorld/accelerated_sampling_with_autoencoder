@@ -407,11 +407,16 @@ class neural_network_for_simulation(object):
             assert(2 == len(temp_umbOP[0]))
             umbOP += temp_umbOP
 
+        max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, zip(*coords)))
+        min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, zip(*coords)))
+        interval = 0.1
+
         window_counts = np.array(window_counts)
         sciio.savemat('WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
             'force_constants': force_constants, 'harmonic_centers': harmonic_centers,
             'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[0.0],[0.0]],
-            'dF_tol': 0.0001
+            'dF_tol': 0.0001,
+            'min_gap_max_ORIG': [[min_of_coor[0], interval, max_of_coor[0]], [min_of_coor[1], interval, max_of_coor[1]]]
             })
         sciio.savemat('umbrella_OP.mat',
             {'umbOP': umbOP
