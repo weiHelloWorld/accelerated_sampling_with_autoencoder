@@ -518,7 +518,7 @@ class simulation_management(object):
 
         for potential_center in list_of_potential_center:
 
-            parameter_list = ("200", str(num_of_simulation_steps), str(force_constant_for_biased),
+            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                             str(potential_center[0]), str(potential_center[1]),
                             'network_' + str(self._mynetwork._index),
                             filename_of_energy_expression)

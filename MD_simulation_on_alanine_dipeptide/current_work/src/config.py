@@ -5,11 +5,8 @@ from pybrain.structure.modules.circularlayer import *
 it configures all default values/global parameters for constructors/functions
 '''
 
-############################################################################
 
-'''config for ANN_simulation.py'''
-
-############################################################################
+############   config for ANN_simulation.py  ##########################
 
 '''class coordinates_data_files_list:'''
 
@@ -27,6 +24,7 @@ CONFIG_6 = None # filename to save this network
 
 CONFIG_8 = 1000 # num of simulation steps
 CONFIG_9 = 500  # force constant for biased simulations
+CONFIG_16 = 200  # record interval (the frequency of writing system state into the file)
 
 '''class sutils'''
 
