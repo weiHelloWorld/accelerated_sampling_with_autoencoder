@@ -2,7 +2,6 @@
 *.ipynb
 *.pdb
 *.pkl
-*.md
 *.pyc
 */current_work/.idea/*
 *.sge
