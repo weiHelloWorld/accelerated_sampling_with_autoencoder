@@ -506,6 +506,51 @@ class simulation_management(object):
         self._force_constant_for_biased = force_constant_for_biased
         return
 
+    def get_todo_list_of_commands_for_simulations(self,list_of_potential_center = None,
+                                                  num_of_simulation_steps = None,
+                                                  energy_expression_file=None,
+                                                  force_constant_for_biased = None,
+                                                  file_to_store_command_list = 'simulation_command_todo_list.txt',
+                                                  is_write_into_file = True):
+        '''this function creates a list of commands that should be done later,
+        either in local machines or on the cluster,
+        if it should be done in the cluster, "auto_qsub" will be responsible for it
+        FIXME: to be finished
+        '''
+        temp_mid_result = self._mynetwork.get_mid_result()
+        PCs_of_network = [item[1] for item in temp_mid_result]
+        assert (len(PCs_of_network[0]) == 2)
+
+        if list_of_potential_center is None:
+            list_of_potential_center = sutils.get_boundary_points_2(list_of_points= PCs_of_network)
+        if num_of_simulation_steps is None:
+            num_of_simulation_steps = self._num_of_simulation_steps
+        if energy_expression_file is None:
+            energy_expression_file = self._mynetwork._energy_expression_file
+            filename_of_energy_expression = energy_expression_file.split('resources/')[1]
+        if force_constant_for_biased is None:
+            force_constant_for_biased = self._force_constant_for_biased
+
+        todo_list_of_commands_for_simulations = []
+
+        for potential_center in list_of_potential_center:
+            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                            str(potential_center[0]), str(potential_center[1]),
+                            'network_' + str(self._mynetwork._index),
+                            filename_of_energy_expression)
+
+            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
+            todo_list_of_commands_for_simulations += [command]
+
+        if is_write_into_file:
+            with open(file_to_store_command_list, 'w') as f_out:
+                for item in todo_list_of_commands_for_simulations:
+                    f_out.write(str(item))
+                    f_out.write('\n')
+
+        return todo_list_of_commands_for_simulations
+
+
     def create_sge_files_for_simulation(self,list_of_potential_center = None,
                                         num_of_simulation_steps = None,
                                         energy_expression_file=None,
