@@ -106,6 +106,30 @@ class sutils(object):
         return result
 
     @staticmethod
+    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
+        filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
+
+        index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
+
+        for input_file in filenames:
+            print ('generating coordinates of ' + input_file)
+            output_file = input_file[:-4] + '_coordinates.txt'
+
+            with open(input_file) as f_in:
+                with open(output_file, 'w') as f_out:
+                    for line in f_in:
+                        fields = line.strip().split()
+                        if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
+                            f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
+                            f_out.write('\t')
+                        elif fields[0] == "MODEL" and fields[1] != "1":
+                            f_out.write('\n')
+
+                    f_out.write('\n')  # last line
+        print("Done generating coordinates files\n")
+        return
+
+    @staticmethod
     def get_boundary_points(list_of_points, num_of_bins = CONFIG_10):
         x = [item[0] for item in list_of_points]
         y = [item[1] for item in list_of_points]
@@ -515,7 +539,6 @@ class simulation_management(object):
         '''this function creates a list of commands that should be done later,
         either in local machines or on the cluster,
         if it should be done in the cluster, "auto_qsub" will be responsible for it
-        FIXME: to be finished
         '''
         temp_mid_result = self._mynetwork.get_mid_result()
         PCs_of_network = [item[1] for item in temp_mid_result]
@@ -549,7 +572,6 @@ class simulation_management(object):
                     f_out.write('\n')
 
         return todo_list_of_commands_for_simulations
-
 
     def create_sge_files_for_simulation(self,list_of_potential_center = None,
                                         num_of_simulation_steps = None,
@@ -585,7 +607,7 @@ class simulation_management(object):
             content_for_sge_files = '''#!/bin/bash
 
 #$ -S /bin/bash           # use bash shell
-#$ -V                     # inherit the submission environment 
+#$ -V                     # inherit the submission environment
 #$ -cwd                   # start job in submission directory
 
 #$ -m ae                 # email on abort, begin, and end
@@ -671,29 +693,7 @@ exit 0
             time.sleep(10)
         return
 
-    @staticmethod
-    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
 
-        index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
-
-        for input_file in filenames:
-            print ('generating coordinates of ' + input_file)
-            output_file = input_file[:-4] + '_coordinates.txt'
-
-            with open(input_file) as f_in:
-                with open(output_file, 'w') as f_out:
-                    for line in f_in:
-                        fields = line.strip().split()
-                        if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
-                            f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
-                            f_out.write('\t')
-                        elif fields[0] == "MODEL" and fields[1] != "1":
-                            f_out.write('\n')
-
-                    f_out.write('\n')  # last line
-        print("Done generating coordinates files\n")
-        return
 
 
 class iteration(object):
@@ -780,6 +780,7 @@ class simulation_with_ANN_main(object):
         return
 
 class single_biased_simulation_data(object):
+    '''TODO: This class is not completed'''
     def __init__(self, my_network, file_for_single_biased_simulation_coor):
         '''my_network is the corresponding network for this biased simulation'''
         self._file_for_single_biased_simulation_coor = file_for_single_biased_simulation_coor
