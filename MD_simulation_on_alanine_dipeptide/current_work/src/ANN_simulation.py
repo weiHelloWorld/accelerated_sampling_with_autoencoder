@@ -278,27 +278,53 @@ class neural_network_for_simulation(object):
 
         node_num = self._node_num
         expression = ""
-        # first part: network
+
+        # 1st part: network
         for i in range(2):
             expression = '\n' + expression
             mul_coef = connection_between_layers[i].params.reshape(node_num[i + 1], node_num[i])
             bias_coef = connection_with_bias_layers[i].params
-            for j in range(np.size(mul_coef, 0)):
-                temp_expression = 'layer_%d_unit_%d = tanh( ' % (i + 1, j)
+
+            for j in range(np.size(mul_coef, 0)):                
+                temp_expression = 'in_layer_%d_unit_%d = ' % (i + 1, j)
 
                 for k in range(np.size(mul_coef, 1)):
-                    temp_expression += ' %f * layer_%d_unit_%d +' % (mul_coef[j, k], i, k)
+                    temp_expression += ' %f * out_layer_%d_unit_%d +' % (mul_coef[j, k], i, k)
 
-                temp_expression += ' %f);\n' % (bias_coef[j])
+                temp_expression += ' %f;\n' % (bias_coef[j])
                 expression = temp_expression + expression  # order of expressions matter in OpenMM
 
-        # second part: definition of inputs
+            if i == 1 and type_of_middle_hidden_layer == CircularLayer:
+                for j in range(np.size(mul_coef, 0) / 2):
+                    temp_expression = 'out_layer_%d_unit_%d = ( in_layer_%d_unit_%d ) / radius_of_circular_pair_%d;\n' % \
+                                      (i + 1, 2 * j, i + 1, 2 * j, j)
+                    temp_expression += 'out_layer_%d_unit_%d = ( in_layer_%d_unit_%d ) / radius_of_circular_pair_%d;\n' % \
+                                      (i + 1, 2 * j + 1, i + 1, 2 * j + 1, j)
+                    temp_expression += 'radius_of_circular_pair_%d = sqrt( in_layer_%d_unit_%d * in_layer_%d_unit_%d + in_layer_%d_unit_%d * in_layer_%d_unit_%d );\n'  \
+                                    % (j, i + 1, 2 * j, i + 1, 2 * j , i + 1, 2 * j + 1, i + 1, 2 * j + 1)
+
+                    expression = temp_expression + expression
+            else:
+                for j in range(np.size(mul_coef, 0)):
+                    temp_expression = 'out_layer_%d_unit_%d = tanh( in_layer_%d_unit_%d );\n' % (i + 1, j, i + 1, j)
+                    expression = temp_expression + expression
+
+        # 2nd part: relate PCs to network
+        if type_of_middle_hidden_layer == CircularLayer:
+            temp_expression = 'PC0 = acos( out_layer_2_unit_0 ) * ( step( out_layer_2_unit_1 ) - 0.5) * 2;\n'
+            temp_expression += 'PC1 = acos( out_layer_2_unit_2 ) * ( step( out_layer_2_unit_3 ) - 0.5) * 2;\n'
+            expression = temp_expression + expression
+        elif type_of_middle_hidden_layer == TanhLayer:
+            temp_expression = 'PC0 = out_layer_2_unit_0;\nPC1 = out_layer_2_unit_1;\n'
+            expression = temp_expression + expression
+
+        # 3rd part: definition of inputs
         index_of_backbone_atoms = [2, 5, 7, 9, 15, 17, 19]
         for i in range(len(index_of_backbone_atoms) - 3):
             index_of_coss = i
             index_of_sins = i + 4
-            expression += 'layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
-            expression += 'layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
+            expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
+            expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
             expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
             expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, i)
             expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
