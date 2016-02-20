@@ -270,6 +270,9 @@ class neural_network_for_simulation(object):
         return
 
     def get_expression_of_network(self):
+        # TODO: get expression for network with circular nodes
+        type_of_middle_hidden_layer = self._hidden_layers_type[1]
+
         connection_between_layers = self._connection_between_layers
         connection_with_bias_layers = self._connection_with_bias_layers
 
@@ -299,6 +302,7 @@ class neural_network_for_simulation(object):
             expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
             expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, i)
             expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
+
 
         return expression
 
@@ -473,6 +477,7 @@ class plotting(object):
         """
         by default, we are using training data, and we also allow external data input
         """
+        #TODO: plotting for circular layer network
         if network is None: network = self._network
         if cossin_data_for_plotting is None:
             cossin_data = self._network._data_set
@@ -573,6 +578,7 @@ class simulation_management(object):
 
         return todo_list_of_commands_for_simulations
 
+
     def create_sge_files_for_simulation(self,list_of_potential_center = None,
                                         num_of_simulation_steps = None,
                                         energy_expression_file=None,
@@ -629,6 +635,32 @@ exit 0
                 f_out.write("\n")
 
         return
+
+
+    # @staticmethod
+    # def run_one_command(filename = 'simulation_command_todo_list.txt', run_method = 'local'):
+    #     '''
+    #     this function picks the first command in the todo list and run it,
+    #     :param run_method: 'local' means running the command in local machine, 'cluster' means running in cluster
+    #     TODO:
+    #     '''
+    #     with open(filename, 'r') as in_file:
+    #         all_commands = in_file.read().split('\n')[:-1]
+    #
+    #     first_command = all_commands[0]
+    #     if run_method == 'local':
+    #         subprocess.check_output(first_command.split())  # run this command locally
+    #     elif run_method == 'cluster':
+    #         pass
+    #         # TODO
+    #     else:
+    #         pass
+    #         # TODO
+    #
+    #
+    #     return
+
+
 
     @staticmethod
     def get_num_of_running_jobs():
