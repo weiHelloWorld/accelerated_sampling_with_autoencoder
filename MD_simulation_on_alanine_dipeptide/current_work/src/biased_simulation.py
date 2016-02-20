@@ -52,7 +52,7 @@ with open(energy_expression_file, 'r') as f_in:
     energy_expression = f_in.read()
 
 energy_expression = '''
-%s * (layer_2_unit_0 - %s)^2 + %s * (layer_2_unit_1 - %s)^2;
+%s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
 
 ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
 
