@@ -222,7 +222,7 @@ class neural_network_for_simulation(object):
                  data_set_for_training,
                  energy_expression_file = None,
                  training_data_interval = CONFIG_2,
-                 in_layer_type = LinearLayer, hidden_layers_types = [TanhLayer, TanhLayer, TanhLayer],
+                 in_layer_type = LinearLayer, hidden_layers_types = CONFIG_17,
                  out_layer_type = LinearLayer,  # different layers
                  node_num = CONFIG_3,  # the structure of ANN
                  network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
@@ -270,7 +270,9 @@ class neural_network_for_simulation(object):
         return
 
     def get_expression_of_network(self):
-        # TODO: get expression for network with circular nodes
+        """
+        this function generates expression of PCs in terms of inputs
+        """
         type_of_middle_hidden_layer = self._hidden_layers_type[1]
 
         connection_between_layers = self._connection_between_layers
@@ -366,6 +368,23 @@ class neural_network_for_simulation(object):
 
             mid_result.append(copy.deepcopy(temp_mid_result)) # note that should use deepcopy
         return mid_result
+
+    def get_PCs(self, input_data = None):
+        """
+        write an independent function for getting PCs, since it is different for TanhLayer, and CircularLayer
+        """
+        if input_data is None: input_data = self._data_set
+        type_of_middle_hidden_layer = self._hidden_layers_type[1]
+        temp_mid_result = self.get_mid_result(input_data=input_data)
+        mid_result_1 = [item[1] for item in temp_mid_result]
+        if type_of_middle_hidden_layer == TanhLayer:
+            PCs = mid_result_1
+        elif type_of_middle_hidden_layer == CircularLayer:
+            PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in mid_result_1]
+
+        assert (len(PCs[0]) == 2)
+
+        return PCs
 
     def train(self):
 
@@ -511,8 +530,7 @@ class plotting(object):
             cossin_data = cossin_data_for_plotting
 
         if plotting_space == "PC":
-            temp_mid_result = network.get_mid_result(input_data = cossin_data)
-            PCs_to_plot = [item[1] for item in temp_mid_result]
+            PCs_to_plot = network.get_PCs(input_data= cossin_data)
 
             (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
             labels = ["PC1", "PC2"]
@@ -610,8 +628,7 @@ class simulation_management(object):
                                         energy_expression_file=None,
                                         force_constant_for_biased = None):
 
-        temp_mid_result = self._mynetwork.get_mid_result()
-        PCs_of_network = [item[1] for item in temp_mid_result]
+        PCs_of_network = self._mynetwork.get_PCs()
         assert (len(PCs_of_network[0]) == 2)
 
         if list_of_potential_center is None:
@@ -633,6 +650,8 @@ class simulation_management(object):
 
             file_name = "../sge_files/job_biased_%s_%s_%s_%s_%s_%s_%s.sge" % parameter_list
             command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
+            with open("temp_command_file_%d.txt" % (self._mynetwork._index), 'a') as temp_command_f:  # FIXME: use better implementation later
+                temp_command_f.write('nohup  ' + command + " &\n")
 
             print("creating %s" % file_name)
 

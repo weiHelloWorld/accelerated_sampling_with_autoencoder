@@ -5,6 +5,7 @@ from pybrain.structure.modules.circularlayer import *
 it configures all default values/global parameters for constructors/functions
 '''
 
+this_is_used_to_count_how_many_config_options_I_am_using = 17
 
 ############   config for ANN_simulation.py  ##########################
 
@@ -13,18 +14,18 @@ it configures all default values/global parameters for constructors/functions
 CONFIG_1 = ['../target/'] # list of directories that contains all coordinates files
 
 '''class neural_network_for_simulation:'''
-
+CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1 # training data interval
-CONFIG_3 = [8, 12, 2, 12, 8]  # the structure of ANN: number of nodes in each layer
+CONFIG_3 = [8, 12, 4, 12, 8]  # the structure of ANN: number of nodes in each layer
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
 
 '''class simulation_management'''
 
-CONFIG_8 = 1000 # num of simulation steps
+CONFIG_8 = 5000 # num of simulation steps
 CONFIG_9 = 500  # force constant for biased simulations
-CONFIG_16 = 200  # record interval (the frequency of writing system state into the file)
+CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 
 '''class sutils'''
 
