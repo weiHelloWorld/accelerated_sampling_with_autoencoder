@@ -820,7 +820,7 @@ class iteration(object):
         manager = simulation_management(self._network)
         manager.monitor_status_and_submit_periodically(num = CONFIG_14,
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
-        manager.generate_coordinates_from_pdb_files()
+        sutils.generate_coordinates_from_pdb_files()
         return
 
 
