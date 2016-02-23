@@ -213,9 +213,9 @@ class sutils(object):
                     if periodic_boundary:  # this is used for network with circularLayer
                         for temp_index in range(2):
                             if temp_potential_center[temp_index] < - np.pi:
-                                temp_potential_center[temp_index] += 2 * np.pi
+                                temp_potential_center[temp_index] = round(temp_potential_center[temp_index] + 2 * np.pi, 2)
                             elif temp_potential_center[temp_index] > np.pi:
-                                temp_potential_center[temp_index] -= 2 * np.pi
+                                temp_potential_center[temp_index] = round(temp_potential_center[temp_index] - 2 * np.pi, 2)
 
                     potential_centers.append(temp_potential_center)
 

@@ -25,7 +25,7 @@ content_for_sge_file = '''#!/bin/bash
 
 #$ -q all.q               # queue name
 #$ -l h_rt=24:00:00       # run time (hh:mm:ss)
-#$ -l hostname=compute-0-3
+######$ -l hostname=compute-0-3
 
 %s
 

@@ -1,6 +1,6 @@
 from ANN_simulation import *
 
-staring_index = 6
+staring_index = 8
 init_iter = iteration(index = staring_index, network = None)
 
 a = simulation_with_ANN_main(num_of_iterations = 10, initial_iteration = init_iter, training_interval=None)
