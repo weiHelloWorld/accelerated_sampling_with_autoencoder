@@ -166,7 +166,8 @@ class sutils(object):
         return potential_centers
 
     @staticmethod
-    def get_boundary_points_2(list_of_points, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11):
+    def get_boundary_points_2(list_of_points, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11,
+                              periodic_boundary = CONFIG_18):
         '''This is another version of get_boundary_points() function'''
 
         x = [item[0] for item in list_of_points]
@@ -209,6 +210,13 @@ class sutils(object):
                     temp_count += 1
                     temp_potential_center = [round(min_coor_in_PC_space_0 + index[0] * bin_width_0, 2),
                                              round(min_coor_in_PC_space_1 + index[1] * bin_width_1, 2)]
+                    if periodic_boundary:  # this is used for network with circularLayer
+                        for temp_index in range(2):
+                            if temp_potential_center[temp_index] < - np.pi:
+                                temp_potential_center[temp_index] += np.pi
+                            elif temp_potential_center[temp_index] > np.pi:
+                                temp_potential_center[temp_index] -= np.pi
+
                     potential_centers.append(temp_potential_center)
 
         return potential_centers
@@ -665,7 +673,7 @@ class simulation_management(object):
 #$ -M wei.herbert.chen@gmail.com         # email address
 
 #$ -q all.q               # queue name
-#$ -l h_rt=24:00:00       # run time (hh:mm:ss)
+#$ -l h_rt=2:00:00       # run time (hh:mm:ss)
 ####$ -l hostname=compute-0-3
 
 %s

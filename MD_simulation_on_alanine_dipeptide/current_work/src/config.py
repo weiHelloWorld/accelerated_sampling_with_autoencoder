@@ -5,8 +5,6 @@ from pybrain.structure.modules.circularlayer import *
 it configures all default values/global parameters for constructors/functions
 '''
 
-this_is_used_to_count_how_many_config_options_I_am_using = 17
-
 ############   config for ANN_simulation.py  ##########################
 
 '''class coordinates_data_files_list:'''
@@ -30,7 +28,8 @@ CONFIG_16 = 50  # record interval (the frequency of writing system state into th
 '''class sutils'''
 
 CONFIG_10 = 5   # num of bins for get_boundary_points()
-CONFIG_11 = 10  # num of boundary points
+CONFIG_11 = 15  # num of boundary points
+CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 
 '''def generate_coordinates_from_pdb_files'''
 
