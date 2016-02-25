@@ -134,8 +134,7 @@ class sutils(object):
         x = [item[0] for item in list_of_points]
         y = [item[1] for item in list_of_points]
 
-        temp = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
-        hist_matrix = temp[0]
+        hist_matrix, _, _ = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
         # add a set of zeros around this region
         hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
         hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
@@ -173,8 +172,7 @@ class sutils(object):
         x = [item[0] for item in list_of_points]
         y = [item[1] for item in list_of_points]
 
-        temp = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
-        hist_matrix = temp[0]
+        hist_matrix, _ , _ = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
         # add a set of zeros around this region
         hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
         hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
@@ -673,7 +671,7 @@ class simulation_management(object):
 #$ -M wei.herbert.chen@gmail.com         # email address
 
 #$ -q all.q               # queue name
-#$ -l h_rt=2:00:00       # run time (hh:mm:ss)
+#$ -l h_rt=%s       # run time (hh:mm:ss)
 ####$ -l hostname=compute-0-3
 
 %s
@@ -681,7 +679,7 @@ class simulation_management(object):
 echo "This job is DONE!"
 
 exit 0
-''' % command
+''' % (CONFIG_19, command)
 
             with open(file_name, 'w') as f_out:
                 f_out.write(content_for_sge_files)

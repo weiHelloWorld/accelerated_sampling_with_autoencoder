@@ -21,9 +21,10 @@ CONFIG_6 = None # filename to save this network
 
 '''class simulation_management'''
 
-CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 500  # force constant for biased simulations
-CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
+CONFIG_8 = 150000 # num of simulation steps
+CONFIG_9 = 100  # force constant for biased simulations
+CONFIG_16 = 300  # record interval (the frequency of writing system state into the file)
+CONFIG_19 = '4:00:00'  # max running time for the sge job
 
 '''class sutils'''
 
