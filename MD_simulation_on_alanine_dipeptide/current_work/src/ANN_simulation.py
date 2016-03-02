@@ -223,8 +223,12 @@ class sutils(object):
     def get_boundary_points_3_for_circular_network(list_of_points,
                                                    range_of_PCs = [[-np.pi, np.pi], [-np.pi, np.pi]],
                                                    num_of_bins = 10,
-                                                   num_of_boundary_points = CONFIG_11):
-        '''This is another version of get_boundary_points() function'''
+                                                   num_of_boundary_points = CONFIG_11,
+                                                   preprocessing = True):
+        '''This is another version of get_boundary_points() function
+        it works for circular layer case
+        :param preprocessing: if True, then more weight is not linear, this would be better based on experience
+        '''
 
         x = [item[0] for item in list_of_points]
         y = [item[1] for item in list_of_points]
@@ -232,8 +236,12 @@ class sutils(object):
         hist_matrix, temp1 , temp2 = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins], range=range_of_PCs)
         # following is the main algorithm to find boundary and holes
         # simply find the points that are lower than average of its 4 neighbors
+
+        if preprocessing:
+            hist_matrix = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)   # preprocessing process
+
         diff_with_neighbors = hist_matrix - 0.25 * (np.roll(hist_matrix, 1, axis=0) + np.roll(hist_matrix, -1, axis=0)
-                                   + np.roll(hist_matrix, 1, axis=1) + np.roll(hist_matrix, -1, axis=1))
+                                                  + np.roll(hist_matrix, 1, axis=1) + np.roll(hist_matrix, -1, axis=1))
 
         bin_width_0 = temp1[1] - temp1[0]
         bin_width_1 = temp2[1] - temp2[0]
