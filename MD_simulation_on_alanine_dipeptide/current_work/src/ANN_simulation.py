@@ -130,41 +130,6 @@ class sutils(object):
         return
 
     @staticmethod
-    def get_boundary_points(list_of_points, num_of_bins = CONFIG_10):
-        x = [item[0] for item in list_of_points]
-        y = [item[1] for item in list_of_points]
-
-        hist_matrix, temp1, temp2 = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
-        # add a set of zeros around this region
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins + 2), 1)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins +2), 1)
-
-        sum_of_neighbors = np.zeros(np.shape(hist_matrix)) # number of neighbors occupied with some points
-        for i in range(np.shape(hist_matrix)[0]):
-            for j in range(np.shape(hist_matrix)[1]):
-                if i != 0: sum_of_neighbors[i,j] += hist_matrix[i - 1][j]
-                if j != 0: sum_of_neighbors[i,j] += hist_matrix[i][j - 1]
-                if i != np.shape(hist_matrix)[0] - 1: sum_of_neighbors[i,j] += hist_matrix[i + 1][j]
-                if j != np.shape(hist_matrix)[1] - 1: sum_of_neighbors[i,j] += hist_matrix[i][j + 1]
-
-        bin_width_0 = temp1[1]-temp1[0]
-        bin_width_1 = temp2[1]-temp2[0]
-        min_coor_in_PC_space_0 = temp1[0] - 0.5 * bin_width_0  # multiply by 0.5 since we want the center of the grid
-        min_coor_in_PC_space_1 = temp2[0] - 0.5 * bin_width_1
-
-        potential_centers = []
-
-        for i in range(np.shape(hist_matrix)[0]):
-            for j in range(np.shape(hist_matrix)[1]):
-                if hist_matrix[i,j] == 0 and sum_of_neighbors[i,j] != 0:  # no points in this block but there are points in neighboring blocks
-                    temp_potential_center = [round(min_coor_in_PC_space_0 + i * bin_width_0, 2), round(min_coor_in_PC_space_1 + j * bin_width_1, 2)]
-                    potential_centers.append(temp_potential_center)
-
-        return potential_centers
-
-    @staticmethod
     def get_boundary_points_2(list_of_points, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11,
                               periodic_boundary = CONFIG_18):
         '''This is another version of get_boundary_points() function'''
@@ -650,7 +615,7 @@ class simulation_management(object):
         assert (len(PCs_of_network[0]) == 2)
 
         if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points_2(list_of_points= PCs_of_network)
+            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
         if num_of_simulation_steps is None:
             num_of_simulation_steps = self._num_of_simulation_steps
         if energy_expression_file is None:
@@ -688,7 +653,7 @@ class simulation_management(object):
         assert (len(PCs_of_network[0]) == 2)
 
         if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points_2(list_of_points= PCs_of_network)
+            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
         if num_of_simulation_steps is None:
             num_of_simulation_steps = self._num_of_simulation_steps
         if energy_expression_file is None:
