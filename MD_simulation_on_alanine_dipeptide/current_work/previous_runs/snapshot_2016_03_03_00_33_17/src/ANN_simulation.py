@@ -671,8 +671,8 @@ class simulation_management(object):
 
             file_name = "../sge_files/job_biased_%s_%s_%s_%s_%s_%s_%s.sge" % parameter_list
             command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
-            # with open("temp_command_file_%d.txt" % (self._mynetwork._index), 'a') as temp_command_f:  # FIXME: use better implementation later
-            #     temp_command_f.write('nohup  ' + command + " &\n")
+            with open("temp_command_file_%d.txt" % (self._mynetwork._index), 'a') as temp_command_f:  # FIXME: use better implementation later
+                temp_command_f.write('nohup  ' + command + " &\n")
 
             print("creating %s" % file_name)
 
