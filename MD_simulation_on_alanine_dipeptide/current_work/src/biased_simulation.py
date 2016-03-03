@@ -9,6 +9,8 @@ from sys import stdout
 import os
 import datetime
 
+from config import *
+
 
 ############################ PARAMETERS BEGIN ###############################################################
 record_interval = int(sys.argv[1])
@@ -51,15 +53,19 @@ k2 = force_constant
 with open(energy_expression_file, 'r') as f_in:
     energy_expression = f_in.read()
 
-energy_expression = '''
-%s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
+if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+    pass
 
-''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
+else:
+    energy_expression = '''
+    %s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
+
+    ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
 
 flag_random_seed = 0 # whether we need to fix this random seed
 
-simulation_temperature = 300 
-time_step = 0.002 # ps
+simulation_temperature = CONFIG_21
+time_step = CONFIG_22   # simulation time step, in ps
 
 
 ############################ PARAMETERS END ###############################################################

@@ -5,7 +5,9 @@ from pybrain.structure.modules.circularlayer import *
 it configures all default values/global parameters for constructors/functions
 '''
 
+#######################################################################
 ############   config for ANN_simulation.py  ##########################
+#######################################################################
 
 '''class coordinates_data_files_list:'''
 
@@ -52,3 +54,12 @@ CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 '''def __init__'''
 '''def run_one_iteration'''
 '''def run_mult_iterations'''
+
+##########################################################################
+############   config for biased_simulation.py  ##########################
+##########################################################################
+
+CONFIG_20 = True  # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+CONFIG_21 = 300   # simulation temperature
+CONFIG_22 = 0.002   # simulation time step, in ps
+
