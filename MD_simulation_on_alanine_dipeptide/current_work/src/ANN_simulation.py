@@ -791,6 +791,11 @@ exit 0
             time.sleep(10)
         return
 
+    @staticmethod
+    def check_whether_job_ends_without_exception(job_sgefile_name, latest_version = True):
+        # TODO: assertion
+        # TODO: find file
+        return
 
 
 
