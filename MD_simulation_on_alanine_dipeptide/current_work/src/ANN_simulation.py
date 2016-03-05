@@ -797,11 +797,13 @@ exit 0
         return job_sgefile_name in output
 
     @staticmethod
-    def check_whether_job_finishes_unsuccessfully(job_sgefile_name, latest_version = True):
+    def check_whether_job_finishes_successfully(job_sgefile_name, latest_version = True):
         """
-        job finishes unsuccessfully includes (as return value)
-        1. ends with exception
-        2. aborted due to time limit or other reason
+        return value:
+        0: finishes successfully
+        1: finishes with exception
+        2: aborted due to time limit or other reason
+        -1: job does not exist
         """
         job_finished_message = 'This job is DONE!\n'
         # first we check whether the job finishes
@@ -813,8 +815,8 @@ exit 0
             out_file_list = filter(lambda x: job_sgefile_name in x and ".o" in x, all_files_in_this_dir)
             err_file_list = filter(lambda x: job_sgefile_name in x and ".e" in x, all_files_in_this_dir)
 
-            assert (len(out_file_list) > 0)
-            assert (len(err_file_list) > 0)
+            if len(out_file_list) == 0 or len(err_file_list) == 0:
+                return -1   # job does not exist
 
             if latest_version:
                 job_serial_number_list = map(lambda x: int(x.split('.sge.o')[1]), out_file_list)
