@@ -1,10 +1,9 @@
 *.txt
-*.ipynb
 *.pdb
 *.pkl
 *.pyc
-*/current_work/.idea/*
+**/current_work/.idea/*
 *.sge
 *.sge.*
 *.mat
-
+**/.ipynb_checkpoints/

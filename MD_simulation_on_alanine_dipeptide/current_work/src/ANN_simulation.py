@@ -791,7 +791,51 @@ exit 0
             time.sleep(10)
         return
 
+    @staticmethod
+    def is_job_running_on_cluster(job_sgefile_name):
+        output = subprocess.check_output(['qstat', '-r'])
+        return job_sgefile_name in output
 
+    @staticmethod
+    def check_whether_job_finishes_successfully(job_sgefile_name, latest_version = True):
+        """
+        return value:
+        0: finishes successfully
+        1: finishes with exception
+        2: aborted due to time limit or other reason
+        -1: job does not exist
+        """
+        job_finished_message = 'This job is DONE!\n'
+        # first we check whether the job finishes
+        if simulation_management.is_job_running_on_cluster(job_sgefile_name):
+            return 0  # not finished
+        else:
+            all_files_in_this_dir = subprocess.check_output(['ls']).split()
+
+            out_file_list = filter(lambda x: job_sgefile_name in x and ".o" in x, all_files_in_this_dir)
+            err_file_list = filter(lambda x: job_sgefile_name in x and ".e" in x, all_files_in_this_dir)
+
+            if len(out_file_list) == 0 or len(err_file_list) == 0:
+                return -1   # job does not exist
+
+            if latest_version:
+                job_serial_number_list = map(lambda x: int(x.split('.sge.o')[1]), out_file_list)
+                job_serial_number_of_latest_version = max(job_serial_number_list)
+                latest_out_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, out_file_list)[0]
+                latest_err_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, err_file_list)[0]
+                with open(latest_out_file, 'r') as out_f:
+                    out_content = out_f.readlines()
+                with open(latest_err_file, 'r') as err_f:
+                    err_content = err_f.readlines()
+                    err_content = filter(lambda x: x[:4] != 'bash', err_content)  # ignore error info starting with "bash"
+
+                if (job_finished_message in out_content) and (len(err_content) != 0):
+                    return 1  # ends with exception
+                elif not job_finished_message in out_content:
+                    return 2  # aborted due to time limit or other reason
+            else:
+                # TODO: handle this case
+                return
 
 
 class iteration(object):
