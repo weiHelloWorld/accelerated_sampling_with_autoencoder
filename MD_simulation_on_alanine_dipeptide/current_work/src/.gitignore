@@ -1,1 +1,4 @@
 *.png
+nohup.out
+temp.py
+*.ipynb
