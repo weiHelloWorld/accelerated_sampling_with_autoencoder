@@ -90,7 +90,10 @@ system.addForce(force)
 integrator = LangevinIntegrator(simulation_temperature*kelvin, 1/picosecond, time_step*picoseconds)
 if flag_random_seed:
     integrator.setRandomNumberSeed(1)  # set random seed
-simulation = Simulation(pdb.topology, system, integrator)
+
+platform = Platform.getPlatformByName(CONFIG_23)
+
+simulation = Simulation(pdb.topology, system, integrator, platform)
 simulation.context.setPositions(pdb.positions)
 
 

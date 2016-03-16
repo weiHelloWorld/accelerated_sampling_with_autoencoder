@@ -63,3 +63,4 @@ CONFIG_20 = True  # whether the PC space is periodic in [- pi, pi], True for cir
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
+CONFIG_23 = 'CPU'   # simulation platform
