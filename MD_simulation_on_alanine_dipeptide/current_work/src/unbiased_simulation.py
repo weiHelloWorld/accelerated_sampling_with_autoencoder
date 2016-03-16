@@ -26,8 +26,10 @@ forcefield = ForceField(force_field_file) # without water
 system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff, \
                                  constraints=AllBonds)  # what does it mean by topology? 
 
-integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.002*picoseconds) 
-simulation = Simulation(pdb.topology, system, integrator)
+integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.002*picoseconds)
+
+platform = Platform.getPlatformByName("CUDA")
+simulation = Simulation(pdb.topology, system, integrator, platform)
 simulation.context.setPositions(pdb.positions)
 
 
