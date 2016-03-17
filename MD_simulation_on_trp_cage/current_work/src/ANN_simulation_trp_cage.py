@@ -55,6 +55,25 @@ class sutils(object):
         return
 
     @staticmethod
+    def get_cossin_of_a_dihedral_from_four_atoms(coord_1, coord_2, coord_3, coord_4):
+        """each parameter is a 3D Cartesian coordinates of an atom"""
+        coords_of_four = np.array([coord_1, coord_2, coord_3, coord_4])
+        num_of_coordinates = 4
+        diff_coordinates = coords_of_four[1:num_of_coordinates, :] - coords_of_four[0:num_of_coordinates - 1,:]  # bond vectors
+        diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
+        normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
+        normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
+        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
+        diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
+
+        index = 0
+        cos_of_angle = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
+        sin_of_angle_vec = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
+        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]));
+
+        return [cos_of_angle, sin_of_angle]
+
+    @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
         num_of_coordinates = len(a_coordinate) / 3
         a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)

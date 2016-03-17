@@ -6,8 +6,9 @@ import math
 
 sys.path.append('../src/')  # add the source file folder
 
-from ANN_simulation import *
+from ANN_simulation_trp_cage import *
 from nose.tools import assert_equal, assert_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
 class test_coordinates_file(object):
@@ -21,9 +22,8 @@ class test_coordinates_file(object):
             4.032  , 3.862 ,  -0.414 , 5.350  , 4.301  , 0.000   ,
             5.314 ,  5.734  , 0.511  , 5.119  , 6.718  , -0.370  ,
             4.974  , 8.120  , -0.034  ])
-        for item in range(21):
-            assert_almost_equal(my_file._coor_data[0][item], expected[item])
 
+        assert_array_almost_equal(my_file._coor_data[0], expected)
         assert_equal(my_file._coor_data.shape[0], 100)
         return
 
@@ -51,6 +51,14 @@ class test_simulation_utils(object):
             for index in range(4):
                 assert_almost_equal(actual[item][index], expected[item][index], 4)
 
+        return
+
+    @staticmethod
+    def test_get_cossin_of_a_dihedral_from_four_atoms():
+        coords = [[0,0,0], [0,1,1], [0,1,2], [1,1,3]]
+        actual = np.array(sutils.get_cossin_of_a_dihedral_from_four_atoms(coords[0], coords[1], coords[2], coords[3]))
+        expected = np.array([0, 1])
+        assert_array_almost_equal(expected, actual)
         return
 
 class test_neural_network_for_simulation(object):
