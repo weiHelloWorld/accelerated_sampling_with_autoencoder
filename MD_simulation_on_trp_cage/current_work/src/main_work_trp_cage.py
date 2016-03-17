@@ -1,4 +1,4 @@
-from ANN_simulation import *
+from ANN_simulation_trp_cage import *
 
 staring_index = 5
 init_iter = iteration(index = staring_index, network = None)

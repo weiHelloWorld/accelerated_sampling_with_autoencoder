@@ -1,4 +1,4 @@
-from ANN_simulation import *
+from ANN_simulation_trp_cage import *
 
 import sys
 
