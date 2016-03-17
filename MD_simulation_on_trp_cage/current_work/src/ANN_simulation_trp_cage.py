@@ -1,6 +1,7 @@
 import copy, pickle, re, os, time, subprocess, datetime, itertools
 from scipy import io as sciio
 import numpy as np
+from numpy.testing import assert_almost_equal
 from math import *
 from pybrain.structure import *
 from pybrain.structure.modules.circularlayer import *
@@ -71,28 +72,36 @@ class sutils(object):
         sin_of_angle_vec = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
         sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]));
 
+        assert_almost_equal (cos_of_angle ** 2 + sin_of_angle ** 2, 1)
         return [cos_of_angle, sin_of_angle]
 
     @staticmethod
+    def get_coordinates_of_atom_with_index(a_coodinate, index):
+        """:param a_coodinate is coordinate of all 20 atoms"""
+        return [a_coodinate[3 * index], a_coodinate[3 * index + 1], a_coodinate[3 * index + 2]]
+
+    @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
-        num_of_coordinates = len(a_coordinate) / 3
-        a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
-        diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
-        diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
-        normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
-        normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
-        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
-        diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
+        # FIXME: how to write unit test for this function?
+        total_num_of_residues = 20
+        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
+                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
 
-        cos_of_angles = range(len(normal_vectors_normalized_1))
-        sin_of_angles_vec = range(len(normal_vectors_normalized_1))
-        sin_of_angles = range(len(normal_vectors_normalized_1)) # initialization
+        result = []
 
-        for index in range(len(normal_vectors_normalized_1)):
-            cos_of_angles[index] = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-            sin_of_angles_vec[index] = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-            sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]));
-        return cos_of_angles + sin_of_angles
+        for item in list_of_idx_four_atoms:
+            parameter_list = map(
+                    lambda x: sutils.get_coordinates_of_atom_with_index(a_coordinate, x),
+                    item
+                    )
+            [cos_value, sin_value] = sutils.get_cossin_of_a_dihedral_from_four_atoms(*parameter_list)
+            # print(item)
+            # print(cos_value, sin_value)
+            result += [cos_value, sin_value]
+
+        return result
+
 
     @staticmethod
     def get_many_cossin_from_coordinates(coordinates):
@@ -110,7 +119,7 @@ class sutils(object):
 
     @staticmethod
     def get_many_dihedrals_from_coordinates_in_file (list_of_files):
-        # why we need to get dihedreals from a list of coordinate files?
+        # why we need to get dihedrals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
         temp = sutils.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
         return sutils.get_many_dihedrals_from_cossin(temp)
@@ -119,16 +128,25 @@ class sutils(object):
     def get_many_dihedrals_from_cossin(cossin):
         result = []
         for item in cossin:
-            assert (len(item) == 8)
-            temp_angle = np.multiply(np.arccos(item[0:4]), np.sign(item[4:8]))
-            result += [list(temp_angle)]
+            temp_angle = []
+            assert (len(item) == 76)
+            for idx_of_angle in range(38):
+                temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
+
+            assert (len(temp_angle) == 38)
+
+            result += [temp_angle]
+
+        assert (len(result) == len(cossin))
+
         return result
 
     @staticmethod
     def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
         filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
 
-        index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
+        index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
+        assert (len(index_of_backbone_atoms) % 3 == 0)
 
         for input_file in filenames:
             print ('generating coordinates of ' + input_file)
