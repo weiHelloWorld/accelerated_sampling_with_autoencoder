@@ -285,6 +285,7 @@ class neural_network_for_simulation(object):
                  network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
                  max_num_of_training = CONFIG_5,
                  filename_to_save_network = CONFIG_6,
+                 network_verbose = False,
                  trainer = None
                  ):
 
@@ -311,6 +312,8 @@ class neural_network_for_simulation(object):
             self._filename_to_save_network = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
         else:
             self._filename_to_save_network = filename_to_save_network
+
+        self._network_verbose = network_verbose
 
         self._trainer = trainer  # save the trainer so that we could train this network step by step later
         return
@@ -485,7 +488,7 @@ class neural_network_for_simulation(object):
                                                 momentum=self._network_parameters[1],
                                                 weightdecay=self._network_parameters[2],
                                                 lrdecay=self._network_parameters[3],
-                                                verbose=False)
+                                                verbose=self._network_verbose)
         data_set = SupervisedDataSet(node_num[0], node_num[4])
 
         sincos = self._data_set[::self._training_data_interval]  # pick some of the data to train

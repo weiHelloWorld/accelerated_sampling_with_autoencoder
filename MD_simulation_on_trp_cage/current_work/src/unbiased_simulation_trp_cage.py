@@ -8,8 +8,8 @@ from sys import stdout
 
 ############################ PARAMETERS BEGIN ###############################################################
 
-record_interval = 500
-total_number_of_steps = 400000
+record_interval = 100
+total_number_of_steps = 40000
 
 temperature = 300   
 

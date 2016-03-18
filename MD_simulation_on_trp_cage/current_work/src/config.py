@@ -6,7 +6,7 @@ it configures all default values/global parameters for constructors/functions
 '''
 
 #######################################################################
-############   config for ANN_simulation.py  ##########################
+############   config for ANN_simulation_trp_cage.py  #################
 #######################################################################
 
 '''class coordinates_data_files_list:'''
@@ -14,9 +14,9 @@ it configures all default values/global parameters for constructors/functions
 CONFIG_1 = ['../target/'] # list of directories that contains all coordinates files
 
 '''class neural_network_for_simulation:'''
-CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1 # training data interval
-CONFIG_3 = [8, 12, 4, 12, 8]  # the structure of ANN: number of nodes in each layer
+CONFIG_3 = [76, 152, 2, 152, 76]  # the structure of ANN: number of nodes in each layer
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
