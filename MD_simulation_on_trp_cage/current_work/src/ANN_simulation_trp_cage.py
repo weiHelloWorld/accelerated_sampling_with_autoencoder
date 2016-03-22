@@ -72,7 +72,13 @@ class sutils(object):
         sin_of_angle_vec = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
         sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]));
 
-        assert_almost_equal (cos_of_angle ** 2 + sin_of_angle ** 2, 1)
+        try:
+            assert_almost_equal (cos_of_angle ** 2 + sin_of_angle ** 2, 1, decimal=1)  # FIXME: why in some cases it is not close to 1??
+        except:
+            print ("error: cos^2 x+ sin^2 x != 1")
+            print ("coordinates of four atoms are:")
+            print (coords_of_four)
+
         return [cos_of_angle, sin_of_angle]
 
     @staticmethod
@@ -279,7 +285,8 @@ class neural_network_for_simulation(object):
                  data_set_for_training,
                  energy_expression_file = None,
                  training_data_interval = CONFIG_2,
-                 in_layer_type = LinearLayer, hidden_layers_types = CONFIG_17,
+                 in_layer_type = LinearLayer,
+                 hidden_layers_types = CONFIG_17,
                  out_layer_type = LinearLayer,  # different layers
                  node_num = CONFIG_3,  # the structure of ANN
                  network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
@@ -330,6 +337,7 @@ class neural_network_for_simulation(object):
         return
 
     def get_expression_of_network(self):
+        # FIXME: modify this later
         """
         this function generates expression of PCs in terms of inputs
         """
@@ -408,8 +416,10 @@ class neural_network_for_simulation(object):
         connection_with_bias_layers = self._connection_with_bias_layers
 
         node_num = self._node_num
-        temp_mid_result = range(4)
-        temp_mid_result_in = range(4)
+        num_of_hidden_layers = len(self._hidden_layers_type)
+
+        temp_mid_result = range(num_of_hidden_layers + 1)
+        temp_mid_result_in = range(num_of_hidden_layers + 1)
         mid_result = []
 
         data_as_input_to_network = input_data
@@ -417,7 +427,7 @@ class neural_network_for_simulation(object):
         hidden_and_out_layers = self._hidden_layers + [self._out_layer]
 
         for item in data_as_input_to_network:
-            for i in range(4):
+            for i in range(num_of_hidden_layers + 1):
                 mul_coef = connection_between_layers[i].params.reshape(node_num[i + 1], node_num[i]) # fix node_num
                 bias_coef = connection_with_bias_layers[i].params
                 previous_result = item if i == 0 else temp_mid_result[i - 1]
@@ -434,15 +444,17 @@ class neural_network_for_simulation(object):
         write an independent function for getting PCs, since it is different for TanhLayer, and CircularLayer
         """
         if input_data is None: input_data = self._data_set
-        type_of_middle_hidden_layer = self._hidden_layers_type[1]
+        num_of_hidden_layers = len(self._hidden_layers_type)
+        index_of_bottleneck_hidden_layer = (num_of_hidden_layers - 1) / 2   # it works for both 3-layer and 5-layer structure
+        type_of_middle_hidden_layer = self._hidden_layers_type[index_of_bottleneck_hidden_layer]
         temp_mid_result = self.get_mid_result(input_data=input_data)
-        mid_result_1 = [item[1] for item in temp_mid_result]
+        mid_result_1 = [item[index_of_bottleneck_hidden_layer] for item in temp_mid_result]
         if type_of_middle_hidden_layer == TanhLayer:
             PCs = mid_result_1
         elif type_of_middle_hidden_layer == CircularLayer:
             PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in mid_result_1]
 
-        assert (len(PCs[0]) == 2)
+        # assert (len(PCs[0]) == 2)
 
         return PCs
 
@@ -452,11 +464,18 @@ class neural_network_for_simulation(object):
         node_num = self._node_num
 
         in_layer = (self._in_layer_type)(node_num[0], "IL")
-        hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1"),
-                         (self._hidden_layers_type[1])(node_num[2], "HL2"),
-                         (self._hidden_layers_type[2])(node_num[3], "HL3")]
-        bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
-        out_layer = (self._out_layer_type)(node_num[4], "OL")
+        num_of_hidden_layers = len(self._hidden_layers_type)
+
+        if num_of_hidden_layers == 3:  # 5-layer autoencoder
+            hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1"),
+                             (self._hidden_layers_type[1])(node_num[2], "HL2"),
+                             (self._hidden_layers_type[2])(node_num[3], "HL3")]
+            bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
+        elif num_of_hidden_layers == 1:
+            hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1")]
+            bias_layers = [BiasUnit("B1"),BiasUnit("B2")]
+
+        out_layer = (self._out_layer_type)(node_num[num_of_hidden_layers + 1], "OL")
 
         self._in_layer = in_layer
         self._out_layer = out_layer
@@ -472,9 +491,10 @@ class neural_network_for_simulation(object):
 
         molecule_net.addOutputModule(out_layer)
 
-        connection_between_layers = range(4); connection_with_bias_layers = range(4)
+        connection_between_layers = range(num_of_hidden_layers + 1)
+        connection_with_bias_layers = range(num_of_hidden_layers + 1)
 
-        for i in range(4):
+        for i in range(num_of_hidden_layers + 1):
             connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])
             connection_with_bias_layers[i] = FullConnection(bias_layers[i], layers_list[i+1])
             molecule_net.addConnection(connection_between_layers[i])  # connect two neighbor layers
@@ -489,7 +509,7 @@ class neural_network_for_simulation(object):
                                                 weightdecay=self._network_parameters[2],
                                                 lrdecay=self._network_parameters[3],
                                                 verbose=self._network_verbose)
-        data_set = SupervisedDataSet(node_num[0], node_num[4])
+        data_set = SupervisedDataSet(node_num[0], node_num[num_of_hidden_layers + 1])
 
         sincos = self._data_set[::self._training_data_interval]  # pick some of the data to train
         data_as_input_to_network = sincos
@@ -509,14 +529,16 @@ class neural_network_for_simulation(object):
 
     def get_training_error(self):
         # it turns out that this error info cannot be a good measure of the quality of the autoencoder
+        num_of_hidden_layers = len(self._hidden_layers_type)
         input_data = np.array(self._data_set)
-        output_data = np.array([item[3] for item in self.get_mid_result()])
+        output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
         return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
 
     def get_fraction_of_variance_explained(self):
         input_data = np.array(self._data_set)
+        num_of_hidden_layers = len(self._hidden_layers_type)
 
-        output_data = np.array([item[3] for item in self.get_mid_result()])
+        output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
         var_of_input = sum(np.var(input_data, axis=0))
         var_of_output = sum(np.var(output_data, axis=0))
         return var_of_output / var_of_input

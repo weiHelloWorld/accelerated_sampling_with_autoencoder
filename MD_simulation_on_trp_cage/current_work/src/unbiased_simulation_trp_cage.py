@@ -1,6 +1,7 @@
 
 # no biased potential
 
+import datetime, os
 from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *
@@ -8,22 +9,32 @@ from sys import stdout
 
 ############################ PARAMETERS BEGIN ###############################################################
 
-record_interval = 100
-total_number_of_steps = 40000
+record_interval = int(sys.argv[1])
+total_number_of_steps = int(sys.argv[2])
 
-temperature = 300   
+temperature = int(sys.argv[3])   # in Kelvin
 
 input_pdb_file_of_molecule = '../resources/1l2y.pdb'
 force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
 
-pdb_reporter_file = '../target/temp_output.pdb'
-state_data_reporter_file = '../target/temp_report.txt'
+pdb_reporter_file = '../target/unbiased_%dK_output.pdb' % temperature
+state_data_reporter_file = '../target/unbiased_%dK_report.txt' % temperature
 
-box_size = 4.5
+if os.path.isfile(pdb_reporter_file):
+    os.rename(pdb_reporter_file, pdb_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
+
+if os.path.isfile(state_data_reporter_file):
+    os.rename(state_data_reporter_file, state_data_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+
+
+box_size = 4.5    # in nm
 neg_ion = "Cl-"
 
+flag_random_seed = 0 # whether we need to fix this random seed
+
 time_step = 0.002        # simulation time step, in ps
+
 
 
 ############################ PARAMETERS END ###############################################################
@@ -44,6 +55,10 @@ system = forcefield.createSystem(modeller.topology,  nonbondedMethod=Ewald, nonb
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
 
 integrator = LangevinIntegrator(temperature*kelvin, 1/picosecond, time_step*picoseconds)
+
+if flag_random_seed:
+    integrator.setRandomNumberSeed(1)  # set random seed
+
 simulation = Simulation(modeller.topology, system, integrator, platform)
 simulation.context.setPositions(modeller.positions)
 
