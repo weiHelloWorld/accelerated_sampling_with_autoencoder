@@ -340,7 +340,7 @@ class neural_network_for_simulation(object):
         return
 
     def get_expression_of_network(self):
-        # FIXME: modify this later
+        # FIXME: done Trp-cage, but only for 5-layer, need to implement 3-layer case
         """
         this function generates expression of PCs in terms of inputs
         """

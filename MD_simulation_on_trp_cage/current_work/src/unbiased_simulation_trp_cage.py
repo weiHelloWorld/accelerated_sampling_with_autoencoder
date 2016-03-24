@@ -53,7 +53,7 @@ system = forcefield.createSystem(modeller.topology,  nonbondedMethod=Ewald, nonb
                                  constraints=AllBonds, ewaldErrorTolerance=0.0005)
 
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
-system.addForce(MonteCarloBarostat(1*unit.atmospheres, temperature*kelvin, 25))
+system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
 
 integrator = LangevinIntegrator(temperature*kelvin, 1/picosecond, time_step*picoseconds)
 
