@@ -22,10 +22,10 @@ pdb_reporter_file = '../target/unbiased_%dK_output.pdb' % temperature
 state_data_reporter_file = '../target/unbiased_%dK_report.txt' % temperature
 
 if os.path.isfile(pdb_reporter_file):
-    os.rename(pdb_reporter_file, pdb_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
+    os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
 if os.path.isfile(state_data_reporter_file):
-    os.rename(state_data_reporter_file, state_data_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+    os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
 
 
 box_size = 4.5    # in nm
@@ -53,6 +53,7 @@ system = forcefield.createSystem(modeller.topology,  nonbondedMethod=Ewald, nonb
                                  constraints=AllBonds, ewaldErrorTolerance=0.0005)
 
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
+system.addForce(MonteCarloBarostat(1*unit.atmospheres, temperature*kelvin, 25))
 
 integrator = LangevinIntegrator(temperature*kelvin, 1/picosecond, time_step*picoseconds)
 
