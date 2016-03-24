@@ -89,10 +89,13 @@ class sutils(object):
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
         # FIXME: how to write unit test for this function?
+        # TODO: to be tested
         total_num_of_residues = 20
         list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
                                + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
+
+        assert (len(list_of_idx_four_atoms) == 38)
 
         result = []
 
@@ -389,15 +392,21 @@ class neural_network_for_simulation(object):
             expression = temp_expression + expression
 
         # 3rd part: definition of inputs
-        index_of_backbone_atoms = [2, 5, 7, 9, 15, 17, 19]
-        for i in range(len(index_of_backbone_atoms) - 3):
-            index_of_coss = i
-            index_of_sins = i + 4
+        total_num_of_residues = 20
+        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
+                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
+        assert (len(list_of_idx_four_atoms) == 38)
+
+
+        for index, item in enumerate(list_of_idx_four_atoms):
+            index_of_coss = 2 * index
+            index_of_sins = 2 * index + 1
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
-            expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
-            expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, i)
-            expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
+            expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, index)
+            expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, index)
+            expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (index, item[0], item[1], item[2], item[3])
 
 
         return expression
@@ -607,6 +616,7 @@ class plotting(object):
         """
         #TODO: plotting for circular layer network
         if network is None: network = self._network
+        if title is None: title = "plotting in %s, coloring with %s" % (plotting_space, color_option)  # default title
         if cossin_data_for_plotting is None:
             cossin_data = self._network._data_set
         else:
