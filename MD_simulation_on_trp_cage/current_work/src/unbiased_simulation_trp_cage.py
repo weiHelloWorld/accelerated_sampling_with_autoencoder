@@ -14,6 +14,14 @@ total_number_of_steps = int(sys.argv[2])
 
 temperature = int(sys.argv[3])   # in Kelvin
 
+folder_to_store_output_files = '../target/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
+energy_expression_file = '../resources/' + sys.argv[5]
+
+force_constant = sys.argv[6]
+
+xi_1_0 = sys.argv[7]
+xi_2_0 = sys.argv[8]
+
 input_pdb_file_of_molecule = '../resources/1l2y.pdb'
 force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
