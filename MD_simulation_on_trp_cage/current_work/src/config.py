@@ -59,7 +59,7 @@ CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 ############   config for biased_simulation.py  ##########################
 ##########################################################################
 
-CONFIG_20 = True  # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+CONFIG_20 = False  # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 

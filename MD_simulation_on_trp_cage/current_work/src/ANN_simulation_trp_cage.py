@@ -406,7 +406,8 @@ class neural_network_for_simulation(object):
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
             expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, index)
             expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, index)
-            expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (index, item[0], item[1], item[2], item[3])
+            expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (index, item[0] + 1, item[1] + 1,
+                                                                                   item[2] + 1, item[3] + 1) # the index should start from 1
 
 
         return expression
