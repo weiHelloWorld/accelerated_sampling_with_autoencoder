@@ -24,12 +24,22 @@ force_constant = sys.argv[6]
 xi_1_0 = sys.argv[7]
 xi_2_0 = sys.argv[8]
 
+
+if not os.path.exists(folder_to_store_output_files):
+    try:
+        os.makedirs(folder_to_store_output_files)
+    except:
+        pass
+        
+
+assert(os.path.exists(folder_to_store_output_files))
+
 input_pdb_file_of_molecule = '../resources/1l2y.pdb'
 force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
 
-pdb_reporter_file = '../target/unbiased_%dK_output.pdb' % temperature
-state_data_reporter_file = '../target/unbiased_%dK_report.txt' % temperature
+pdb_reporter_file = '%s/unbiased_%dK_output.pdb' % (folder_to_store_output_files, temperature)
+state_data_reporter_file = '%s/unbiased_%dK_report.txt' % (folder_to_store_output_files, temperature)
 
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
@@ -102,9 +112,9 @@ simulation = Simulation(modeller.topology, system, integrator, platform)
 simulation.context.setPositions(modeller.positions)
 
 
-print('begin Minimizing energy...')
-simulation.minimizeEnergy()
-print('Done minimizing energy.')
+# print('begin Minimizing energy...')
+# simulation.minimizeEnergy()
+# print('Done minimizing energy.')
 
 simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
 simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, \
