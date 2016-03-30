@@ -459,10 +459,11 @@ class neural_network_for_simulation(object):
         type_of_middle_hidden_layer = self._hidden_layers_type[index_of_bottleneck_hidden_layer]
         temp_mid_result = self.get_mid_result(input_data=input_data)
         mid_result_1 = [item[index_of_bottleneck_hidden_layer] for item in temp_mid_result]
-        if type_of_middle_hidden_layer == TanhLayer:
-            PCs = mid_result_1
-        elif type_of_middle_hidden_layer == CircularLayer:
+        
+        if type_of_middle_hidden_layer == CircularLayer:
             PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in mid_result_1]
+        else:
+            PCs = mid_result_1
 
         # assert (len(PCs[0]) == 2)
 
