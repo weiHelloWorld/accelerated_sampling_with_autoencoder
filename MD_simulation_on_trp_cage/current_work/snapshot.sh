@@ -1,7 +1,7 @@
 #!/bin/bash
 
 current_time=$(date -u +%Y_%m_%d_%H_%M_%S)
-dir_name="previous_runs/snapshot_"${current_time}
+dir_name="../../previous_runs/snapshot_"${current_time}
 
 mkdir -p ${dir_name}
 
