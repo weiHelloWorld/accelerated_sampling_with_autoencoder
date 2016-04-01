@@ -344,6 +344,7 @@ class neural_network_for_simulation(object):
         """
         this function generates expression of PCs in terms of inputs
         """
+        index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         type_of_middle_hidden_layer = self._hidden_layers_type[1]
 
         connection_between_layers = self._connection_between_layers
@@ -406,8 +407,9 @@ class neural_network_for_simulation(object):
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
             expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, index)
             expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, index)
-            expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (index, item[0] + 1, item[1] + 1,
-                                                                                   item[2] + 1, item[3] + 1) # the index should start from 1
+            expression += 'dihedral_angle_%d = dihedral(p%s, p%s, p%s, p%s);\n' % (index, 
+                                                index_of_backbone_atoms[item[0]], index_of_backbone_atoms[item[1]],
+                                                index_of_backbone_atoms[item[2]], index_of_backbone_atoms[item[3]])  # using backbone atoms
 
 
         return expression
