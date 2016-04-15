@@ -38,8 +38,12 @@ input_pdb_file_of_molecule = '../resources/1l2y.pdb'
 force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
 
-pdb_reporter_file = '%s/unbiased_%dK_output.pdb' % (folder_to_store_output_files, temperature)
-state_data_reporter_file = '%s/unbiased_%dK_report.txt' % (folder_to_store_output_files, temperature)
+if force_constant == '0':   # unbiased case
+    pdb_reporter_file = '%s/unbiased_%dK_output.pdb' % (folder_to_store_output_files, temperature)  # typically the folder for unbiased case is ../target/unbiased/
+    state_data_reporter_file = '%s/unbiased_%dK_report.txt' % (folder_to_store_output_files, temperature)
+else:
+    pdb_reporter_file = '%s/biased_%dK_output.pdb' % (folder_to_store_output_files, temperature)
+    state_data_reporter_file = '%s/biased_%dK_report.txt' % (folder_to_store_output_files, temperature)
 
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
@@ -71,8 +75,6 @@ flag_random_seed = 0 # whether we need to fix this random seed
 box_size = 4.5    # in nm
 neg_ion = "Cl-"
 
-flag_random_seed = 0 # whether we need to fix this random seed
-
 time_step = 0.002        # simulation time step, in ps
 
 
@@ -95,12 +97,12 @@ system = forcefield.createSystem(modeller.topology,  nonbondedMethod=Ewald, nonb
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
 system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
 
-# add custom force
-
-customForce = CustomManyParticleForce(304, energy_expression)
-for i in range(system.getNumParticles()):
-    customForce.addParticle("",0)  # what kinds of types should we specify here for each atom?
-system.addForce(customForce)
+# add custom force (only for biased simulation)
+if force_constant != '0':
+    customForce = CustomManyParticleForce(304, energy_expression)
+    for i in range(system.getNumParticles()):
+        customForce.addParticle("",0)  # what kinds of types should we specify here for each atom?
+    system.addForce(customForce)
 # end add custom force
 
 integrator = LangevinIntegrator(temperature*kelvin, 1/picosecond, time_step*picoseconds)
