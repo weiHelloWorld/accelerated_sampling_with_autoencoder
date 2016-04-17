@@ -426,6 +426,7 @@ class neural_network_for_simulation(object):
             for item in [0, 1]:
                 f_out.write(str(list(self._connection_between_layers[item].params)))
                 f_out.write(',\n')
+
             for item in [0, 1]:
                 f_out.write(str(list(self._connection_with_bias_layers[item].params)))
                 f_out.write(',\n')
@@ -890,9 +891,11 @@ class iteration(object):
 
     def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
         self._network.write_expression_into_file()
+        commands = self._network.get_commands_for_further_biased_simulations()
+        print ('in iteration.prepare_simulation: commands = ')
+        print (commands)
         if machine_to_run_simulations == "cluster":
-            manager = cluster_management(self._network)
-            manager.create_sge_files_for_simulation()
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
         elif machine_to_run_simulations == 'local':
             pass
             # TODO
@@ -900,8 +903,7 @@ class iteration(object):
 
     def run_simulation(self, machine_to_run_simulations = CONFIG_24):
         if machine_to_run_simulations == 'cluster':
-            manager = cluster_management(self._network)
-            manager.monitor_status_and_submit_periodically(num = CONFIG_14,
+            cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             pass
