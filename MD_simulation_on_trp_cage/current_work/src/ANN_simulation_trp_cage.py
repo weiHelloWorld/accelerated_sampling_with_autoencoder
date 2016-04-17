@@ -340,7 +340,6 @@ class neural_network_for_simulation(object):
         return
 
     def get_expression_of_network(self):
-        # FIXME: done Trp-cage, but only for 5-layer, need to implement 3-layer case
         """
         this function generates expression of PCs in terms of inputs
         """
@@ -420,6 +419,16 @@ class neural_network_for_simulation(object):
         expression = self.get_expression_of_network()
         with open(out_file, 'w') as f_out:
             f_out.write(expression)
+        return
+
+    def write_coefficients_of_connections_into_file(self, out_file):
+        with open(out_file, 'w') as f_out:
+            for item in [0, 1]:
+                f_out.write(str(list(self._connection_between_layers[item].params)))
+                f_out.write(',\n')
+            for item in [0, 1]:
+                f_out.write(str(list(self._connection_with_bias_layers[item].params)))
+                f_out.write(',\n')
         return
 
     def get_mid_result(self, input_data=None):
@@ -719,6 +728,34 @@ class simulation_management(object):
 
         return todo_list_of_commands_for_simulations
 
+    @staticmethod
+    def create_sge_files_for_commands(list_of_commands_to_run):
+        for item in list_of_commands_to_run:
+            sge_filename = '../sge_files/' + item.replace(' ', '_') + '.sge'
+            content_for_sge_files = '''#!/bin/bash
+
+#$ -S /bin/bash           # use bash shell
+#$ -V                     # inherit the submission environment
+#$ -cwd                   # start job in submission directory
+
+#$ -m ae                 # email on abort, begin, and end
+#$ -M wei.herbert.chen@gmail.com         # email address
+
+#$ -q all.q               # queue name
+#$ -l h_rt=%s       # run time (hh:mm:ss)
+####$ -l hostname=compute-0-3
+
+%s
+
+echo "This job is DONE!"
+
+exit 0
+''' % (CONFIG_19, command)
+            with open(sge_filename, 'w') as f_out:
+                f_out.write(content_for_sge_files)
+                f_out.write("\n")
+        return
+
 
     def create_sge_files_for_simulation(self,list_of_potential_center = None,
                                         num_of_simulation_steps = None,
@@ -752,57 +789,9 @@ class simulation_management(object):
 
             print("creating %s" % file_name)
 
-            content_for_sge_files = '''#!/bin/bash
-
-#$ -S /bin/bash           # use bash shell
-#$ -V                     # inherit the submission environment
-#$ -cwd                   # start job in submission directory
-
-#$ -m ae                 # email on abort, begin, and end
-#$ -M wei.herbert.chen@gmail.com         # email address
-
-#$ -q all.q               # queue name
-#$ -l h_rt=%s       # run time (hh:mm:ss)
-####$ -l hostname=compute-0-3
-
-%s
-
-echo "This job is DONE!"
-
-exit 0
-''' % (CONFIG_19, command)
-
-            with open(file_name, 'w') as f_out:
-                f_out.write(content_for_sge_files)
-                f_out.write("\n")
+            self.create_sge_files_for_commands([command])
 
         return
-
-
-    # @staticmethod
-    # def run_one_command(filename = 'simulation_command_todo_list.txt', run_method = 'local'):
-    #     '''
-    #     this function picks the first command in the todo list and run it,
-    #     :param run_method: 'local' means running the command in local machine, 'cluster' means running in cluster
-    #     TODO:
-    #     '''
-    #     with open(filename, 'r') as in_file:
-    #         all_commands = in_file.read().split('\n')[:-1]
-    #
-    #     first_command = all_commands[0]
-    #     if run_method == 'local':
-    #         subprocess.check_output(first_command.split())  # run this command locally
-    #     elif run_method == 'cluster':
-    #         pass
-    #         # TODO
-    #     else:
-    #         pass
-    #         # TODO
-    #
-    #
-    #     return
-
-
 
     @staticmethod
     def get_num_of_running_jobs():
