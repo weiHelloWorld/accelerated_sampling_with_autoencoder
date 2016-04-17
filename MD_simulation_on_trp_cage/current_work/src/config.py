@@ -21,7 +21,7 @@ CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,mo
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
 
-'''class simulation_management'''
+'''class cluster_management'''
 
 CONFIG_8 = 10000 # num of simulation steps
 CONFIG_9 = 50   # force constant for biased simulations
@@ -43,6 +43,9 @@ CONFIG_12 = '../target'  # folder that contains all pdb files
 '''def train_network_and_save'''
 
 CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one with least FVE from them
+
+'''def prepare_simulation'''
+CONFIG_24 = 'cluster'  # machine to run the simulations
 
 '''def run_simulation'''
 
