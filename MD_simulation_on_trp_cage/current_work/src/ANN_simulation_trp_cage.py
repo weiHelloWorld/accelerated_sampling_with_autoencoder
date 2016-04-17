@@ -139,11 +139,12 @@ class sutils(object):
         result = []
         for item in cossin:
             temp_angle = []
-            assert (len(item) == 76)
-            for idx_of_angle in range(38):
+            len_of_cos_sin = CONFIG_25
+            assert (len(item) == len_of_cos_sin)
+            for idx_of_angle in range(len_of_cos_sin / 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
 
-            assert (len(temp_angle) == 38)
+            assert (len(temp_angle) == len_of_cos_sin / 2)
 
             result += [temp_angle]
 
@@ -287,7 +288,7 @@ class neural_network_for_simulation(object):
     def __init__(self,
                  index,  # the index of the current network
                  data_set_for_training,
-                 energy_expression_file = None,
+                 autoencoder_info_file = None,  # this might be expressions, or coefficients
                  training_data_interval = CONFIG_2,
                  in_layer_type = LinearLayer,
                  hidden_layers_types = CONFIG_17,
@@ -303,10 +304,10 @@ class neural_network_for_simulation(object):
         self._index = index
         self._data_set = data_set_for_training
         self._training_data_interval = training_data_interval
-        if energy_expression_file is None:
-            self._energy_expression_file = "../resources/energy_expression_%d.txt" %(index)
+        if autoencoder_info_file is None:
+            self._autoencoder_info_file = "../resources/autoencoder_info_%d.txt" %(index)
         else:
-            self._energy_expression_file = energy_expression_file
+            self._autoencoder_info_file = autoencoder_info_file
 
         if not in_layer_type is None: self._in_layer_type = in_layer_type
         if not hidden_layers_types is None: self._hidden_layers_type = hidden_layers_types
@@ -415,14 +416,16 @@ class neural_network_for_simulation(object):
         return expression
 
     def write_expression_into_file(self, out_file = None):
-        if out_file is None: out_file = self._energy_expression_file
+        if out_file is None: out_file = self._autoencoder_info_file
 
         expression = self.get_expression_of_network()
         with open(out_file, 'w') as f_out:
             f_out.write(expression)
         return
 
-    def write_coefficients_of_connections_into_file(self, out_file):
+    def write_coefficients_of_connections_into_file(self, out_file = None):
+        if out_file is None: out_file = self._autoencoder_info_file
+
         with open(out_file, 'w') as f_out:
             for item in [0, 1]:
                 f_out.write(str(list(self._connection_between_layers[item].params)))
@@ -569,7 +572,7 @@ class neural_network_for_simulation(object):
 
     def get_commands_for_further_biased_simulations(self,list_of_potential_center = None,
                                                   num_of_simulation_steps = None,
-                                                  energy_expression_file=None,
+                                                  autoencoder_info_file=None,
                                                   force_constant_for_biased = None,
                                                   ):
         '''this function creates a list of commands for further biased simulations that should be done later,
@@ -583,9 +586,9 @@ class neural_network_for_simulation(object):
             list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
         if num_of_simulation_steps is None:
             num_of_simulation_steps = CONFIG_8
-        if energy_expression_file is None:
-            energy_expression_file = self._energy_expression_file
-            filename_of_energy_expression = energy_expression_file.split('resources/')[1]
+        if autoencoder_info_file is None:
+            autoencoder_info_file = self._autoencoder_info_file
+            filename_of_autoencoder_info = autoencoder_info_file.split('resources/')[1]
         if force_constant_for_biased is None:
             force_constant_for_biased = CONFIG_9
 
@@ -595,7 +598,7 @@ class neural_network_for_simulation(object):
             parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                             str(potential_center[0]), str(potential_center[1]),
                             'network_' + str(self._index),
-                            filename_of_energy_expression)
+                            filename_of_autoencoder_info)
 
             command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
             todo_list_of_commands_for_simulations += [command]
@@ -750,7 +753,8 @@ class iteration(object):
         return
 
     def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
-        self._network.write_expression_into_file()
+        # self._network.write_expression_into_file()
+        self._network.write_coefficients_of_connections_into_file()
         commands = self._network.get_commands_for_further_biased_simulations()
         print ('in iteration.prepare_simulation: commands = ')
         print (commands)
@@ -766,8 +770,11 @@ class iteration(object):
             cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
-            pass
-            # TODO
+            commands = self._network.get_commands_for_further_biased_simulations()
+            for item in commands:
+                subprocess.check_output(item)
+
+            # TODO: currently they are not run in parallel, fix this later
         # TODO: run next line only when the jobs are done, check this
         sutils.generate_coordinates_from_pdb_files()
         return
