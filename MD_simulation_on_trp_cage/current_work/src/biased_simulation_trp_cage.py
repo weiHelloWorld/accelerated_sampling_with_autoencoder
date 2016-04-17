@@ -19,7 +19,7 @@ total_number_of_steps = int(sys.argv[2])
 temperature = int(sys.argv[3])   # in Kelvin
 
 folder_to_store_output_files = '../target/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
-energy_expression_file = '../resources/' + sys.argv[5]  # this may contain either complicated expressions (for
+autoencoder_info_file = '../resources/' + sys.argv[5]  # this may contain either complicated expressions (for
                                                         # "CustomManyParticleForce"), or coefficients (for "ANN_Force")
 
 force_constant = sys.argv[6]
@@ -57,21 +57,21 @@ if os.path.isfile(state_data_reporter_file):
 k1 = force_constant
 k2 = force_constant
 
-with open(energy_expression_file, 'r') as f_in:
-    energy_expression = f_in.read()
-
-if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
-    energy_expression = '''
-    %s * d1_square + %s * d2_square;
-    d1_square = min( min( (PC0 - %s)^2, (PC0 - %s + 6.2832)^2 ), (PC0 - %s - 6.2832)^2 );
-    d2_square = min( min( (PC1 - %s)^2, (PC1 - %s + 6.2832)^2 ), (PC1 - %s - 6.2832)^2 );
-    ''' % (k1, k2, xi_1_0, xi_1_0, xi_1_0, xi_2_0, xi_2_0, xi_2_0) + energy_expression
-
-else:
-    energy_expression = '''
-    %s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
-
-    ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
+# with open(autoencoder_info_file, 'r') as f_in:
+#     energy_expression = f_in.read()
+#
+# if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+#     energy_expression = '''
+#     %s * d1_square + %s * d2_square;
+#     d1_square = min( min( (PC0 - %s)^2, (PC0 - %s + 6.2832)^2 ), (PC0 - %s - 6.2832)^2 );
+#     d2_square = min( min( (PC1 - %s)^2, (PC1 - %s + 6.2832)^2 ), (PC1 - %s - 6.2832)^2 );
+#     ''' % (k1, k2, xi_1_0, xi_1_0, xi_1_0, xi_2_0, xi_2_0, xi_2_0) + energy_expression
+#
+# else:
+#     energy_expression = '''
+#     %s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
+#
+#     ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
 
 flag_random_seed = 0 # whether we need to fix this random seed
 
@@ -113,12 +113,12 @@ if force_constant != '0':
     force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
     force.set_num_of_nodes([76, 10, 2])  # FIXME
     force.set_potential_center(
-        [0.8, 0]  # FIXME
+        [float(xi_1_0), float(xi_2_0)] 
         )
     force.set_force_constant(float(force_constant))
 
     # TODO: parse coef_file
-    with open(energy_expression_file, 'r') as f_in:
+    with open(autoencoder_info_file, 'r') as f_in:
         for line in f_in:
             content = f_in.readlines()
 
@@ -143,9 +143,9 @@ simulation = Simulation(modeller.topology, system, integrator, platform)
 simulation.context.setPositions(modeller.positions)
 
 
-# print('begin Minimizing energy...')
-# simulation.minimizeEnergy()
-# print('Done minimizing energy.')
+print('begin Minimizing energy...')
+simulation.minimizeEnergy()
+print('Done minimizing energy.')
 
 simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
 simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, \
