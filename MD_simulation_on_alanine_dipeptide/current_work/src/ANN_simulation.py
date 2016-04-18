@@ -1,6 +1,7 @@
 import copy, pickle, re, os, time, subprocess, datetime, itertools
 from scipy import io as sciio
 import numpy as np
+from numpy.testing import assert_almost_equal
 from math import *
 from pybrain.structure import *
 from pybrain.structure.modules.circularlayer import *
@@ -8,6 +9,7 @@ from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
 from config import * # configuration file
+from cluster_management import *
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
@@ -68,12 +70,15 @@ class sutils(object):
         cos_of_angles = range(len(normal_vectors_normalized_1))
         sin_of_angles_vec = range(len(normal_vectors_normalized_1))
         sin_of_angles = range(len(normal_vectors_normalized_1)) # initialization
+        result = []
 
         for index in range(len(normal_vectors_normalized_1)):
             cos_of_angles[index] = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
             sin_of_angles_vec[index] = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-            sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]));
+            sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]))
+
         return cos_of_angles + sin_of_angles
+
 
     @staticmethod
     def get_many_cossin_from_coordinates(coordinates):
@@ -240,24 +245,26 @@ class neural_network_for_simulation(object):
     def __init__(self,
                  index,  # the index of the current network
                  data_set_for_training,
-                 energy_expression_file = None,
+                 autoencoder_info_file = None,  # this might be expressions, or coefficients
                  training_data_interval = CONFIG_2,
-                 in_layer_type = LinearLayer, hidden_layers_types = CONFIG_17,
+                 in_layer_type = LinearLayer,
+                 hidden_layers_types = CONFIG_17,
                  out_layer_type = LinearLayer,  # different layers
                  node_num = CONFIG_3,  # the structure of ANN
                  network_parameters = CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
                  max_num_of_training = CONFIG_5,
                  filename_to_save_network = CONFIG_6,
+                 network_verbose = False,
                  trainer = None
                  ):
 
         self._index = index
         self._data_set = data_set_for_training
         self._training_data_interval = training_data_interval
-        if energy_expression_file is None:
-            self._energy_expression_file = "../resources/energy_expression_%d.txt" %(index)
+        if autoencoder_info_file is None:
+            self._autoencoder_info_file = "../resources/autoencoder_info_%d.txt" %(index)
         else:
-            self._energy_expression_file = energy_expression_file
+            self._autoencoder_info_file = autoencoder_info_file
 
         if not in_layer_type is None: self._in_layer_type = in_layer_type
         if not hidden_layers_types is None: self._hidden_layers_type = hidden_layers_types
@@ -274,6 +281,8 @@ class neural_network_for_simulation(object):
             self._filename_to_save_network = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
         else:
             self._filename_to_save_network = filename_to_save_network
+
+        self._network_verbose = network_verbose
 
         self._trainer = trainer  # save the trainer so that we could train this network step by step later
         return
@@ -355,11 +364,24 @@ class neural_network_for_simulation(object):
         return expression
 
     def write_expression_into_file(self, out_file = None):
-        if out_file is None: out_file = self._energy_expression_file
+        if out_file is None: out_file = self._autoencoder_info_file
 
         expression = self.get_expression_of_network()
         with open(out_file, 'w') as f_out:
             f_out.write(expression)
+        return
+
+    def write_coefficients_of_connections_into_file(self, out_file = None):
+        if out_file is None: out_file = self._autoencoder_info_file
+
+        with open(out_file, 'w') as f_out:
+            for item in [0, 1]:
+                f_out.write(str(list(self._connection_between_layers[item].params)))
+                f_out.write(',\n')
+
+            for item in [0, 1]:
+                f_out.write(str(list(self._connection_with_bias_layers[item].params)))
+                f_out.write(',\n')
         return
 
     def get_mid_result(self, input_data=None):
@@ -368,8 +390,10 @@ class neural_network_for_simulation(object):
         connection_with_bias_layers = self._connection_with_bias_layers
 
         node_num = self._node_num
-        temp_mid_result = range(4)
-        temp_mid_result_in = range(4)
+        num_of_hidden_layers = len(self._hidden_layers_type)
+
+        temp_mid_result = range(num_of_hidden_layers + 1)
+        temp_mid_result_in = range(num_of_hidden_layers + 1)
         mid_result = []
 
         data_as_input_to_network = input_data
@@ -377,7 +401,7 @@ class neural_network_for_simulation(object):
         hidden_and_out_layers = self._hidden_layers + [self._out_layer]
 
         for item in data_as_input_to_network:
-            for i in range(4):
+            for i in range(num_of_hidden_layers + 1):
                 mul_coef = connection_between_layers[i].params.reshape(node_num[i + 1], node_num[i]) # fix node_num
                 bias_coef = connection_with_bias_layers[i].params
                 previous_result = item if i == 0 else temp_mid_result[i - 1]
@@ -394,15 +418,18 @@ class neural_network_for_simulation(object):
         write an independent function for getting PCs, since it is different for TanhLayer, and CircularLayer
         """
         if input_data is None: input_data = self._data_set
-        type_of_middle_hidden_layer = self._hidden_layers_type[1]
+        num_of_hidden_layers = len(self._hidden_layers_type)
+        index_of_bottleneck_hidden_layer = (num_of_hidden_layers - 1) / 2   # it works for both 3-layer and 5-layer structure
+        type_of_middle_hidden_layer = self._hidden_layers_type[index_of_bottleneck_hidden_layer]
         temp_mid_result = self.get_mid_result(input_data=input_data)
-        mid_result_1 = [item[1] for item in temp_mid_result]
-        if type_of_middle_hidden_layer == TanhLayer:
-            PCs = mid_result_1
-        elif type_of_middle_hidden_layer == CircularLayer:
+        mid_result_1 = [item[index_of_bottleneck_hidden_layer] for item in temp_mid_result]
+        
+        if type_of_middle_hidden_layer == CircularLayer:
             PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in mid_result_1]
+        else:
+            PCs = mid_result_1
 
-        assert (len(PCs[0]) == 2)
+        # assert (len(PCs[0]) == 2)
 
         return PCs
 
@@ -412,11 +439,18 @@ class neural_network_for_simulation(object):
         node_num = self._node_num
 
         in_layer = (self._in_layer_type)(node_num[0], "IL")
-        hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1"),
-                         (self._hidden_layers_type[1])(node_num[2], "HL2"),
-                         (self._hidden_layers_type[2])(node_num[3], "HL3")]
-        bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
-        out_layer = (self._out_layer_type)(node_num[4], "OL")
+        num_of_hidden_layers = len(self._hidden_layers_type)
+
+        if num_of_hidden_layers == 3:  # 5-layer autoencoder
+            hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1"),
+                             (self._hidden_layers_type[1])(node_num[2], "HL2"),
+                             (self._hidden_layers_type[2])(node_num[3], "HL3")]
+            bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
+        elif num_of_hidden_layers == 1:
+            hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1")]
+            bias_layers = [BiasUnit("B1"),BiasUnit("B2")]
+
+        out_layer = (self._out_layer_type)(node_num[num_of_hidden_layers + 1], "OL")
 
         self._in_layer = in_layer
         self._out_layer = out_layer
@@ -432,9 +466,10 @@ class neural_network_for_simulation(object):
 
         molecule_net.addOutputModule(out_layer)
 
-        connection_between_layers = range(4); connection_with_bias_layers = range(4)
+        connection_between_layers = range(num_of_hidden_layers + 1)
+        connection_with_bias_layers = range(num_of_hidden_layers + 1)
 
-        for i in range(4):
+        for i in range(num_of_hidden_layers + 1):
             connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])
             connection_with_bias_layers[i] = FullConnection(bias_layers[i], layers_list[i+1])
             molecule_net.addConnection(connection_between_layers[i])  # connect two neighbor layers
@@ -448,8 +483,8 @@ class neural_network_for_simulation(object):
                                                 momentum=self._network_parameters[1],
                                                 weightdecay=self._network_parameters[2],
                                                 lrdecay=self._network_parameters[3],
-                                                verbose=False)
-        data_set = SupervisedDataSet(node_num[0], node_num[4])
+                                                verbose=self._network_verbose)
+        data_set = SupervisedDataSet(node_num[0], node_num[num_of_hidden_layers + 1])
 
         sincos = self._data_set[::self._training_data_interval]  # pick some of the data to train
         data_as_input_to_network = sincos
@@ -469,17 +504,54 @@ class neural_network_for_simulation(object):
 
     def get_training_error(self):
         # it turns out that this error info cannot be a good measure of the quality of the autoencoder
+        num_of_hidden_layers = len(self._hidden_layers_type)
         input_data = np.array(self._data_set)
-        output_data = np.array([item[3] for item in self.get_mid_result()])
+        output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
         return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
 
     def get_fraction_of_variance_explained(self):
         input_data = np.array(self._data_set)
+        num_of_hidden_layers = len(self._hidden_layers_type)
 
-        output_data = np.array([item[3] for item in self.get_mid_result()])
+        output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
         var_of_input = sum(np.var(input_data, axis=0))
         var_of_output = sum(np.var(output_data, axis=0))
         return var_of_output / var_of_input
+
+    def get_commands_for_further_biased_simulations(self,list_of_potential_center = None,
+                                                  num_of_simulation_steps = None,
+                                                  autoencoder_info_file=None,
+                                                  force_constant_for_biased = None,
+                                                  ):
+        '''this function creates a list of commands for further biased simulations that should be done later,
+        either in local machines or on the cluster
+        '''
+        temp_mid_result = self.get_mid_result()
+        PCs_of_network = [item[1] for item in temp_mid_result]
+        assert (len(PCs_of_network[0]) == 2)
+
+        if list_of_potential_center is None:
+            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
+        if num_of_simulation_steps is None:
+            num_of_simulation_steps = CONFIG_8
+        if autoencoder_info_file is None:
+            autoencoder_info_file = self._autoencoder_info_file
+            filename_of_autoencoder_info = autoencoder_info_file.split('resources/')[1]
+        if force_constant_for_biased is None:
+            force_constant_for_biased = CONFIG_9
+
+        todo_list_of_commands_for_simulations = []
+
+        for potential_center in list_of_potential_center:
+            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                            str(potential_center[0]), str(potential_center[1]),
+                            'network_' + str(self._index),
+                            filename_of_autoencoder_info)
+
+            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
+            todo_list_of_commands_for_simulations += [command]
+
+        return todo_list_of_commands_for_simulations
 
     def generate_mat_file_for_WHAM_reweighting(self, list_of_coor_data_files):
         # FIXME: this one does not work quite well for circular layer case, need further processing
@@ -545,6 +617,7 @@ class plotting(object):
         """
         #TODO: plotting for circular layer network
         if network is None: network = self._network
+        if title is None: title = "plotting in %s, coloring with %s" % (plotting_space, color_option)  # default title
         if cossin_data_for_plotting is None:
             cossin_data = self._network._data_set
         else:
@@ -590,253 +663,6 @@ class plotting(object):
         return fig, ax, im
 
 
-class simulation_management(object):
-    def __init__(self, mynetwork,
-                 num_of_simulation_steps = CONFIG_8,
-                 force_constant_for_biased = CONFIG_9
-                 ):
-        self._mynetwork = mynetwork
-        self._num_of_simulation_steps = num_of_simulation_steps
-        self._force_constant_for_biased = force_constant_for_biased
-        return
-
-    def get_todo_list_of_commands_for_simulations(self,list_of_potential_center = None,
-                                                  num_of_simulation_steps = None,
-                                                  energy_expression_file=None,
-                                                  force_constant_for_biased = None,
-                                                  file_to_store_command_list = 'simulation_command_todo_list.txt',
-                                                  is_write_into_file = True):
-        '''this function creates a list of commands that should be done later,
-        either in local machines or on the cluster,
-        if it should be done in the cluster, "auto_qsub" will be responsible for it
-        '''
-        temp_mid_result = self._mynetwork.get_mid_result()
-        PCs_of_network = [item[1] for item in temp_mid_result]
-        assert (len(PCs_of_network[0]) == 2)
-
-        if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
-        if num_of_simulation_steps is None:
-            num_of_simulation_steps = self._num_of_simulation_steps
-        if energy_expression_file is None:
-            energy_expression_file = self._mynetwork._energy_expression_file
-            filename_of_energy_expression = energy_expression_file.split('resources/')[1]
-        if force_constant_for_biased is None:
-            force_constant_for_biased = self._force_constant_for_biased
-
-        todo_list_of_commands_for_simulations = []
-
-        for potential_center in list_of_potential_center:
-            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            str(potential_center[0]), str(potential_center[1]),
-                            'network_' + str(self._mynetwork._index),
-                            filename_of_energy_expression)
-
-            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
-            todo_list_of_commands_for_simulations += [command]
-
-        if is_write_into_file:
-            with open(file_to_store_command_list, 'w') as f_out:
-                for item in todo_list_of_commands_for_simulations:
-                    f_out.write(str(item))
-                    f_out.write('\n')
-
-        return todo_list_of_commands_for_simulations
-
-
-    def create_sge_files_for_simulation(self,list_of_potential_center = None,
-                                        num_of_simulation_steps = None,
-                                        energy_expression_file=None,
-                                        force_constant_for_biased = None):
-
-        PCs_of_network = self._mynetwork.get_PCs()
-        assert (len(PCs_of_network[0]) == 2)
-
-        if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
-        if num_of_simulation_steps is None:
-            num_of_simulation_steps = self._num_of_simulation_steps
-        if energy_expression_file is None:
-            energy_expression_file = self._mynetwork._energy_expression_file
-            filename_of_energy_expression = energy_expression_file.split('resources/')[1]
-        if force_constant_for_biased is None:
-            force_constant_for_biased = self._force_constant_for_biased
-
-        for potential_center in list_of_potential_center:
-
-            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            str(potential_center[0]), str(potential_center[1]),
-                            'network_' + str(self._mynetwork._index),
-                            filename_of_energy_expression)
-
-            file_name = "../sge_files/job_biased_%s_%s_%s_%s_%s_%s_%s.sge" % parameter_list
-            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
-            # with open("temp_command_file_%d.txt" % (self._mynetwork._index), 'a') as temp_command_f:  # FIXME: use better implementation later
-            #     temp_command_f.write('nohup  ' + command + " &\n")
-
-            print("creating %s" % file_name)
-
-            content_for_sge_files = '''#!/bin/bash
-
-#$ -S /bin/bash           # use bash shell
-#$ -V                     # inherit the submission environment
-#$ -cwd                   # start job in submission directory
-
-#$ -m ae                 # email on abort, begin, and end
-#$ -M wei.herbert.chen@gmail.com         # email address
-
-#$ -q all.q               # queue name
-#$ -l h_rt=%s       # run time (hh:mm:ss)
-####$ -l hostname=compute-0-3
-
-%s
-
-echo "This job is DONE!"
-
-exit 0
-''' % (CONFIG_19, command)
-
-            with open(file_name, 'w') as f_out:
-                f_out.write(content_for_sge_files)
-                f_out.write("\n")
-
-        return
-
-
-    # @staticmethod
-    # def run_one_command(filename = 'simulation_command_todo_list.txt', run_method = 'local'):
-    #     '''
-    #     this function picks the first command in the todo list and run it,
-    #     :param run_method: 'local' means running the command in local machine, 'cluster' means running in cluster
-    #     TODO:
-    #     '''
-    #     with open(filename, 'r') as in_file:
-    #         all_commands = in_file.read().split('\n')[:-1]
-    #
-    #     first_command = all_commands[0]
-    #     if run_method == 'local':
-    #         subprocess.check_output(first_command.split())  # run this command locally
-    #     elif run_method == 'cluster':
-    #         pass
-    #         # TODO
-    #     else:
-    #         pass
-    #         # TODO
-    #
-    #
-    #     return
-
-
-
-    @staticmethod
-    def get_num_of_running_jobs():
-        output = subprocess.check_output(['qstat'])
-        num_of_running_jobs = len(re.findall('weichen9', output))
-        print('checking number of running jobs = %d\n' % num_of_running_jobs)
-        return num_of_running_jobs
-
-    @staticmethod
-    def submit_sge_jobs_and_archive_files(job_file_lists,
-                                          num,  # num is the max number of jobs submitted each time
-                                          flag_of_whether_to_record_qsub_commands = False
-                                          ):
-        dir_to_archive_files = '../sge_files/archive/'
-
-        if not os.path.exists(dir_to_archive_files):
-            os.makedirs(dir_to_archive_files)
-
-        assert(os.path.exists(dir_to_archive_files))
-
-        for item in job_file_lists[0:num]:
-            subprocess.check_output(['qsub', item])
-            print('submitting ' + str(item))
-            subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
-        return
-
-    @staticmethod
-    def get_sge_files_list():
-        result = filter(lambda x: x[-3:] == "sge",subprocess.check_output(['ls', '../sge_files']).split('\n'))
-        result = map(lambda x: '../sge_files/' + x, result)
-        return result
-
-    @staticmethod
-    def submit_new_jobs_if_there_are_too_few_jobs(num):
-        if simulation_management.get_num_of_running_jobs() < num:
-            job_list = simulation_management.get_sge_files_list()
-            simulation_management.submit_sge_jobs_and_archive_files(job_list, num)
-        return
-
-    @staticmethod
-    def monitor_status_and_submit_periodically(num,
-                                               num_of_running_jobs_when_allowed_to_stop = 0,
-                                               monitor_mode = 'normal',  # monitor_mode determines whether it can go out of first while loop
-                                               ):
-        if monitor_mode == 'normal':
-            min_num_of_unsubmitted_jobs = 0
-        elif monitor_mode == 'always_wait_for_submit':
-            min_num_of_unsubmitted_jobs = -1
-
-        num_of_unsubmitted_jobs = len(simulation_management.get_sge_files_list())
-        # first check if there are unsubmitted jobs
-        while num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
-            time.sleep(10)
-            try:
-                simulation_management.submit_new_jobs_if_there_are_too_few_jobs(num)
-                num_of_unsubmitted_jobs = len(simulation_management.get_sge_files_list())
-            except:
-                print("not able to submit jobs!\n")
-
-        # then check if all jobs are done
-        while simulation_management.get_num_of_running_jobs() > num_of_running_jobs_when_allowed_to_stop:
-            time.sleep(10)
-        return
-
-    @staticmethod
-    def is_job_running_on_cluster(job_sgefile_name):
-        output = subprocess.check_output(['qstat', '-r'])
-        return job_sgefile_name in output
-
-    @staticmethod
-    def check_whether_job_finishes_successfully(job_sgefile_name, latest_version = True):
-        """
-        return value:
-        0: finishes successfully
-        1: finishes with exception
-        2: aborted due to time limit or other reason
-        -1: job does not exist
-        """
-        job_finished_message = 'This job is DONE!\n'
-        # first we check whether the job finishes
-        if simulation_management.is_job_running_on_cluster(job_sgefile_name):
-            return 0  # not finished
-        else:
-            all_files_in_this_dir = subprocess.check_output(['ls']).split()
-
-            out_file_list = filter(lambda x: job_sgefile_name in x and ".o" in x, all_files_in_this_dir)
-            err_file_list = filter(lambda x: job_sgefile_name in x and ".e" in x, all_files_in_this_dir)
-
-            if len(out_file_list) == 0 or len(err_file_list) == 0:
-                return -1   # job does not exist
-
-            if latest_version:
-                job_serial_number_list = map(lambda x: int(x.split('.sge.o')[1]), out_file_list)
-                job_serial_number_of_latest_version = max(job_serial_number_list)
-                latest_out_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, out_file_list)[0]
-                latest_err_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, err_file_list)[0]
-                with open(latest_out_file, 'r') as out_f:
-                    out_content = out_f.readlines()
-                with open(latest_err_file, 'r') as err_f:
-                    err_content = err_f.readlines()
-                    err_content = filter(lambda x: x[:4] != 'bash', err_content)  # ignore error info starting with "bash"
-
-                if (job_finished_message in out_content) and (len(err_content) != 0):
-                    return 1  # ends with exception
-                elif not job_finished_message in out_content:
-                    return 2  # aborted due to time limit or other reason
-            else:
-                # TODO: handle this case
-                return
-
 
 class iteration(object):
     def __init__(self, index,
@@ -874,17 +700,31 @@ class iteration(object):
         self._network = current_network
         return
 
-    def prepare_simulation(self):
-        self._network.write_expression_into_file()
-
-        manager = simulation_management(self._network)
-        manager.create_sge_files_for_simulation()
+    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
+        # self._network.write_expression_into_file()
+        self._network.write_coefficients_of_connections_into_file()
+        commands = self._network.get_commands_for_further_biased_simulations()
+        print ('in iteration.prepare_simulation: commands = ')
+        print (commands)
+        if machine_to_run_simulations == "cluster":
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
+        elif machine_to_run_simulations == 'local':
+            pass
+            # TODO
         return
 
-    def run_simulation(self):
-        manager = simulation_management(self._network)
-        manager.monitor_status_and_submit_periodically(num = CONFIG_14,
+    def run_simulation(self, machine_to_run_simulations = CONFIG_24):
+        if machine_to_run_simulations == 'cluster':
+            cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
+        elif machine_to_run_simulations == 'local':
+            commands = self._network.get_commands_for_further_biased_simulations()
+            for item in commands:
+                print "running: \t" + str(item.split())
+                subprocess.check_output(item.split())
+
+            # TODO: currently they are not run in parallel, fix this later
+        # TODO: run next line only when the jobs are done, check this
         sutils.generate_coordinates_from_pdb_files()
         return
 
@@ -906,8 +746,8 @@ class simulation_with_ANN_main(object):
             one_iteration.train_network_and_save(training_interval = self._training_interval)   # train it if it is empty
 
         one_iteration.prepare_simulation()
-        one_iteration.run_simulation()
         print('running this iteration #index = %d' % one_iteration._index)
+        one_iteration.run_simulation()
         return
 
     def run_mult_iterations(self, num=None):
