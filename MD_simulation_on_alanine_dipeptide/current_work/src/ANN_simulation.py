@@ -663,7 +663,6 @@ class plotting(object):
         return fig, ax, im
 
 
-
 class iteration(object):
     def __init__(self, index,
                  network=None # if you want to start with existing network, assign value to "network"
@@ -682,6 +681,14 @@ class iteration(object):
 
         max_FVE = 0
         current_network = None
+        temp_training = lambda x: neural_network_for_simulation(index=self._index,
+                                                         data_set_for_training= data_set,
+                                                         training_data_interval=training_interval,
+                                                        )
+
+        temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
+
+
         for item in range(num_of_trainings):
             temp_network = neural_network_for_simulation(index=self._index,
                                                          data_set_for_training= data_set,
@@ -696,6 +703,7 @@ class iteration(object):
                 assert(max_FVE > 0)
                 current_network = copy.deepcopy(temp_network)
 
+
         current_network.save_into_file()
         self._network = current_network
         return
@@ -704,8 +712,8 @@ class iteration(object):
         # self._network.write_expression_into_file()
         self._network.write_coefficients_of_connections_into_file()
         commands = self._network.get_commands_for_further_biased_simulations()
-        print ('in iteration.prepare_simulation: commands = ')
-        print (commands)
+        # print ('in iteration.prepare_simulation: commands = ')
+        # print (commands)
         if machine_to_run_simulations == "cluster":
             cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
         elif machine_to_run_simulations == 'local':
@@ -720,7 +728,8 @@ class iteration(object):
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
             for item in commands:
-                print "running: \t" + str(item.split())
+                print (item)
+                print ("running: \t" + item)
                 subprocess.check_output(item.split())
 
             # TODO: currently they are not run in parallel, fix this later
