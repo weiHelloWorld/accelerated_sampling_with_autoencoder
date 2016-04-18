@@ -76,8 +76,9 @@ class sutils(object):
             cos_of_angles[index] = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
             sin_of_angles_vec[index] = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
             sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]))
+            result += [cos_of_angles[index], sin_of_angles[index]]
 
-        return cos_of_angles + sin_of_angles
+        return result
 
 
     @staticmethod
@@ -106,7 +107,10 @@ class sutils(object):
         result = []
         for item in cossin:
             assert (len(item) == 8)
-            temp_angle = np.multiply(np.arccos(item[0:4]), np.sign(item[4:8]))
+            temp_angle = []
+            for ii in range(4):
+                temp_angle += [np.arccos(item[2 * ii]) * np.sign(item[2 * ii + 1])]
+            
             result += [list(temp_angle)]
         return result
 
@@ -191,8 +195,8 @@ class sutils(object):
 
     @staticmethod
     def get_boundary_points_3_for_circular_network(list_of_points,
-                                                   range_of_PCs = [[-np.pi, np.pi], [-np.pi, np.pi]],
-                                                   num_of_bins = 10,
+                                                   range_of_PCs = CONFIG_26,
+                                                   num_of_bins = CONFIG_10,
                                                    num_of_boundary_points = CONFIG_11,
                                                    preprocessing = True):
         '''This is another version of get_boundary_points() function
