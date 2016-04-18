@@ -13,20 +13,22 @@ from config import *
 
 ############################ PARAMETERS BEGIN ###############################################################
 
+
 record_interval = int(sys.argv[1])
 total_number_of_steps = int(sys.argv[2])
 
-temperature = int(sys.argv[3])   # in Kelvin
+force_constant = sys.argv[3] 
 
-folder_to_store_output_files = '../target/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
-autoencoder_info_file = '../resources/' + sys.argv[5]  # this may contain either complicated expressions (for
-                                                        # "CustomManyParticleForce"), or coefficients (for "ANN_Force")
+xi_1_0 = sys.argv[4]
+xi_2_0 = sys.argv[5]
 
-force_constant = sys.argv[6]
+folder_to_store_output_files = '../target/' + sys.argv[6] # this is used to separate outputs for different networks into different folders
+autoencoder_info_file = '../resources/' + sys.argv[7]
 
-xi_1_0 = sys.argv[7]
-xi_2_0 = sys.argv[8]
-
+if len(sys.argv) == 9:  # temperature is optional, it is 300 K by default
+    temperature = int(sys.argv[8])   # in kelvin
+else:
+    temperature = 300
 
 if not os.path.exists(folder_to_store_output_files):
     try:
@@ -45,8 +47,8 @@ if force_constant == '0':   # unbiased case
     pdb_reporter_file = '%s/unbiased_%dK_output.pdb' % (folder_to_store_output_files, temperature)  # typically the folder for unbiased case is ../target/unbiased/
     state_data_reporter_file = '%s/unbiased_%dK_report.txt' % (folder_to_store_output_files, temperature)
 else:
-    pdb_reporter_file = '%s/biased_%dK_output.pdb' % (folder_to_store_output_files, temperature)
-    state_data_reporter_file = '%s/biased_%dK_report.txt' % (folder_to_store_output_files, temperature)
+    pdb_reporter_file = '%s/biased_output_fc_%s_x1_%s_x2_%s.pdb' %(folder_to_store_output_files, force_constant, xi_1_0, xi_2_0)
+    state_data_reporter_file = '%s/biased_report_fc_%s_x1_%s_x2_%s.txt' %(folder_to_store_output_files, force_constant, xi_1_0, xi_2_0)
 
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
@@ -78,8 +80,14 @@ flag_random_seed = 0 # whether we need to fix this random seed
 box_size = 4.5    # in nm
 neg_ion = "Cl-"
 
-time_step = 0.002        # simulation time step, in ps
+time_step = CONFIG_22       # simulation time step, in ps
 
+index_of_backbone_atoms = [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95, \
+        117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184, \
+        185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252, \
+        253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
+
+layer_types = ['Tanh', 'Tanh']
 
 
 ############################ PARAMETERS END ###############################################################
@@ -92,7 +100,8 @@ forcefield = ForceField(force_field_file, water_field_file)
 modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
 modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
 
-platform = Platform.getPlatformByName('Reference')
+platform = Platform.getPlatformByName(CONFIG_23)
+platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
 system = forcefield.createSystem(modeller.topology,  nonbondedMethod=Ewald, nonbondedCutoff = 1.0*nanometers, \
                                  constraints=AllBonds, ewaldErrorTolerance=0.0005)
@@ -104,14 +113,11 @@ system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
 if force_constant != '0':
     force = ANN_Force()
 
-    force.set_layer_types(['Tanh', 'Tanh'])
-    index_of_backbone_atoms = [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95, \
-        117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184, \
-        185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252, \
-        253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
+    force.set_layer_types(layer_types)
+    
 
     force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
-    force.set_num_of_nodes([76, 10, 2])  # FIXME
+    force.set_num_of_nodes(CONFIG_3[:3])
     force.set_potential_center(
         [float(xi_1_0), float(xi_2_0)] 
         )
@@ -119,8 +125,7 @@ if force_constant != '0':
 
     # TODO: parse coef_file
     with open(autoencoder_info_file, 'r') as f_in:
-        for line in f_in:
-            content = f_in.readlines()
+        content = f_in.readlines()
 
 
     force.set_coeffients_of_connections(

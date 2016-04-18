@@ -681,12 +681,31 @@ class iteration(object):
 
         max_FVE = 0
         current_network = None
-        temp_training = lambda x: neural_network_for_simulation(index=self._index,
-                                                         data_set_for_training= data_set,
-                                                         training_data_interval=training_interval,
-                                                        )
+        
+        # start of multiprocessing
+        # from multiprocessing import Process
+        # temp_training = lambda x: neural_network_for_simulation(index=self._index,
+        #                                                  data_set_for_training= data_set,
+        #                                                  training_data_interval=training_interval,
+        #                                                 )
+ 
+        # temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
+        # print (temp_list_of_trained_autoencoders)
+        
+        # task_list = range(num_of_trainings)
+        # for item in range(num_of_trainings):
+        #     task_list[item] = Process(target = temp_list_of_trained_autoencoders[item].train)
+        #     task_list[item].start()
+         
+        # map(lambda x: x.join(), task_list)
+            
 
-        temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
+        # print ('temp_FVE_list =')
+        # print (temp_list_of_trained_autoencoders[0].get_fraction_of_variance_explained())
+        # print (map(lambda x: x.get_fraction_of_variance_explained(), temp_list_of_trained_autoencoders))
+        # current_network = max(temp_list_of_trained_autoencoders, get_fraction_of_variance_explained)  # find the network with largest FVE
+        # print("max_FVE = %f" % current_network.get_fraction_of_variance_explained())
+        # end of multiprocessing
 
 
         for item in range(num_of_trainings):
@@ -727,10 +746,13 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            for item in commands:
-                print (item)
+            procs_to_run_commands = range(len(commands))
+            for index, item in enumerate(commands):
                 print ("running: \t" + item)
-                subprocess.check_output(item.split())
+                procs_to_run_commands[index] = subprocess.Popen(item.split())
+
+            exit_codes = [p.wait() for p in procs_to_run_commands]
+            assert (sum(exit_codes) == 0)  # all jobs are done successfully
 
             # TODO: currently they are not run in parallel, fix this later
         # TODO: run next line only when the jobs are done, check this

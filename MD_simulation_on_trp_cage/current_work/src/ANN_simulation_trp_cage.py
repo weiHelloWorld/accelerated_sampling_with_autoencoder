@@ -600,7 +600,7 @@ class neural_network_for_simulation(object):
                             'network_' + str(self._index),
                             filename_of_autoencoder_info)
 
-            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
+            command = "python ../src/biased_simulation_trp_cage.py %s %s %s %s %s %s %s" % parameter_list
             todo_list_of_commands_for_simulations += [command]
 
         return todo_list_of_commands_for_simulations
@@ -734,6 +734,28 @@ class iteration(object):
 
         max_FVE = 0
         current_network = None
+
+        # start of multiprocessing
+        # from multiprocessing import Process
+        # temp_training = lambda x: neural_network_for_simulation(index=self._index,
+        #                                                  data_set_for_training= data_set,
+        #                                                  training_data_interval=training_interval,
+        #                                                 )
+ 
+        # temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
+        # task_list = range(num_of_trainings)
+        # for item in range(num_of_trainings):
+        #     task_list[item] = Process(target = temp_list_of_trained_autoencoders[item].train)
+        #     task_list[item].start()
+         
+        # map(lambda x: x.join(), task_list)
+        # print ('temp_FVE_list =')
+        # print (map(lambda x: x.get_fraction_of_variance_explained(), temp_list_of_trained_autoencoders))
+        # current_network = max(temp_list_of_trained_autoencoders, get_fraction_of_variance_explained)  # find the network with largest FVE
+        # print("max_FVE = %f" % current_network.get_fraction_of_variance_explained())
+        # end of multiprocessing
+
+
         for item in range(num_of_trainings):
             temp_network = neural_network_for_simulation(index=self._index,
                                                          data_set_for_training= data_set,
@@ -756,8 +778,8 @@ class iteration(object):
         # self._network.write_expression_into_file()
         self._network.write_coefficients_of_connections_into_file()
         commands = self._network.get_commands_for_further_biased_simulations()
-        print ('in iteration.prepare_simulation: commands = ')
-        print (commands)
+        # print ('in iteration.prepare_simulation: commands = ')
+        # print (commands)
         if machine_to_run_simulations == "cluster":
             cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
         elif machine_to_run_simulations == 'local':
@@ -771,8 +793,13 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            for item in commands:
-                subprocess.check_output(item)
+            procs_to_run_commands = range(len(commands))
+            for index, item in enumerate(commands):
+                print ("running: \t" + item)
+                procs_to_run_commands[index] = subprocess.Popen(item.split())
+
+            exit_codes = [p.wait() for p in procs_to_run_commands]
+            assert (sum(exit_codes) == 0)  # all jobs are done successfully
 
             # TODO: currently they are not run in parallel, fix this later
         # TODO: run next line only when the jobs are done, check this
@@ -797,8 +824,8 @@ class simulation_with_ANN_main(object):
             one_iteration.train_network_and_save(training_interval = self._training_interval)   # train it if it is empty
 
         one_iteration.prepare_simulation()
-        one_iteration.run_simulation()
         print('running this iteration #index = %d' % one_iteration._index)
+        one_iteration.run_simulation()
         return
 
     def run_mult_iterations(self, num=None):

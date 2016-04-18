@@ -44,10 +44,10 @@ state_data_reporter_file = '%s/biased_report_fc_%s_x1_%s_x2_%s.txt' %(folder_to_
 
 # check if the file exist
 if os.path.isfile(pdb_reporter_file):
-    os.rename(pdb_reporter_file, pdb_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
+    os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
 if os.path.isfile(state_data_reporter_file):
-    os.rename(state_data_reporter_file, state_data_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+    os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
 
 k1 = force_constant
 k2 = force_constant
@@ -79,8 +79,6 @@ flag_random_seed = 0 # whether we need to fix this random seed
 
 simulation_temperature = CONFIG_21
 time_step = CONFIG_22   # simulation time step, in ps
-
-plugin_dir = CONFIG_25
 
 
 ############################ PARAMETERS END ###############################################################
@@ -133,7 +131,7 @@ if flag_random_seed:
     integrator.setRandomNumberSeed(1)  # set random seed
 
 platform = Platform.getPlatformByName(CONFIG_23)
-platform.loadPluginsFromDirectory(plugin_dir)  # load the plugin from the current directory
+platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
 simulation = Simulation(pdb.topology, system, integrator, platform)
 simulation.context.setPositions(pdb.positions)

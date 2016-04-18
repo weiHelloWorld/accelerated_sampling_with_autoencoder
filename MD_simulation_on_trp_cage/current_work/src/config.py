@@ -58,7 +58,7 @@ CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 
 '''class cluster_management'''
 
-CONFIG_8 = 10000 # num of simulation steps
+CONFIG_8 = 5000 # num of simulation steps
 CONFIG_9 = 50   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
@@ -72,3 +72,4 @@ CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
 CONFIG_23 = 'Reference'   # simulation platform
+CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
