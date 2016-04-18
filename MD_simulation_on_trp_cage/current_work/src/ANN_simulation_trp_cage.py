@@ -9,6 +9,7 @@ from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
 from config import * # configuration file
+from cluster_management import *
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
@@ -138,11 +139,12 @@ class sutils(object):
         result = []
         for item in cossin:
             temp_angle = []
-            assert (len(item) == 76)
-            for idx_of_angle in range(38):
+            len_of_cos_sin = CONFIG_25
+            assert (len(item) == len_of_cos_sin)
+            for idx_of_angle in range(len_of_cos_sin / 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
 
-            assert (len(temp_angle) == 38)
+            assert (len(temp_angle) == len_of_cos_sin / 2)
 
             result += [temp_angle]
 
@@ -286,7 +288,7 @@ class neural_network_for_simulation(object):
     def __init__(self,
                  index,  # the index of the current network
                  data_set_for_training,
-                 energy_expression_file = None,
+                 autoencoder_info_file = None,  # this might be expressions, or coefficients
                  training_data_interval = CONFIG_2,
                  in_layer_type = LinearLayer,
                  hidden_layers_types = CONFIG_17,
@@ -302,10 +304,10 @@ class neural_network_for_simulation(object):
         self._index = index
         self._data_set = data_set_for_training
         self._training_data_interval = training_data_interval
-        if energy_expression_file is None:
-            self._energy_expression_file = "../resources/energy_expression_%d.txt" %(index)
+        if autoencoder_info_file is None:
+            self._autoencoder_info_file = "../resources/autoencoder_info_%d.txt" %(index)
         else:
-            self._energy_expression_file = energy_expression_file
+            self._autoencoder_info_file = autoencoder_info_file
 
         if not in_layer_type is None: self._in_layer_type = in_layer_type
         if not hidden_layers_types is None: self._hidden_layers_type = hidden_layers_types
@@ -340,7 +342,6 @@ class neural_network_for_simulation(object):
         return
 
     def get_expression_of_network(self):
-        # FIXME: done Trp-cage, but only for 5-layer, need to implement 3-layer case
         """
         this function generates expression of PCs in terms of inputs
         """
@@ -415,11 +416,24 @@ class neural_network_for_simulation(object):
         return expression
 
     def write_expression_into_file(self, out_file = None):
-        if out_file is None: out_file = self._energy_expression_file
+        if out_file is None: out_file = self._autoencoder_info_file
 
         expression = self.get_expression_of_network()
         with open(out_file, 'w') as f_out:
             f_out.write(expression)
+        return
+
+    def write_coefficients_of_connections_into_file(self, out_file = None):
+        if out_file is None: out_file = self._autoencoder_info_file
+
+        with open(out_file, 'w') as f_out:
+            for item in [0, 1]:
+                f_out.write(str(list(self._connection_between_layers[item].params)))
+                f_out.write(',\n')
+
+            for item in [0, 1]:
+                f_out.write(str(list(self._connection_with_bias_layers[item].params)))
+                f_out.write(',\n')
         return
 
     def get_mid_result(self, input_data=None):
@@ -556,6 +570,41 @@ class neural_network_for_simulation(object):
         var_of_output = sum(np.var(output_data, axis=0))
         return var_of_output / var_of_input
 
+    def get_commands_for_further_biased_simulations(self,list_of_potential_center = None,
+                                                  num_of_simulation_steps = None,
+                                                  autoencoder_info_file=None,
+                                                  force_constant_for_biased = None,
+                                                  ):
+        '''this function creates a list of commands for further biased simulations that should be done later,
+        either in local machines or on the cluster
+        '''
+        temp_mid_result = self.get_mid_result()
+        PCs_of_network = [item[1] for item in temp_mid_result]
+        assert (len(PCs_of_network[0]) == 2)
+
+        if list_of_potential_center is None:
+            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
+        if num_of_simulation_steps is None:
+            num_of_simulation_steps = CONFIG_8
+        if autoencoder_info_file is None:
+            autoencoder_info_file = self._autoencoder_info_file
+            filename_of_autoencoder_info = autoencoder_info_file.split('resources/')[1]
+        if force_constant_for_biased is None:
+            force_constant_for_biased = CONFIG_9
+
+        todo_list_of_commands_for_simulations = []
+
+        for potential_center in list_of_potential_center:
+            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                            str(potential_center[0]), str(potential_center[1]),
+                            'network_' + str(self._index),
+                            filename_of_autoencoder_info)
+
+            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
+            todo_list_of_commands_for_simulations += [command]
+
+        return todo_list_of_commands_for_simulations
+
     def generate_mat_file_for_WHAM_reweighting(self, list_of_coor_data_files):
         # FIXME: this one does not work quite well for circular layer case, need further processing
         force_constants = []
@@ -666,253 +715,6 @@ class plotting(object):
         return fig, ax, im
 
 
-class simulation_management(object):
-    def __init__(self, mynetwork,
-                 num_of_simulation_steps = CONFIG_8,
-                 force_constant_for_biased = CONFIG_9
-                 ):
-        self._mynetwork = mynetwork
-        self._num_of_simulation_steps = num_of_simulation_steps
-        self._force_constant_for_biased = force_constant_for_biased
-        return
-
-    def get_todo_list_of_commands_for_simulations(self,list_of_potential_center = None,
-                                                  num_of_simulation_steps = None,
-                                                  energy_expression_file=None,
-                                                  force_constant_for_biased = None,
-                                                  file_to_store_command_list = 'simulation_command_todo_list.txt',
-                                                  is_write_into_file = True):
-        '''this function creates a list of commands that should be done later,
-        either in local machines or on the cluster,
-        if it should be done in the cluster, "auto_qsub" will be responsible for it
-        '''
-        temp_mid_result = self._mynetwork.get_mid_result()
-        PCs_of_network = [item[1] for item in temp_mid_result]
-        assert (len(PCs_of_network[0]) == 2)
-
-        if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
-        if num_of_simulation_steps is None:
-            num_of_simulation_steps = self._num_of_simulation_steps
-        if energy_expression_file is None:
-            energy_expression_file = self._mynetwork._energy_expression_file
-            filename_of_energy_expression = energy_expression_file.split('resources/')[1]
-        if force_constant_for_biased is None:
-            force_constant_for_biased = self._force_constant_for_biased
-
-        todo_list_of_commands_for_simulations = []
-
-        for potential_center in list_of_potential_center:
-            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            str(potential_center[0]), str(potential_center[1]),
-                            'network_' + str(self._mynetwork._index),
-                            filename_of_energy_expression)
-
-            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
-            todo_list_of_commands_for_simulations += [command]
-
-        if is_write_into_file:
-            with open(file_to_store_command_list, 'w') as f_out:
-                for item in todo_list_of_commands_for_simulations:
-                    f_out.write(str(item))
-                    f_out.write('\n')
-
-        return todo_list_of_commands_for_simulations
-
-
-    def create_sge_files_for_simulation(self,list_of_potential_center = None,
-                                        num_of_simulation_steps = None,
-                                        energy_expression_file=None,
-                                        force_constant_for_biased = None):
-
-        PCs_of_network = self._mynetwork.get_PCs()
-        assert (len(PCs_of_network[0]) == 2)
-
-        if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
-        if num_of_simulation_steps is None:
-            num_of_simulation_steps = self._num_of_simulation_steps
-        if energy_expression_file is None:
-            energy_expression_file = self._mynetwork._energy_expression_file
-            filename_of_energy_expression = energy_expression_file.split('resources/')[1]
-        if force_constant_for_biased is None:
-            force_constant_for_biased = self._force_constant_for_biased
-
-        for potential_center in list_of_potential_center:
-
-            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            str(potential_center[0]), str(potential_center[1]),
-                            'network_' + str(self._mynetwork._index),
-                            filename_of_energy_expression)
-
-            file_name = "../sge_files/job_biased_%s_%s_%s_%s_%s_%s_%s.sge" % parameter_list
-            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
-            # with open("temp_command_file_%d.txt" % (self._mynetwork._index), 'a') as temp_command_f:  # FIXME: use better implementation later
-            #     temp_command_f.write('nohup  ' + command + " &\n")
-
-            print("creating %s" % file_name)
-
-            content_for_sge_files = '''#!/bin/bash
-
-#$ -S /bin/bash           # use bash shell
-#$ -V                     # inherit the submission environment
-#$ -cwd                   # start job in submission directory
-
-#$ -m ae                 # email on abort, begin, and end
-#$ -M wei.herbert.chen@gmail.com         # email address
-
-#$ -q all.q               # queue name
-#$ -l h_rt=%s       # run time (hh:mm:ss)
-####$ -l hostname=compute-0-3
-
-%s
-
-echo "This job is DONE!"
-
-exit 0
-''' % (CONFIG_19, command)
-
-            with open(file_name, 'w') as f_out:
-                f_out.write(content_for_sge_files)
-                f_out.write("\n")
-
-        return
-
-
-    # @staticmethod
-    # def run_one_command(filename = 'simulation_command_todo_list.txt', run_method = 'local'):
-    #     '''
-    #     this function picks the first command in the todo list and run it,
-    #     :param run_method: 'local' means running the command in local machine, 'cluster' means running in cluster
-    #     TODO:
-    #     '''
-    #     with open(filename, 'r') as in_file:
-    #         all_commands = in_file.read().split('\n')[:-1]
-    #
-    #     first_command = all_commands[0]
-    #     if run_method == 'local':
-    #         subprocess.check_output(first_command.split())  # run this command locally
-    #     elif run_method == 'cluster':
-    #         pass
-    #         # TODO
-    #     else:
-    #         pass
-    #         # TODO
-    #
-    #
-    #     return
-
-
-
-    @staticmethod
-    def get_num_of_running_jobs():
-        output = subprocess.check_output(['qstat'])
-        num_of_running_jobs = len(re.findall('weichen9', output))
-        print('checking number of running jobs = %d\n' % num_of_running_jobs)
-        return num_of_running_jobs
-
-    @staticmethod
-    def submit_sge_jobs_and_archive_files(job_file_lists,
-                                          num,  # num is the max number of jobs submitted each time
-                                          flag_of_whether_to_record_qsub_commands = False
-                                          ):
-        dir_to_archive_files = '../sge_files/archive/'
-
-        if not os.path.exists(dir_to_archive_files):
-            os.makedirs(dir_to_archive_files)
-
-        assert(os.path.exists(dir_to_archive_files))
-
-        for item in job_file_lists[0:num]:
-            subprocess.check_output(['qsub', item])
-            print('submitting ' + str(item))
-            subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
-        return
-
-    @staticmethod
-    def get_sge_files_list():
-        result = filter(lambda x: x[-3:] == "sge",subprocess.check_output(['ls', '../sge_files']).split('\n'))
-        result = map(lambda x: '../sge_files/' + x, result)
-        return result
-
-    @staticmethod
-    def submit_new_jobs_if_there_are_too_few_jobs(num):
-        if simulation_management.get_num_of_running_jobs() < num:
-            job_list = simulation_management.get_sge_files_list()
-            simulation_management.submit_sge_jobs_and_archive_files(job_list, num)
-        return
-
-    @staticmethod
-    def monitor_status_and_submit_periodically(num,
-                                               num_of_running_jobs_when_allowed_to_stop = 0,
-                                               monitor_mode = 'normal',  # monitor_mode determines whether it can go out of first while loop
-                                               ):
-        if monitor_mode == 'normal':
-            min_num_of_unsubmitted_jobs = 0
-        elif monitor_mode == 'always_wait_for_submit':
-            min_num_of_unsubmitted_jobs = -1
-
-        num_of_unsubmitted_jobs = len(simulation_management.get_sge_files_list())
-        # first check if there are unsubmitted jobs
-        while num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
-            time.sleep(10)
-            try:
-                simulation_management.submit_new_jobs_if_there_are_too_few_jobs(num)
-                num_of_unsubmitted_jobs = len(simulation_management.get_sge_files_list())
-            except:
-                print("not able to submit jobs!\n")
-
-        # then check if all jobs are done
-        while simulation_management.get_num_of_running_jobs() > num_of_running_jobs_when_allowed_to_stop:
-            time.sleep(10)
-        return
-
-    @staticmethod
-    def is_job_running_on_cluster(job_sgefile_name):
-        output = subprocess.check_output(['qstat', '-r'])
-        return job_sgefile_name in output
-
-    @staticmethod
-    def check_whether_job_finishes_successfully(job_sgefile_name, latest_version = True):
-        """
-        return value:
-        0: finishes successfully
-        1: finishes with exception
-        2: aborted due to time limit or other reason
-        -1: job does not exist
-        """
-        job_finished_message = 'This job is DONE!\n'
-        # first we check whether the job finishes
-        if simulation_management.is_job_running_on_cluster(job_sgefile_name):
-            return 0  # not finished
-        else:
-            all_files_in_this_dir = subprocess.check_output(['ls']).split()
-
-            out_file_list = filter(lambda x: job_sgefile_name in x and ".o" in x, all_files_in_this_dir)
-            err_file_list = filter(lambda x: job_sgefile_name in x and ".e" in x, all_files_in_this_dir)
-
-            if len(out_file_list) == 0 or len(err_file_list) == 0:
-                return -1   # job does not exist
-
-            if latest_version:
-                job_serial_number_list = map(lambda x: int(x.split('.sge.o')[1]), out_file_list)
-                job_serial_number_of_latest_version = max(job_serial_number_list)
-                latest_out_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, out_file_list)[0]
-                latest_err_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, err_file_list)[0]
-                with open(latest_out_file, 'r') as out_f:
-                    out_content = out_f.readlines()
-                with open(latest_err_file, 'r') as err_f:
-                    err_content = err_f.readlines()
-                    err_content = filter(lambda x: x[:4] != 'bash', err_content)  # ignore error info starting with "bash"
-
-                if (job_finished_message in out_content) and (len(err_content) != 0):
-                    return 1  # ends with exception
-                elif not job_finished_message in out_content:
-                    return 2  # aborted due to time limit or other reason
-            else:
-                # TODO: handle this case
-                return
-
 
 class iteration(object):
     def __init__(self, index,
@@ -950,17 +752,30 @@ class iteration(object):
         self._network = current_network
         return
 
-    def prepare_simulation(self):
-        self._network.write_expression_into_file()
-
-        manager = simulation_management(self._network)
-        manager.create_sge_files_for_simulation()
+    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
+        # self._network.write_expression_into_file()
+        self._network.write_coefficients_of_connections_into_file()
+        commands = self._network.get_commands_for_further_biased_simulations()
+        print ('in iteration.prepare_simulation: commands = ')
+        print (commands)
+        if machine_to_run_simulations == "cluster":
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
+        elif machine_to_run_simulations == 'local':
+            pass
+            # TODO
         return
 
-    def run_simulation(self):
-        manager = simulation_management(self._network)
-        manager.monitor_status_and_submit_periodically(num = CONFIG_14,
+    def run_simulation(self, machine_to_run_simulations = CONFIG_24):
+        if machine_to_run_simulations == 'cluster':
+            cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
+        elif machine_to_run_simulations == 'local':
+            commands = self._network.get_commands_for_further_biased_simulations()
+            for item in commands:
+                subprocess.check_output(item)
+
+            # TODO: currently they are not run in parallel, fix this later
+        # TODO: run next line only when the jobs are done, check this
         sutils.generate_coordinates_from_pdb_files()
         return
 
