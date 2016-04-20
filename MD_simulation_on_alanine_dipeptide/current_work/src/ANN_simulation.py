@@ -306,6 +306,9 @@ class neural_network_for_simulation(object):
         """
         this function generates expression of PCs in terms of inputs
         """
+        # FIXME: the expression no longer works, since I made input list for input layer of autoencoder consistent
+        # for both alanine dipeptide and trp-cage, always [cos, sin, cos, sin ....], 
+        # which is consistent with ANN_Force, instead of [cos, cos, cos, cos, sin, sin, sin, sin]
         type_of_middle_hidden_layer = self._hidden_layers_type[1]
 
         connection_between_layers = self._connection_between_layers

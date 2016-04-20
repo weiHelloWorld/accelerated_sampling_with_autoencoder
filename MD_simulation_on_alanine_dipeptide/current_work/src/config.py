@@ -30,7 +30,7 @@ CONFIG_6 = None # filename to save this network
 
 '''class sutils'''
 
-CONFIG_10 = 10   # num of bins for get_boundary_points()
+CONFIG_10 = 5   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
@@ -75,7 +75,7 @@ CONFIG_19 = '24:00:00'  # max running time for the sge job
 ############   config for biased_simulation.py  ##########################
 ##########################################################################
 
-CONFIG_20 = True  # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+CONFIG_20 = False  # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
