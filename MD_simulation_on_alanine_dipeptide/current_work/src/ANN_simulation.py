@@ -530,8 +530,7 @@ class neural_network_for_simulation(object):
         '''this function creates a list of commands for further biased simulations that should be done later,
         either in local machines or on the cluster
         '''
-        temp_mid_result = self.get_mid_result()
-        PCs_of_network = [item[1] for item in temp_mid_result]
+        PCs_of_network = self.get_PCs()
         assert (len(PCs_of_network[0]) == 2)
 
         if list_of_potential_center is None:

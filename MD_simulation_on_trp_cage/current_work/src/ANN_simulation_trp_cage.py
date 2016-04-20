@@ -234,8 +234,8 @@ class sutils(object):
 
     @staticmethod
     def get_boundary_points_3_for_circular_network(list_of_points,
-                                                   range_of_PCs = [[-np.pi, np.pi], [-np.pi, np.pi]],
-                                                   num_of_bins = 10,
+                                                   range_of_PCs = CONFIG_26,
+                                                   num_of_bins = CONFIG_10,
                                                    num_of_boundary_points = CONFIG_11,
                                                    preprocessing = True):
         '''This is another version of get_boundary_points() function
@@ -799,6 +799,7 @@ class iteration(object):
                 procs_to_run_commands[index] = subprocess.Popen(item.split())
 
             exit_codes = [p.wait() for p in procs_to_run_commands]
+            print ("exit_codes = " + str(exit_codes))
             assert (sum(exit_codes) == 0)  # all jobs are done successfully
 
             # TODO: currently they are not run in parallel, fix this later

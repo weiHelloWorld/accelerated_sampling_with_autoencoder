@@ -57,7 +57,7 @@ list_of_index_of_atoms_forming_dihedrals = [[2,5,7,9],
                                             [7,9,15,17],
                                             [9,15,17,19]]
 
-layer_types = ['Tanh', 'Tanh']
+layer_types = CONFIG_27
 
 # with open(energy_expression_file, 'r') as f_in:
 #     energy_expression = f_in.read()
