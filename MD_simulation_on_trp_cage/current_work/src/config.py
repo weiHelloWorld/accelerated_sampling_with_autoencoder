@@ -46,6 +46,7 @@ CONFIG_24 = 'local'  # machine to run the simulations
 
 CONFIG_14 = 7  # max number of jobs submitted each time
 CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
+CONFIG_27 = True  # whether we need to remove the water molecules from pdb files
 
 '''def get_plottings'''
 '''class simulation_with_ANN_main'''

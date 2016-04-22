@@ -890,14 +890,18 @@ class iteration(object):
             procs_to_run_commands = range(len(commands))
             for index, item in enumerate(commands):
                 print ("running: \t" + item)
+                # run them in parallel
                 procs_to_run_commands[index] = subprocess.Popen(item.split())
 
             exit_codes = [p.wait() for p in procs_to_run_commands]
             print ("exit_codes = " + str(exit_codes))
             assert (sum(exit_codes) == 0)  # all jobs are done successfully
 
-            # TODO: currently they are not run in parallel, fix this later
+
         # TODO: run next line only when the jobs are done, check this
+        if CONFIG_27:
+            sutils.remove_water_mol_from_pdb_file()
+
         sutils.generate_coordinates_from_pdb_files()
         return
 
