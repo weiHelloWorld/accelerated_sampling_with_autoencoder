@@ -206,6 +206,43 @@ class sutils(object):
 
         return result
 
+    @staticmethod
+    def get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon):
+        """
+        :param coor_of_alpha_carbon: 2d-numpy-array
+        """
+        num = len(coor_of_alpha_carbon)
+        distance = np.zeros((num, num))
+        for idx_1, x in enumerate(coor_of_alpha_carbon):
+            for idx_2, y in enumerate(coor_of_alpha_carbon):
+                distance[idx_1][idx_2] = np.linalg.norm(x-y)
+        return distance
+
+    @staticmethod
+    def get_distance_between_two_coordinates(coor_1, coor_2):
+        mat_1 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_1)
+        mat_2 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_2)
+        return np.linalg.norm(mat_1 - mat_2)
+
+    @staticmethod
+    def get_list_of_distances_between_coordinates_in_one_file_and_coord_of_folded_state(
+                                                            file_name, file_type,
+                                                            pdb_file_of_folded_state = '../resources/1l2y.pdb'):
+        coor_of_folded = sutils.get_coordinates_of_alpha_carbon_from_a_file(pdb_file_of_folded_state, file_type='pdb')[0]
+        list_of_coordinates = sutils.get_coordinates_of_alpha_carbon_from_a_file(file_name=file_name, file_type=file_type)
+        result = map(lambda x: sutils.get_distance_between_two_coordinates(coor_of_folded, x), list_of_coordinates)
+        return result
+
+    @staticmethod
+    def get_list_of_distances_between_coordinates_in_many_files_and_coord_of_folded_state(
+                                                                list_of_file_names, file_type,
+                                                                pdb_file_of_folded_state='../resources/1l2y.pdb'):
+        result = []
+        for item in list_of_file_names:
+            result += sutils.get_list_of_distances_between_coordinates_in_one_file_and_coord_of_folded_state(
+                item, file_type, pdb_file_of_folded_state
+            )
+        return result
 
     @staticmethod
     def get_boundary_points_2(list_of_points, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11,
@@ -729,6 +766,7 @@ class plotting(object):
         elif color_option == 'psi':
             coloring = [item[2] for item in sutils.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'other':
+            assert (len(other_coloring) == len(x))
             coloring = other_coloring
 
         fig, ax = plt.subplots()
@@ -773,13 +811,13 @@ class iteration(object):
         #                                                  data_set_for_training= data_set,
         #                                                  training_data_interval=training_interval,
         #                                                 )
- 
+
         # temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
         # task_list = range(num_of_trainings)
         # for item in range(num_of_trainings):
         #     task_list[item] = Process(target = temp_list_of_trained_autoencoders[item].train)
         #     task_list[item].start()
-         
+
         # map(lambda x: x.join(), task_list)
         # print ('temp_FVE_list =')
         # print (map(lambda x: x.get_fraction_of_variance_explained(), temp_list_of_trained_autoencoders))
