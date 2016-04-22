@@ -76,8 +76,9 @@ class sutils(object):
             cos_of_angles[index] = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
             sin_of_angles_vec[index] = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
             sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]))
+            result += [cos_of_angles[index], sin_of_angles[index]]
 
-        return cos_of_angles + sin_of_angles
+        return result
 
 
     @staticmethod
@@ -106,7 +107,10 @@ class sutils(object):
         result = []
         for item in cossin:
             assert (len(item) == 8)
-            temp_angle = np.multiply(np.arccos(item[0:4]), np.sign(item[4:8]))
+            temp_angle = []
+            for ii in range(4):
+                temp_angle += [np.arccos(item[2 * ii]) * np.sign(item[2 * ii + 1])]
+            
             result += [list(temp_angle)]
         return result
 
@@ -191,8 +195,8 @@ class sutils(object):
 
     @staticmethod
     def get_boundary_points_3_for_circular_network(list_of_points,
-                                                   range_of_PCs = [[-np.pi, np.pi], [-np.pi, np.pi]],
-                                                   num_of_bins = 10,
+                                                   range_of_PCs = CONFIG_26,
+                                                   num_of_bins = CONFIG_10,
                                                    num_of_boundary_points = CONFIG_11,
                                                    preprocessing = True):
         '''This is another version of get_boundary_points() function
@@ -302,6 +306,9 @@ class neural_network_for_simulation(object):
         """
         this function generates expression of PCs in terms of inputs
         """
+        # FIXME: the expression no longer works, since I made input list for input layer of autoencoder consistent
+        # for both alanine dipeptide and trp-cage, always [cos, sin, cos, sin ....], 
+        # which is consistent with ANN_Force, instead of [cos, cos, cos, cos, sin, sin, sin, sin]
         type_of_middle_hidden_layer = self._hidden_layers_type[1]
 
         connection_between_layers = self._connection_between_layers
@@ -526,8 +533,7 @@ class neural_network_for_simulation(object):
         '''this function creates a list of commands for further biased simulations that should be done later,
         either in local machines or on the cluster
         '''
-        temp_mid_result = self.get_mid_result()
-        PCs_of_network = [item[1] for item in temp_mid_result]
+        PCs_of_network = self.get_PCs()
         assert (len(PCs_of_network[0]) == 2)
 
         if list_of_potential_center is None:
@@ -663,7 +669,6 @@ class plotting(object):
         return fig, ax, im
 
 
-
 class iteration(object):
     def __init__(self, index,
                  network=None # if you want to start with existing network, assign value to "network"
@@ -682,6 +687,33 @@ class iteration(object):
 
         max_FVE = 0
         current_network = None
+        
+        # start of multiprocessing
+        # from multiprocessing import Process
+        # temp_training = lambda x: neural_network_for_simulation(index=self._index,
+        #                                                  data_set_for_training= data_set,
+        #                                                  training_data_interval=training_interval,
+        #                                                 )
+ 
+        # temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
+        # print (temp_list_of_trained_autoencoders)
+        
+        # task_list = range(num_of_trainings)
+        # for item in range(num_of_trainings):
+        #     task_list[item] = Process(target = temp_list_of_trained_autoencoders[item].train)
+        #     task_list[item].start()
+         
+        # map(lambda x: x.join(), task_list)
+            
+
+        # print ('temp_FVE_list =')
+        # print (temp_list_of_trained_autoencoders[0].get_fraction_of_variance_explained())
+        # print (map(lambda x: x.get_fraction_of_variance_explained(), temp_list_of_trained_autoencoders))
+        # current_network = max(temp_list_of_trained_autoencoders, get_fraction_of_variance_explained)  # find the network with largest FVE
+        # print("max_FVE = %f" % current_network.get_fraction_of_variance_explained())
+        # end of multiprocessing
+
+
         for item in range(num_of_trainings):
             temp_network = neural_network_for_simulation(index=self._index,
                                                          data_set_for_training= data_set,
@@ -696,6 +728,7 @@ class iteration(object):
                 assert(max_FVE > 0)
                 current_network = copy.deepcopy(temp_network)
 
+
         current_network.save_into_file()
         self._network = current_network
         return
@@ -704,8 +737,8 @@ class iteration(object):
         # self._network.write_expression_into_file()
         self._network.write_coefficients_of_connections_into_file()
         commands = self._network.get_commands_for_further_biased_simulations()
-        print ('in iteration.prepare_simulation: commands = ')
-        print (commands)
+        # print ('in iteration.prepare_simulation: commands = ')
+        # print (commands)
         if machine_to_run_simulations == "cluster":
             cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
         elif machine_to_run_simulations == 'local':
@@ -719,9 +752,13 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            for item in commands:
-                print "running: \t" + str(item.split())
-                subprocess.check_output(item.split())
+            procs_to_run_commands = range(len(commands))
+            for index, item in enumerate(commands):
+                print ("running: \t" + item)
+                procs_to_run_commands[index] = subprocess.Popen(item.split())
+
+            exit_codes = [p.wait() for p in procs_to_run_commands]
+            assert (sum(exit_codes) == 0)  # all jobs are done successfully
 
             # TODO: currently they are not run in parallel, fix this later
         # TODO: run next line only when the jobs are done, check this

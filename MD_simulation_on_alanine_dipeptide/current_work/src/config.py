@@ -1,9 +1,16 @@
 from pybrain.structure import *
 from pybrain.structure.modules.circularlayer import *
+import numpy as np
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
 '''
+
+#######################################################################
+######################   some global variables  #######################
+#######################################################################
+
+layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear"}
 
 #######################################################################
 ############   config for ANN_simulation_trp_cage.py  #################
@@ -27,6 +34,7 @@ CONFIG_10 = 5   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
+CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
 
 '''def generate_coordinates_from_pdb_files'''
 
@@ -36,7 +44,7 @@ CONFIG_12 = '../target'  # folder that contains all pdb files
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = 3  # num of network trainings we are going to run, and pick the one with least FVE from them
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
@@ -72,3 +80,5 @@ CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
 CONFIG_23 = 'Reference'   # simulation platform
+CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
+CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder

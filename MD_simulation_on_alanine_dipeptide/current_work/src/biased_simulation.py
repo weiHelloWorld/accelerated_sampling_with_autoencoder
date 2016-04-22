@@ -44,13 +44,20 @@ state_data_reporter_file = '%s/biased_report_fc_%s_x1_%s_x2_%s.txt' %(folder_to_
 
 # check if the file exist
 if os.path.isfile(pdb_reporter_file):
-    os.rename(pdb_reporter_file, pdb_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
+    os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
 if os.path.isfile(state_data_reporter_file):
-    os.rename(state_data_reporter_file, state_data_reporter_file + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+    os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
 
 k1 = force_constant
 k2 = force_constant
+
+list_of_index_of_atoms_forming_dihedrals = [[2,5,7,9],
+                                            [5,7,9,15],
+                                            [7,9,15,17],
+                                            [9,15,17,19]]
+
+layer_types = CONFIG_27
 
 # with open(energy_expression_file, 'r') as f_in:
 #     energy_expression = f_in.read()
@@ -94,23 +101,19 @@ system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff, \
 if force_constant != '0':
     force = ANN_Force()
 
-    force.set_layer_types(['Tanh', 'Tanh'])
-    list_of_index_of_atoms_forming_dihedrals = [[2,5,7,9],
-                                                [5,7,9,15],
-                                                [7,9,15,17],
-                                                [9,15,17,19]]
+    force.set_layer_types(layer_types)
+    
 
     force.set_list_of_index_of_atoms_forming_dihedrals(list_of_index_of_atoms_forming_dihedrals)
-    force.set_num_of_nodes([8, 15, 2])
+    force.set_num_of_nodes(CONFIG_3[:3])
     force.set_potential_center(
         [float(xi_1_0), float(xi_2_0)] 
         )
     force.set_force_constant(float(force_constant))
 
-    # TODO: parse coef_file
+    # set coefficient
     with open(autoencoder_info_file, 'r') as f_in:
         content = f_in.readlines()
-
 
     force.set_coeffients_of_connections(
         [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
@@ -128,6 +131,7 @@ if flag_random_seed:
     integrator.setRandomNumberSeed(1)  # set random seed
 
 platform = Platform.getPlatformByName(CONFIG_23)
+platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
 simulation = Simulation(pdb.topology, system, integrator, platform)
 simulation.context.setPositions(pdb.positions)
