@@ -153,6 +153,30 @@ class sutils(object):
         return result
 
     @staticmethod
+    def remove_water_mol_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=False):
+        """
+        This is used to remove water molecule from pdb file, purposes:
+        - save storage space
+        - reduce processing time of pdb file
+        """
+        filenames = subprocess.check_output(['find', folder_for_pdb, '-name', '*.pdb']).split('\n')[:-1]
+        for item in filenames:
+            print ('removing water molecules from pdb file: ' + item)
+            output_file = item[:-4] + '_rm_tmp.pdb'
+
+            with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
+                for line in f_in:
+                    if not 'HOH' in line:
+                        f_out.write(line)
+
+            if not preserve_original_file:
+                subprocess.check_output(['mv', output_file, item])
+
+        print('Done removing water molecules from all pdb files!')
+
+        return
+
+    @staticmethod
     def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
         filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
 
