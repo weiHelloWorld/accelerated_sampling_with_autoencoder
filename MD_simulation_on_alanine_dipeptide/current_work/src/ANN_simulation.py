@@ -599,6 +599,78 @@ class neural_network_for_simulation(object):
             })
         return
 
+    def generate_files_for_Bayes_WHAM(self, directory_containing_coor_files, folder_to_store_files = './wham_files/'):
+        list_of_coor_data_files = coordinates_data_files_list([directory_containing_coor_files])._list_of_coor_data_files
+        for item in ['bias', 'hist', 'traj', 'traj_proj']:
+            directory = folder_to_store_files + item
+            subprocess.check_output(['mkdir', '-p', directory])
+            assert (os.path.exists(directory))
+
+        force_constants = []
+        harmonic_centers = []
+        window_counts = []
+        coords = []
+        umbOP = []
+        for item in list_of_coor_data_files:
+            # print('processing %s' %item)
+            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_x1_')[0])
+            force_constants += [[temp_force_constant, temp_force_constant]]
+            harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
+            temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
+            window_counts += [temp_window_count]
+            temp_mid_result = self.get_mid_result(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
+            temp_coor = [a[1] for a in temp_mid_result]
+            assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
+            coords += temp_coor
+            temp_angles = sutils.get_many_dihedrals_from_coordinates_in_file([item])
+            temp_umbOP = [a[1:3] for a in temp_angles]
+            assert(temp_window_count == len(temp_umbOP))
+            assert(2 == len(temp_umbOP[0]))
+            umbOP += temp_umbOP
+
+
+        # write info into files
+        # 1st: bias potential info
+        with open(folder_to_store_files + 'bias/harmonic_biases.txt', 'w') as f_out:
+            for item in range(len(force_constants)):
+                temp = '%d\t%f\t%f\t%f\t%f\n' % (item + 1, harmonic_centers[item][0], harmonic_centers[item][1],
+                                                force_constants[item][0], force_constants[item][1])
+                f_out.write(temp)
+
+        # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
+        binEdges = np.array([np.linspace(-1, 1, 21), np.linspace(-1, 1, 21)])
+        with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
+            for row in binEdges:
+                for item in row:
+                    f_out.write('%f\t' % item)
+                f_out.write('\n')
+
+        start_index = end_index = 0
+        for item, count in enumerate(window_counts):
+            start_index = int(end_index)
+            end_index = int(start_index + count)
+            with open(folder_to_store_files + 'traj/traj_%d.txt' % (item + 1), 'w') as f_out_1, \
+                 open(folder_to_store_files + 'traj_proj/traj_proj_%d.txt' % (item + 1), 'w') as f_out_2, \
+                 open(folder_to_store_files + 'hist/hist_%d.txt' % (item + 1), 'w') as f_out_3:
+                for line in coords[start_index:end_index]:
+                    temp = '%f\t%f\n' % (line[0], line[1])
+                    f_out_1.write(temp)
+
+                for line in umbOP[start_index:end_index]:
+                    temp = '%f\t%f\n' % (line[0], line[1])
+                    f_out_2.write(temp)
+
+                x = [item[0] for item in coords[start_index:end_index]]
+                y = [item[1] for item in coords[start_index:end_index]]
+                temp_hist, _, _ = np.histogram2d(y, x, bins=(binEdges[0], binEdges[1]))
+                for row in temp_hist:
+                    for item in row:
+                        f_out_3.write('%f\t' % item)
+                    f_out_3.write('\n')
+
+        return
+
+
 
 class plotting(object):
     """this class implements different plottings
