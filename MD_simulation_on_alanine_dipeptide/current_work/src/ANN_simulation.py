@@ -645,12 +645,19 @@ class neural_network_for_simulation(object):
                     f_out.write('%f\t' % item)
                 f_out.write('\n')
 
+        binEdges_proj = np.array([np.linspace(-np.pi, np.pi, 21), np.linspace(-np.pi, np.pi, 21)])
+        with open(folder_to_store_files + 'hist/hist_binEdges_proj.txt', 'w') as f_out:
+            for row in binEdges_proj:
+                for item in row:
+                    f_out.write('%f\t' % item)
+                f_out.write('\n')
+
         start_index = end_index = 0
         for item, count in enumerate(window_counts):
             start_index = int(end_index)
             end_index = int(start_index + count)
             with open(folder_to_store_files + 'traj/traj_%d.txt' % (item + 1), 'w') as f_out_1, \
-                 open(folder_to_store_files + 'traj_proj/traj_proj_%d.txt' % (item + 1), 'w') as f_out_2, \
+                 open(folder_to_store_files + 'traj_proj/traj_%d.txt' % (item + 1), 'w') as f_out_2, \
                  open(folder_to_store_files + 'hist/hist_%d.txt' % (item + 1), 'w') as f_out_3:
                 for line in coords[start_index:end_index]:
                     temp = '%f\t%f\n' % (line[0], line[1])
@@ -665,11 +672,9 @@ class neural_network_for_simulation(object):
                 temp_hist, _, _ = np.histogram2d(y, x, bins=(binEdges[0], binEdges[1]))
                 for row in temp_hist:
                     for item in row:
-                        f_out_3.write('%f\t' % item)
-                    f_out_3.write('\n')
+                        f_out_3.write('%d\t' % item)
 
         return
-
 
 
 class plotting(object):
