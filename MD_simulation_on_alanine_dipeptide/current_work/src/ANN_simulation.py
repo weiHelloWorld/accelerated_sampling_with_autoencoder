@@ -638,14 +638,15 @@ class neural_network_for_simulation(object):
                 f_out.write(temp)
 
         # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
-        binEdges = np.array([np.linspace(-1, 1, 21), np.linspace(-1, 1, 21)])
+        num_of_bins = 40
+        binEdges = np.array([np.linspace(-1, 1, num_of_bins), np.linspace(-1, 1, num_of_bins)])
         with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
             for row in binEdges:
                 for item in row:
                     f_out.write('%f\t' % item)
                 f_out.write('\n')
 
-        binEdges_proj = np.array([np.linspace(-np.pi, np.pi, 21), np.linspace(-np.pi, np.pi, 21)])
+        binEdges_proj = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
         with open(folder_to_store_files + 'hist/hist_binEdges_proj.txt', 'w') as f_out:
             for row in binEdges_proj:
                 for item in row:

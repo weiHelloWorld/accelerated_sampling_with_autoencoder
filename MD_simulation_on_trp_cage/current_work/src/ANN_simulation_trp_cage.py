@@ -249,6 +249,13 @@ class sutils(object):
         return np.linalg.norm(mat_1 - mat_2)
 
     @staticmethod
+    def get_number_of_native_contacts(coor_1, coor_2, threshold = 8):
+        mat_1 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_1)
+        mat_2 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_2)
+        result = sum(sum(((mat_1 < threshold) & (mat_2 < threshold)).astype(int)))
+        return result
+
+    @staticmethod
     def get_list_of_distances_between_coordinates_in_one_file_and_coord_of_folded_state(
                                                             file_name, file_type,
                                                             pdb_file_of_folded_state = '../resources/1l2y.pdb'):
