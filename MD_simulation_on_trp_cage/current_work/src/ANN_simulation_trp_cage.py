@@ -252,25 +252,33 @@ class sutils(object):
     def get_number_of_native_contacts(coor_1, coor_2, threshold = 8):
         mat_1 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_1)
         mat_2 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_2)
+        print (mat_1 < threshold).astype(int)
+        print (mat_2 < threshold).astype(int)
         result = sum(sum(((mat_1 < threshold) & (mat_2 < threshold)).astype(int)))
         return result
 
     @staticmethod
     def get_list_of_distances_between_coordinates_in_one_file_and_coord_of_folded_state(
+                                                            distance_function,
                                                             file_name, file_type,
                                                             pdb_file_of_folded_state = '../resources/1l2y.pdb'):
+        """
+        :param distance_function: could be distance between matrix, or number of native contacts, etc.
+        """
         coor_of_folded = sutils.get_coordinates_of_alpha_carbon_from_a_file(pdb_file_of_folded_state, file_type='pdb')[0]
         list_of_coordinates = sutils.get_coordinates_of_alpha_carbon_from_a_file(file_name=file_name, file_type=file_type)
-        result = map(lambda x: sutils.get_distance_between_two_coordinates(coor_of_folded, x), list_of_coordinates)
+        result = map(lambda x: distance_function(coor_of_folded, x), list_of_coordinates)
         return result
 
     @staticmethod
     def get_list_of_distances_between_coordinates_in_many_files_and_coord_of_folded_state(
+                                                                distance_function,
                                                                 list_of_file_names, file_type,
                                                                 pdb_file_of_folded_state='../resources/1l2y.pdb'):
         result = []
         for item in list_of_file_names:
             result += sutils.get_list_of_distances_between_coordinates_in_one_file_and_coord_of_folded_state(
+                distance_function,
                 item, file_type, pdb_file_of_folded_state
             )
         return result
