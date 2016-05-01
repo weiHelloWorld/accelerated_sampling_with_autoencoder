@@ -359,8 +359,8 @@ class neural_network_for_simulation(object):
         # 3rd part: definition of inputs
         index_of_backbone_atoms = [2, 5, 7, 9, 15, 17, 19]
         for i in range(len(index_of_backbone_atoms) - 3):
-            index_of_coss = i
-            index_of_sins = i + 4
+            index_of_coss = 2 * i
+            index_of_sins = 2 * i + 1
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
             expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
@@ -436,7 +436,7 @@ class neural_network_for_simulation(object):
         else:
             PCs = mid_result_1
 
-        # assert (len(PCs[0]) == 2)
+        assert (len(PCs[0]) == 2)
 
         return PCs
 
@@ -639,7 +639,7 @@ class neural_network_for_simulation(object):
 
         # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
         num_of_bins = 40
-        binEdges = np.array([np.linspace(-1, 1, num_of_bins), np.linspace(-1, 1, num_of_bins)])
+        binEdges = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
         with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
             for row in binEdges:
                 for item in row:
