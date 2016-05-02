@@ -559,8 +559,9 @@ class neural_network_for_simulation(object):
 
         return todo_list_of_commands_for_simulations
 
-    def generate_mat_file_for_WHAM_reweighting(self, list_of_coor_data_files):
+    def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files):
         # FIXME: this one does not work quite well for circular layer case, need further processing
+        list_of_coor_data_files = coordinates_data_files_list([directory_containing_coor_files])._list_of_coor_data_files
         force_constants = []
         harmonic_centers = []
         window_counts = []
