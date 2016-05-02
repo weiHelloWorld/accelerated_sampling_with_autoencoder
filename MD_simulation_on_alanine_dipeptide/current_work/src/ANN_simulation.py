@@ -573,8 +573,7 @@ class neural_network_for_simulation(object):
             harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_mid_result = self.get_mid_result(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
-            temp_coor = [a[1] for a in temp_mid_result]
+            temp_coor = self.get_PCs(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += temp_coor
             temp_angles = sutils.get_many_dihedrals_from_coordinates_in_file([item])
@@ -590,7 +589,7 @@ class neural_network_for_simulation(object):
         window_counts = np.array(window_counts)
         sciio.savemat('WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
             'force_constants': force_constants, 'harmonic_centers': harmonic_centers,
-            'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[0.0],[0.0]],
+            'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[1.0],[1.0]],
             'dF_tol': 0.0001,
             'min_gap_max_ORIG': [[min_of_coor[0], interval, max_of_coor[0]], [min_of_coor[1], interval, max_of_coor[1]]]
             })
@@ -618,8 +617,7 @@ class neural_network_for_simulation(object):
             harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_mid_result = self.get_mid_result(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
-            temp_coor = [a[1] for a in temp_mid_result]
+            temp_coor = self.get_PCs(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += temp_coor
             temp_angles = sutils.get_many_dihedrals_from_coordinates_in_file([item])
