@@ -11,6 +11,8 @@ input:
 - time interval of checking the number of running programs
 """
 
+# TODO: create a file that contains finished jobs.
+
 import argparse, subprocess, time
 
 def main():

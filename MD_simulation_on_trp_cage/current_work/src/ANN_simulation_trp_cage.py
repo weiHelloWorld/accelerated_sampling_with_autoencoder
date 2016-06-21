@@ -359,8 +359,12 @@ class sutils(object):
         if preprocessing:
             hist_matrix = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)   # preprocessing process
 
-        diff_with_neighbors = hist_matrix - 0.25 * (np.roll(hist_matrix, 1, axis=0) + np.roll(hist_matrix, -1, axis=0)
-                                                  + np.roll(hist_matrix, 1, axis=1) + np.roll(hist_matrix, -1, axis=1))
+        if CONFIG_18:  # circular case
+            diff_with_neighbors = hist_matrix - 0.25 * (np.roll(hist_matrix, 1, axis=0) + np.roll(hist_matrix, -1, axis=0)
+                                                      + np.roll(hist_matrix, 1, axis=1) + np.roll(hist_matrix, -1, axis=1))
+        else:
+            # TODO: fix this for non-circular case
+            pass
 
         bin_width_0 = temp1[1] - temp1[0]
         bin_width_1 = temp2[1] - temp2[0]
