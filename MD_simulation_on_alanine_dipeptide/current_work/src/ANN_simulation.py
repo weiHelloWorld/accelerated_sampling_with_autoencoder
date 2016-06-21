@@ -139,106 +139,58 @@ class sutils(object):
         return
 
     @staticmethod
-    def get_boundary_points_2(list_of_points, num_of_bins = CONFIG_10, num_of_boundary_points = CONFIG_11,
-                              periodic_boundary = CONFIG_18):
-        '''This is another version of get_boundary_points() function'''
-
-        x = [item[0] for item in list_of_points]
-        y = [item[1] for item in list_of_points]
-
-        hist_matrix, temp1 , temp2 = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins])
-        # add a set of zeros around this region
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins), 0)
-        hist_matrix = np.insert(hist_matrix, num_of_bins, np.zeros(num_of_bins + 2), 1)
-        hist_matrix = np.insert(hist_matrix, 0, np.zeros(num_of_bins +2), 1)
-
-        sum_of_neighbors = np.zeros(np.shape(hist_matrix)) # number of neighbors occupied with some points
-        for i in range(np.shape(hist_matrix)[0]):
-            for j in range(np.shape(hist_matrix)[1]):
-                if i != 0: sum_of_neighbors[i,j] += hist_matrix[i - 1][j]
-                if j != 0: sum_of_neighbors[i,j] += hist_matrix[i][j - 1]
-                if i != np.shape(hist_matrix)[0] - 1: sum_of_neighbors[i,j] += hist_matrix[i + 1][j]
-                if j != np.shape(hist_matrix)[1] - 1: sum_of_neighbors[i,j] += hist_matrix[i][j + 1]
-
-        bin_width_0 = temp1[1]-temp1[0]
-        bin_width_1 = temp2[1]-temp2[0]
-        min_coor_in_PC_space_0 = temp1[0] - 0.5 * bin_width_0  # multiply by 0.5 since we want the center of the grid
-        min_coor_in_PC_space_1 = temp2[0] - 0.5 * bin_width_1
-
-        potential_centers = []
-
-        # now sort these grids (that has no points in it)
-        # based on total number of points in its neighbors
-        index_of_grids = list(itertools.product(range(np.shape(hist_matrix)[0]), range(np.shape(hist_matrix)[1])))
-        # print(index_of_grids)
-        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: sum_of_neighbors[x[0]][x[1]]) # sort based on histogram, return index values
-        temp_count = 0
-        for index in sorted_index_of_grids:
-            if hist_matrix[index] == 0 and sum_of_neighbors[index] != 0:
-                if temp_count >= num_of_boundary_points:
-                    break
-                else:
-                    temp_count += 1
-                    temp_potential_center = [round(min_coor_in_PC_space_0 + index[0] * bin_width_0, 2),
-                                             round(min_coor_in_PC_space_1 + index[1] * bin_width_1, 2)]
-                    if periodic_boundary:  # this is used for network with circularLayer
-                        for temp_index in range(2):
-                            if temp_potential_center[temp_index] < - np.pi:
-                                temp_potential_center[temp_index] = round(temp_potential_center[temp_index] + 2 * np.pi, 2)
-                            elif temp_potential_center[temp_index] > np.pi:
-                                temp_potential_center[temp_index] = round(temp_potential_center[temp_index] - 2 * np.pi, 2)
-
-                    potential_centers.append(temp_potential_center)
-
-        return potential_centers
-
-    @staticmethod
-    def get_boundary_points_3_for_circular_network(list_of_points,
-                                                   range_of_PCs = CONFIG_26,
-                                                   num_of_bins = CONFIG_10,
-                                                   num_of_boundary_points = CONFIG_11,
-                                                   preprocessing = True):
+    def get_boundary_points(list_of_points,
+                            range_of_PCs = CONFIG_26,
+                            num_of_bins = CONFIG_10,
+                            num_of_boundary_points = CONFIG_11,
+                            is_circular_boundary = CONFIG_18,
+                            preprocessing = True,
+                            dimensionality = 2
+                            ):
         '''This is another version of get_boundary_points() function
         it works for circular layer case
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
 
-        x = [item[0] for item in list_of_points]
-        y = [item[1] for item in list_of_points]
-
-        hist_matrix, temp1 , temp2 = np.histogram2d(x,y, bins=[num_of_bins, num_of_bins], range=range_of_PCs)
+        hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
         # following is the main algorithm to find boundary and holes
         # simply find the points that are lower than average of its 4 neighbors
 
         if preprocessing:
             hist_matrix = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)   # preprocessing process
 
-        diff_with_neighbors = hist_matrix - 0.25 * (np.roll(hist_matrix, 1, axis=0) + np.roll(hist_matrix, -1, axis=0)
-                                                  + np.roll(hist_matrix, 1, axis=1) + np.roll(hist_matrix, -1, axis=1))
+        if is_circular_boundary:  # typically works for circular autoencoder
+            diff_with_neighbors = hist_matrix - 1 / (2 * dimensionality) \
+                                            * sum(
+                                                map(lambda x: np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x),
+                                                    range(dimensionality)
+                                                    )
+                                                )
+        else:
+            # TODO: add this for non-circular case
+            
+            pass
 
-        bin_width_0 = temp1[1] - temp1[0]
-        bin_width_1 = temp2[1] - temp2[0]
-        min_coor_in_PC_space_0 = temp1[0] + 0.5 * bin_width_0  # multiply by 0.5 since we want the center of the grid
-        min_coor_in_PC_space_1 = temp2[0] + 0.5 * bin_width_1
+        # get grid centers
+        edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
+        grid_centers = np.array(list(itertools.product(*edge_centers)))  # "itertools.product" gives Cartesian/direct product of several lists
+        grid_centers = np.reshape(grid_centers, (num_of_bins, num_of_bins, dimensionality))
+        # print grid_centers
 
         potential_centers = []
 
         # now sort these grids (that has no points in it)
         # based on total number of points in its neighbors
-        index_of_grids = list(itertools.product(range(np.shape(hist_matrix)[0]), range(np.shape(hist_matrix)[1])))
+        
+        index_of_grids = list(itertools.product(
+                        range(num_of_bins), range(num_of_bins)
+                        ))
 
-        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x[0]][x[1]]) # sort based on histogram, return index values
-        temp_count = 0
-        for index in sorted_index_of_grids:
-            if temp_count >= num_of_boundary_points:
-                break
-            else:
-                temp_count += 1
-                temp_potential_center = [round(min_coor_in_PC_space_0 + index[0] * bin_width_0, 2),
-                                         round(min_coor_in_PC_space_1 + index[1] * bin_width_1, 2)]
+        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x[0], x[1]]) # sort based on histogram, return index values
 
-                potential_centers.append(temp_potential_center)
+        for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
+            temp_potential_center = map(lambda x: round(x, 2), grid_centers[index])
+            potential_centers.append(temp_potential_center)
 
         return potential_centers
 
@@ -537,7 +489,7 @@ class neural_network_for_simulation(object):
         assert (len(PCs_of_network[0]) == 2)
 
         if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
+            list_of_potential_center = sutils.get_boundary_points(list_of_points= PCs_of_network)
         if num_of_simulation_steps is None:
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
