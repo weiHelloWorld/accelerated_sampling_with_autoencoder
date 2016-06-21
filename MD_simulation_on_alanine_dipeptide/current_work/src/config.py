@@ -23,7 +23,7 @@ CONFIG_1 = ['../target/'] # list of directories that contains all coordinates fi
 '''class neural_network_for_simulation:'''
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
-CONFIG_3 = [8, 15, 2, 15, 8]  # the structure of ANN: number of nodes in each layer
+CONFIG_3 = [8, 15, 3, 15, 8]  # the structure of ANN: number of nodes in each layer
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
@@ -34,7 +34,7 @@ CONFIG_10 = 5   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
-CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
+CONFIG_26 = [[-1, 1],[-1, 1], [-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
 
 '''def generate_coordinates_from_pdb_files'''
 
@@ -44,7 +44,7 @@ CONFIG_12 = '../target'  # folder that contains all pdb files
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 3  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = 1  # num of network trainings we are going to run, and pick the one with least FVE from them
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
@@ -75,10 +75,11 @@ CONFIG_19 = '24:00:00'  # max running time for the sge job
 ############   config for biased_simulation.py  ##########################
 ##########################################################################
 
-CONFIG_20 = True  # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+CONFIG_20 = True  # whether the PC space is periodic in [-pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
 CONFIG_23 = 'Reference'   # simulation platform
 CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
+CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)

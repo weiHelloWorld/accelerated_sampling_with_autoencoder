@@ -145,14 +145,16 @@ class sutils(object):
                             num_of_boundary_points = CONFIG_11,
                             is_circular_boundary = CONFIG_18,
                             preprocessing = True,
-                            dimensionality = 2
+                            dimensionality = CONFIG_3[2]
                             ):
         '''This is another version of get_boundary_points() function
         it works for circular layer case
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
 
+        list_of_points = zip(*list_of_points)
         hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
+
         # following is the main algorithm to find boundary and holes
         # simply find the points that are lower than average of its 4 neighbors
 
@@ -203,7 +205,7 @@ class sutils(object):
         # get grid centers
         edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
         grid_centers = np.array(list(itertools.product(*edge_centers)))  # "itertools.product" gives Cartesian/direct product of several lists
-        grid_centers = np.reshape(grid_centers, (num_of_bins, num_of_bins, dimensionality))
+        grid_centers = np.reshape(grid_centers, np.append(num_of_bins * np.ones(dimensionality), dimensionality))
         # print grid_centers
 
         potential_centers = []
@@ -220,7 +222,7 @@ class sutils(object):
                         *temp_seperate_index
                         ))
 
-        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x[0], x[1]]) # sort based on histogram, return index values
+        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x]) # sort based on histogram, return index values
 
         for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
             temp_potential_center = map(lambda x: round(x, 2), grid_centers[index])
@@ -422,7 +424,7 @@ class neural_network_for_simulation(object):
         else:
             PCs = mid_result_1
 
-        assert (len(PCs[0]) == 2)
+        assert (len(PCs[0]) == CONFIG_3[2])
 
         return PCs
 
@@ -520,7 +522,7 @@ class neural_network_for_simulation(object):
         either in local machines or on the cluster
         '''
         PCs_of_network = self.get_PCs()
-        assert (len(PCs_of_network[0]) == 2)
+        assert (len(PCs_of_network[0]) == CONFIG_3[2])
 
         if list_of_potential_center is None:
             list_of_potential_center = sutils.get_boundary_points(list_of_points= PCs_of_network)
@@ -536,11 +538,12 @@ class neural_network_for_simulation(object):
 
         for potential_center in list_of_potential_center:
             parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            str(potential_center[0]), str(potential_center[1]),
                             'network_' + str(self._index),
-                            filename_of_autoencoder_info)
+                            filename_of_autoencoder_info,
+                            str(potential_center).replace(' ','')[1:-1]  # need to remove white space, otherwise parsing error
+                            )
 
-            command = "python ../src/biased_simulation.py %s %s %s %s %s %s %s" % parameter_list
+            command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
             todo_list_of_commands_for_simulations += [command]
 
         return todo_list_of_commands_for_simulations
