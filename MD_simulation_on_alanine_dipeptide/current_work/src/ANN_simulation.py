@@ -167,9 +167,38 @@ class sutils(object):
                                                     )
                                                 )
         else:
-            # TODO: add this for non-circular case
-            
-            pass
+            # TODO: code not concise and general enough, fix this later
+            sum_of_neighbors = np.zeros(num_of_bins * np.ones(dimensionality))
+            for item in range(dimensionality):
+                temp = np.roll(hist_matrix, 1, axis=item)
+                if item == 0:
+                    temp[0] = 0
+                elif item == 1:
+                    temp[:,0] = 0
+                elif item == 2:
+                    temp[:,:,0] = 0
+                elif item == 3:
+                    temp[:,:,:,0] = 0
+                else:
+                    raise Exception("has not been implemented yet!")
+
+                sum_of_neighbors += temp
+
+                temp = np.roll(hist_matrix, -1, axis=item)
+                if item == 0:
+                    temp[-1] = 0
+                elif item == 1:
+                    temp[:,-1] = 0
+                elif item == 2:
+                    temp[:,:,-1] = 0
+                elif item == 3:
+                    temp[:,:,:,-1] = 0
+                else:
+                    raise Exception("has not been implemented yet!")
+
+                sum_of_neighbors += temp
+
+            diff_with_neighbors = hist_matrix - 1 / (2 * dimensionality) * sum_of_neighbors
 
         # get grid centers
         edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
@@ -182,8 +211,13 @@ class sutils(object):
         # now sort these grids (that has no points in it)
         # based on total number of points in its neighbors
         
+        temp_seperate_index = []
+
+        for item in range(dimensionality):
+            temp_seperate_index.append(range(num_of_bins))
+
         index_of_grids = list(itertools.product(
-                        range(num_of_bins), range(num_of_bins)
+                        *temp_seperate_index
                         ))
 
         sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x[0], x[1]]) # sort based on histogram, return index values
