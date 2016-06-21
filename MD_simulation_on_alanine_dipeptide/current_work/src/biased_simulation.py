@@ -59,21 +59,21 @@ list_of_index_of_atoms_forming_dihedrals = [[2,5,7,9],
 
 layer_types = CONFIG_27
 
-# with open(energy_expression_file, 'r') as f_in:
-#     energy_expression = f_in.read()
+with open(autoencoder_info_file, 'r') as f_in:
+    energy_expression = f_in.read()
 
-# if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
-#     energy_expression = '''
-#     %s * d1_square + %s * d2_square;
-#     d1_square = min( min( (PC0 - %s)^2, (PC0 - %s + 6.2832)^2 ), (PC0 - %s - 6.2832)^2 );
-#     d2_square = min( min( (PC1 - %s)^2, (PC1 - %s + 6.2832)^2 ), (PC1 - %s - 6.2832)^2 );
-#     ''' % (k1, k2, xi_1_0, xi_1_0, xi_1_0, xi_2_0, xi_2_0, xi_2_0) + energy_expression
+if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+    energy_expression = '''
+    %s * d1_square + %s * d2_square;
+    d1_square = min( min( (PC0 - %s)^2, (PC0 - %s + 6.2832)^2 ), (PC0 - %s - 6.2832)^2 );
+    d2_square = min( min( (PC1 - %s)^2, (PC1 - %s + 6.2832)^2 ), (PC1 - %s - 6.2832)^2 );
+    ''' % (k1, k2, xi_1_0, xi_1_0, xi_1_0, xi_2_0, xi_2_0, xi_2_0) + energy_expression
 
-# else:
-#     energy_expression = '''
-#     %s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
+else:
+    energy_expression = '''
+    %s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
 
-#     ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
+    ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
 
 flag_random_seed = 0 # whether we need to fix this random seed
 
@@ -91,39 +91,39 @@ system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff, \
 
 # add custom force
 
-# force = CustomManyParticleForce(22, energy_expression) 
-# for i in range(system.getNumParticles()):
-#     force.addParticle("",0)  # what kinds of types should we specify here for each atom?
-# system.addForce(force)
+force = CustomManyParticleForce(22, energy_expression) 
+for i in range(system.getNumParticles()):
+    force.addParticle("",0)  # what kinds of types should we specify here for each atom?
+system.addForce(force)
 # end add custom force
 
 # add ANN_Force
-if force_constant != '0':
-    force = ANN_Force()
+# if force_constant != '0':
+#     force = ANN_Force()
 
-    force.set_layer_types(layer_types)
+#     force.set_layer_types(layer_types)
     
 
-    force.set_list_of_index_of_atoms_forming_dihedrals(list_of_index_of_atoms_forming_dihedrals)
-    force.set_num_of_nodes(CONFIG_3[:3])
-    force.set_potential_center(
-        [float(xi_1_0), float(xi_2_0)] 
-        )
-    force.set_force_constant(float(force_constant))
+#     force.set_list_of_index_of_atoms_forming_dihedrals(list_of_index_of_atoms_forming_dihedrals)
+#     force.set_num_of_nodes(CONFIG_3[:3])
+#     force.set_potential_center(
+#         [float(xi_1_0), float(xi_2_0)] 
+#         )
+#     force.set_force_constant(float(force_constant))
 
-    # set coefficient
-    with open(autoencoder_info_file, 'r') as f_in:
-        content = f_in.readlines()
+#     # set coefficient
+#     with open(autoencoder_info_file, 'r') as f_in:
+#         content = f_in.readlines()
 
-    force.set_coeffients_of_connections(
-        [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
-                                    )
+#     force.set_coeffients_of_connections(
+#         [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
+#                                     )
 
-    force.set_values_of_biased_nodes([
-        ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
-        ])
+#     force.set_values_of_biased_nodes([
+#         ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
+#         ])
 
-    system.addForce(force)
+#     system.addForce(force)
 # end of add ANN_Force
 
 integrator = LangevinIntegrator(simulation_temperature*kelvin, 1/picosecond, time_step*picoseconds)
