@@ -22,8 +22,6 @@ force_constant = sys.argv[3]
 folder_to_store_output_files = '../target/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = '../resources/' + sys.argv[5]
 
-print "argument 6 = %s" % sys.argv[6]
-
 potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 
 if not os.path.exists(folder_to_store_output_files):
@@ -39,8 +37,8 @@ input_pdb_file_of_molecule = '../resources/alanine_dipeptide.pdb'
 
 force_field_file = 'amber99sb.xml'
 
-pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center))
-state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s.txt' %(folder_to_store_output_files, force_constant, str(potential_center))
+pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
+state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s.txt' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
 
 # check if the file exist
 if os.path.isfile(pdb_reporter_file):

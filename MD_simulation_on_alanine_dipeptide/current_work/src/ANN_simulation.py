@@ -424,7 +424,7 @@ class neural_network_for_simulation(object):
         else:
             PCs = mid_result_1
 
-        assert (len(PCs[0]) == CONFIG_3[2])
+        assert (len(PCs[0]) == self._node_num[2])
 
         return PCs
 
@@ -522,7 +522,7 @@ class neural_network_for_simulation(object):
         either in local machines or on the cluster
         '''
         PCs_of_network = self.get_PCs()
-        assert (len(PCs_of_network[0]) == CONFIG_3[2])
+        assert (len(PCs_of_network[0]) == self._node_num[2])
 
         if list_of_potential_center is None:
             list_of_potential_center = sutils.get_boundary_points(list_of_points= PCs_of_network)

@@ -30,7 +30,7 @@ CONFIG_6 = None # filename to save this network
 
 '''class sutils'''
 
-CONFIG_10 = 5   # num of bins for get_boundary_points()
+CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
@@ -44,7 +44,7 @@ CONFIG_12 = '../target'  # folder that contains all pdb files
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 1  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = 3  # num of network trainings we are going to run, and pick the one with least FVE from them
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
@@ -67,7 +67,7 @@ CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 '''class cluster_management'''
 
 CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 50   # force constant for biased simulations
+CONFIG_9 = 1000   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
