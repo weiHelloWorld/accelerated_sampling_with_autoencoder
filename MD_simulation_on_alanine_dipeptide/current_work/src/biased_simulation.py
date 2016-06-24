@@ -62,6 +62,7 @@ with open(autoencoder_info_file, 'r') as f_in:
 
 # FIXME: following expression is out-of-date due to the change in API for higher-dimensional cases
 if CONFIG_28 == "CustomManyParticleForce":
+    [xi_1_0, xi_2_0] = potential_center
     if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
         energy_expression = '''
         %s * d1_square + %s * d2_square;

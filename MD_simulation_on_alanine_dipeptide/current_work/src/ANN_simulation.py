@@ -800,8 +800,13 @@ class iteration(object):
         return
 
     def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
-        # self._network.write_expression_into_file()
-        self._network.write_coefficients_of_connections_into_file()
+        if CONFIG_28 == "CustomManyParticleForce":
+            self._network.write_expression_into_file()
+        elif CONFIG_28 == "ANN_Force":
+            self._network.write_coefficients_of_connections_into_file()
+        else:
+            raise Exception("force type not defined!")
+            
         commands = self._network.get_commands_for_further_biased_simulations()
         # print ('in iteration.prepare_simulation: commands = ')
         # print (commands)
