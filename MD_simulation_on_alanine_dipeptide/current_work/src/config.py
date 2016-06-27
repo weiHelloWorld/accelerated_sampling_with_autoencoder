@@ -23,7 +23,7 @@ CONFIG_1 = ['../target/'] # list of directories that contains all coordinates fi
 '''class neural_network_for_simulation:'''
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
-CONFIG_3 = [8, 15, 2, 15, 8]  # the structure of ANN: number of nodes in each layer
+CONFIG_3 = [8, 15, 3, 15, 8]  # the structure of ANN: number of nodes in each layer
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
@@ -44,7 +44,7 @@ CONFIG_12 = '../target'  # folder that contains all pdb files
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 3  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one with least FVE from them
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
@@ -66,7 +66,7 @@ CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 
 '''class cluster_management'''
 
-CONFIG_8 = 2000 # num of simulation steps
+CONFIG_8 = 5000 # num of simulation steps
 CONFIG_9 = 500   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
@@ -82,4 +82,4 @@ CONFIG_22 = 0.002   # simulation time step, in ps
 CONFIG_23 = 'Reference'   # simulation platform
 CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
-CONFIG_28 = "CustomManyParticleForce"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
+CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
