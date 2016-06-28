@@ -39,26 +39,58 @@ class sutils(object):
         return
 
     @staticmethod
-    def get_cossin_from_a_coordinate(a_coordinate):
-        num_of_coordinates = len(a_coordinate) / 3
-        a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
-        diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
+    def get_cossin_of_a_dihedral_from_four_atoms(coord_1, coord_2, coord_3, coord_4):
+        """each parameter is a 3D Cartesian coordinates of an atom"""
+        coords_of_four = np.array([coord_1, coord_2, coord_3, coord_4])
+        num_of_coordinates = 4
+        diff_coordinates = coords_of_four[1:num_of_coordinates, :] - coords_of_four[0:num_of_coordinates - 1,:]  # bond vectors
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
         normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
         normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
-        cos_of_angles = range(len(normal_vectors_normalized_1))
-        sin_of_angles_vec = range(len(normal_vectors_normalized_1))
-        sin_of_angles = range(len(normal_vectors_normalized_1)) # initialization
+        index = 0
+        cos_of_angle = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
+        sin_of_angle_vec = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
+        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]));
+
+        try:
+            assert_almost_equal (cos_of_angle ** 2 + sin_of_angle ** 2, 1, decimal=1)  # FIXME: why in some cases it is not close to 1??
+        except:
+            print ("error: cos^2 x+ sin^2 x != 1")
+            print ("coordinates of four atoms are:")
+            print (coords_of_four)
+
+        return [cos_of_angle, sin_of_angle]
+
+    @staticmethod
+    def get_coordinates_of_atom_with_index(a_coodinate, index):
+        """:param a_coodinate is coordinate of all 20 atoms"""
+        return [a_coodinate[3 * index], a_coodinate[3 * index + 1], a_coodinate[3 * index + 2]]
+
+    @staticmethod
+    def get_cossin_from_a_coordinate(a_coordinate):
+        # FIXME: how to write unit test for this function?
+        # TODO: to be tested
+        total_num_of_residues = 20
+        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
+                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
+
+        assert (len(list_of_idx_four_atoms) == 38)
+
         result = []
 
-        for index in range(len(normal_vectors_normalized_1)):
-            cos_of_angles[index] = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-            sin_of_angles_vec[index] = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-            sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]))
-            result += [cos_of_angles[index], sin_of_angles[index]]
+        for item in list_of_idx_four_atoms:
+            parameter_list = map(
+                    lambda x: sutils.get_coordinates_of_atom_with_index(a_coordinate, x),
+                    item
+                    )
+            [cos_value, sin_value] = sutils.get_cossin_of_a_dihedral_from_four_atoms(*parameter_list)
+            # print(item)
+            # print(cos_value, sin_value)
+            result += [cos_value, sin_value]
 
         return result
 
@@ -88,12 +120,18 @@ class sutils(object):
     def get_many_dihedrals_from_cossin(cossin):
         result = []
         for item in cossin:
-            assert (len(item) == 8)
             temp_angle = []
-            for ii in range(4):
-                temp_angle += [np.arccos(item[2 * ii]) * np.sign(item[2 * ii + 1])]
-            
-            result += [list(temp_angle)]
+            len_of_cos_sin = CONFIG_25
+            assert (len(item) == len_of_cos_sin)
+            for idx_of_angle in range(len_of_cos_sin / 2):
+                temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
+
+            assert (len(temp_angle) == len_of_cos_sin / 2)
+
+            result += [temp_angle]
+
+        assert (len(result) == len(cossin))
+
         return result
 
     @staticmethod
@@ -123,7 +161,8 @@ class sutils(object):
     def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
         filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
 
-        index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
+        index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
+        assert (len(index_of_backbone_atoms) % 3 == 0)
 
         for input_file in filenames:
             print ('generating coordinates of ' + input_file)
@@ -142,6 +181,88 @@ class sutils(object):
                     f_out.write('\n')  # last line
         print("Done generating coordinates files\n")
         return
+
+    @staticmethod
+    def get_coordinates_of_alpha_carbon_from_a_file(file_name, file_type="pdb"):
+        """return a list of coordinates, each element in list corresponds to a snapshot of the configuration"""
+        result = []
+        if file_type == 'pdb':
+            index_of_alpha_carbons = [2, 18, 37, 58, 77, 94, 118, 137, 159, 171, 178, 185, 199, 210, 221, 228, 252, 266, 280, 294]
+            index_of_alpha_carbons = map(lambda x: str(x), index_of_alpha_carbons)
+
+            temp_coordinate = np.zeros((20, 3))
+            temp_index = 0
+            with open(file_name) as f_in:
+                for line in f_in:
+                    fields = line.strip().split()
+                    if (fields[0] == 'ATOM' and fields[1] in index_of_alpha_carbons):
+                        temp_coordinate[temp_index] = np.array([float(fields[6]), float(fields[7]), float(fields[8])])
+                        temp_index += 1
+                    elif fields[0] == "MODEL" and fields[1] != "1":
+                        temp_index = 0
+                        result.append(temp_coordinate.copy())
+        elif file_type == 'coordinates_txt':  # this is the coordinates file generated by generate_coordinates_from_pdb_files()
+            all_coordinates = np.loadtxt(file_name)
+            temp_index_of_carbon = filter(lambda x: x % 3 == 1, range(60))
+            for coor in all_coordinates:
+                temp_coordinate = np.array(map(lambda x: sutils.get_coordinates_of_atom_with_index(coor, x), 
+                                               temp_index_of_carbon))
+                result.append(temp_coordinate.copy())
+
+        return result
+
+    @staticmethod
+    def get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon):
+        """
+        :param coor_of_alpha_carbon: 2d-numpy-array
+        """
+        num = len(coor_of_alpha_carbon)
+        distance = np.zeros((num, num))
+        for idx_1, x in enumerate(coor_of_alpha_carbon):
+            for idx_2, y in enumerate(coor_of_alpha_carbon):
+                distance[idx_1][idx_2] = np.linalg.norm(x-y)
+        return distance
+
+    @staticmethod
+    def get_distance_between_two_coordinates(coor_1, coor_2):
+        mat_1 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_1)
+        mat_2 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_2)
+        return np.linalg.norm(mat_1 - mat_2)
+
+    @staticmethod
+    def get_number_of_native_contacts(coor_1, coor_2, threshold = 8):
+        mat_1 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_1)
+        mat_2 = sutils.get_distance_matrix_of_alpha_carbon(coor_of_alpha_carbon=coor_2)
+        print (mat_1 < threshold).astype(int)
+        print (mat_2 < threshold).astype(int)
+        result = sum(sum(((mat_1 < threshold) & (mat_2 < threshold)).astype(int)))
+        return result
+
+    @staticmethod
+    def get_list_of_distances_between_coordinates_in_one_file_and_coord_of_folded_state(
+                                                            distance_function,
+                                                            file_name, file_type,
+                                                            pdb_file_of_folded_state = '../resources/1l2y.pdb'):
+        """
+        :param distance_function: could be distance between matrix, or number of native contacts, etc.
+        """
+        coor_of_folded = sutils.get_coordinates_of_alpha_carbon_from_a_file(pdb_file_of_folded_state, file_type='pdb')[0]
+        list_of_coordinates = sutils.get_coordinates_of_alpha_carbon_from_a_file(file_name=file_name, file_type=file_type)
+        result = map(lambda x: distance_function(coor_of_folded, x), list_of_coordinates)
+        return result
+
+    @staticmethod
+    def get_list_of_distances_between_coordinates_in_many_files_and_coord_of_folded_state(
+                                                                distance_function,
+                                                                list_of_file_names, file_type,
+                                                                pdb_file_of_folded_state='../resources/1l2y.pdb'):
+        result = []
+        for item in list_of_file_names:
+            result += sutils.get_list_of_distances_between_coordinates_in_one_file_and_coord_of_folded_state(
+                distance_function,
+                item, file_type, pdb_file_of_folded_state
+            )
+        return result
 
     @staticmethod
     def get_boundary_points(list_of_points,
@@ -235,6 +356,8 @@ class sutils(object):
         return potential_centers
 
 
+
+
 class neural_network_for_simulation(object):
     """the neural network for simulation"""
 
@@ -298,9 +421,6 @@ class neural_network_for_simulation(object):
         """
         this function generates expression of PCs in terms of inputs
         """
-        # FIXME: the expression no longer works, since I made input list for input layer of autoencoder consistent
-        # for both alanine dipeptide and trp-cage, always [cos, sin, cos, sin ....], 
-        # which is consistent with ANN_Force, instead of [cos, cos, cos, cos, sin, sin, sin, sin]
         type_of_middle_hidden_layer = self._hidden_layers_type[1]
 
         connection_between_layers = self._connection_between_layers
@@ -349,15 +469,24 @@ class neural_network_for_simulation(object):
             expression = temp_expression + expression
 
         # 3rd part: definition of inputs
-        index_of_backbone_atoms = [2, 5, 7, 9, 15, 17, 19]
-        for i in range(len(index_of_backbone_atoms) - 3):
-            index_of_coss = 2 * i
-            index_of_sins = 2 * i + 1
+        # index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
+        total_num_of_residues = 20
+        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
+                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
+        assert (len(list_of_idx_four_atoms) == 38)
+
+
+        for index, item in enumerate(list_of_idx_four_atoms):
+            index_of_coss = 2 * index
+            index_of_sins = 2 * index + 1
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
             expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
-            expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
-            expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, i)
-            expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
+            expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, index)
+            expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, index)
+            expression += 'dihedral_angle_%d = dihedral(p%s, p%s, p%s, p%s);\n' % (index, 
+                                                index_of_backbone_atoms[item[0]], index_of_backbone_atoms[item[1]],
+                                                index_of_backbone_atoms[item[2]], index_of_backbone_atoms[item[3]])  # using backbone atoms
 
 
         return expression
@@ -528,11 +657,12 @@ class neural_network_for_simulation(object):
         '''this function creates a list of commands for further biased simulations that should be done later,
         either in local machines or on the cluster
         '''
-        PCs_of_network = self.get_PCs()
-        assert (len(PCs_of_network[0]) == self._node_num[2])
+        temp_mid_result = self.get_mid_result()
+        PCs_of_network = [item[1] for item in temp_mid_result]
+        assert (len(PCs_of_network[0]) == 2)
 
         if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points(list_of_points= PCs_of_network)
+            list_of_potential_center = sutils.get_boundary_points_3_for_circular_network(list_of_points= PCs_of_network)
         if num_of_simulation_steps is None:
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
@@ -593,83 +723,6 @@ class neural_network_for_simulation(object):
         sciio.savemat('umbrella_OP.mat',
             {'umbOP': umbOP
             })
-        return
-
-    def generate_files_for_Bayes_WHAM(self, directory_containing_coor_files, folder_to_store_files = './wham_files/'):
-        list_of_coor_data_files = coordinates_data_files_list([directory_containing_coor_files])._list_of_coor_data_files
-        for item in ['bias', 'hist', 'traj', 'traj_proj']:
-            directory = folder_to_store_files + item
-            subprocess.check_output(['mkdir', '-p', directory])
-            assert (os.path.exists(directory))
-
-        force_constants = []
-        harmonic_centers = []
-        window_counts = []
-        coords = []
-        umbOP = []
-        for item in list_of_coor_data_files:
-            # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_x1_')[0])
-            force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
-            temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
-            window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
-            assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
-            coords += temp_coor
-            temp_angles = sutils.get_many_dihedrals_from_coordinates_in_file([item])
-            temp_umbOP = [a[1:3] for a in temp_angles]
-            assert(temp_window_count == len(temp_umbOP))
-            assert(2 == len(temp_umbOP[0]))
-            umbOP += temp_umbOP
-
-
-        # write info into files
-        # 1st: bias potential info
-        with open(folder_to_store_files + 'bias/harmonic_biases.txt', 'w') as f_out:
-            for item in range(len(force_constants)):
-                temp = '%d\t%f\t%f\t%f\t%f\n' % (item + 1, harmonic_centers[item][0], harmonic_centers[item][1],
-                                                force_constants[item][0], force_constants[item][1])
-                f_out.write(temp)
-
-        # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
-        num_of_bins = 40
-        binEdges = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
-        with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
-            for row in binEdges:
-                for item in row:
-                    f_out.write('%f\t' % item)
-                f_out.write('\n')
-
-        binEdges_proj = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
-        with open(folder_to_store_files + 'hist/hist_binEdges_proj.txt', 'w') as f_out:
-            for row in binEdges_proj:
-                for item in row:
-                    f_out.write('%f\t' % item)
-                f_out.write('\n')
-
-        start_index = end_index = 0
-        for item, count in enumerate(window_counts):
-            start_index = int(end_index)
-            end_index = int(start_index + count)
-            with open(folder_to_store_files + 'traj/traj_%d.txt' % (item + 1), 'w') as f_out_1, \
-                 open(folder_to_store_files + 'traj_proj/traj_%d.txt' % (item + 1), 'w') as f_out_2, \
-                 open(folder_to_store_files + 'hist/hist_%d.txt' % (item + 1), 'w') as f_out_3:
-                for line in coords[start_index:end_index]:
-                    temp = '%f\t%f\n' % (line[0], line[1])
-                    f_out_1.write(temp)
-
-                for line in umbOP[start_index:end_index]:
-                    temp = '%f\t%f\n' % (line[0], line[1])
-                    f_out_2.write(temp)
-
-                x = [item[0] for item in coords[start_index:end_index]]
-                y = [item[1] for item in coords[start_index:end_index]]
-                temp_hist, _, _ = np.histogram2d(y, x, bins=(binEdges[0], binEdges[1]))
-                for row in temp_hist:
-                    for item in row:
-                        f_out_3.write('%d\t' % item)
-
         return
 
 
@@ -743,6 +796,7 @@ class plotting(object):
         return fig, ax, im
 
 
+
 class iteration(object):
     def __init__(self, index,
                  network=None # if you want to start with existing network, assign value to "network"
@@ -813,7 +867,7 @@ class iteration(object):
             self._network.write_coefficients_of_connections_into_file()
         else:
             raise Exception("force type not defined!")
-            
+
         commands = self._network.get_commands_for_further_biased_simulations()
         # print ('in iteration.prepare_simulation: commands = ')
         # print (commands)

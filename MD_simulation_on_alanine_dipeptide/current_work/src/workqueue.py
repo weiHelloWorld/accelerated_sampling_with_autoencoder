@@ -11,52 +11,54 @@ input:
 - time interval of checking the number of running programs
 """
 
+# TODO: create a file that contains finished jobs.
+
 import argparse, subprocess, time
 
 def main():
-	parser = argparse.ArgumentParser()
-	parser.add_argument("cmdfile", type=str, help="file containing Python programs to run")
-	parser.add_argument("--num", type=int, default=20, help="number of programs allowed to run concurrently")
-	parser.add_argument("--interval", type=int, default=10, help="time interval of checking the number of running programs")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("cmdfile", type=str, help="file containing Python programs to run")
+    parser.add_argument("--num", type=int, default=20, help="number of programs allowed to run concurrently")
+    parser.add_argument("--interval", type=int, default=10, help="time interval of checking the number of running programs")
 
-	args = parser.parse_args()
+    args = parser.parse_args()
 
-	command_file = args.cmdfile
-	num_of_programs_allowed = args.num
-	interval = args.interval
+    command_file = args.cmdfile
+    num_of_programs_allowed = args.num
+    interval = args.interval
 
-	with open(command_file, 'r') as cmdf:
-	    command_list = cmdf.read().split('\n')[1:]
+    with open(command_file, 'r') as cmdf:
+        command_list = cmdf.read().split('\n')[1:]
 
-	total_num_jobs = len(command_list)
-	next_job_index = 0
+    total_num_jobs = len(command_list)
+    next_job_index = 0
 
-	while next_job_index < total_num_jobs:
-		time.sleep(interval)
-		num_of_running_jobs = len(subprocess.check_output(['pidof', 'python']).split())
-		if num_of_running_jobs < num_of_programs_allowed:
-			if num_of_programs_allowed - num_of_running_jobs > total_num_jobs - next_job_index:
-				run_programs(command_list, next_job_index, total_num_jobs)
-				next_job_index = total_num_jobs
-			else:
-				run_programs(command_list, next_job_index, next_job_index + num_of_programs_allowed - num_of_running_jobs)
-				next_job_index += num_of_programs_allowed - num_of_running_jobs
+    while next_job_index < total_num_jobs:
+        time.sleep(interval)
+        num_of_running_jobs = len(subprocess.check_output(['pidof', 'python']).split())
+        if num_of_running_jobs < num_of_programs_allowed:
+            if num_of_programs_allowed - num_of_running_jobs > total_num_jobs - next_job_index:
+                run_programs(command_list, next_job_index, total_num_jobs)
+                next_job_index = total_num_jobs
+            else:
+                run_programs(command_list, next_job_index, next_job_index + num_of_programs_allowed - num_of_running_jobs)
+                next_job_index += num_of_programs_allowed - num_of_running_jobs
 
 
 def run_programs(command_list, start_index, end_index):
-	"""
-	run programs with index [start_index, end_index - 1]
-	"""
-	for item in range(start_index, end_index):
-		command_arg = command_list[item].split()
-		if command_arg[-1] == "&":  
-			command_arg = command_arg[:-1]
-		print ("running command: " + str(command_arg))
-		subprocess.Popen(command_arg)
+    """
+    run programs with index [start_index, end_index - 1]
+    """
+    for item in range(start_index, end_index):
+        command_arg = command_list[item].split()
+        if command_arg[-1] == "&":  
+            command_arg = command_arg[:-1]
+        print ("running command: " + str(command_arg))
+        subprocess.Popen(command_arg)
 
-	return
-	
+    return
+    
 
 if __name__ == '__main__':
-	main()
-	
+    main()
+    
