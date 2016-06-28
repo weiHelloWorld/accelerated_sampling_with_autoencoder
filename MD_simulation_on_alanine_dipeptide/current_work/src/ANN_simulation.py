@@ -147,8 +147,7 @@ class sutils(object):
                             preprocessing = True,
                             dimensionality = CONFIG_3[2]
                             ):
-        '''This is another version of get_boundary_points() function
-        it works for circular layer case
+        '''
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
 
@@ -424,7 +423,10 @@ class neural_network_for_simulation(object):
         else:
             PCs = mid_result_1
 
-        assert (len(PCs[0]) == self._node_num[2])
+        if self._hidden_layers_type[1] == CircularLayer:
+            assert (len(PCs[0]) == self._node_num[2] / 2)
+        else:
+            assert (len(PCs[0]) == self._node_num[2])
 
         return PCs
 

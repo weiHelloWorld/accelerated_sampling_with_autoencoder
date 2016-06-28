@@ -21,9 +21,9 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 CONFIG_1 = ['../target/'] # list of directories that contains all coordinates files
 
 '''class neural_network_for_simulation:'''
-CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
-CONFIG_3 = [8, 15, 3, 15, 8]  # the structure of ANN: number of nodes in each layer
+CONFIG_3 = [8, 15, 4, 15, 8]  # the structure of ANN: number of nodes in each layer
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
@@ -34,7 +34,7 @@ CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
-CONFIG_26 = [[-1, 1],[-1, 1], [-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
+CONFIG_26 = [[-np.pi, np.pi],[-np.pi, np.pi]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
 
 '''def generate_coordinates_from_pdb_files'''
 

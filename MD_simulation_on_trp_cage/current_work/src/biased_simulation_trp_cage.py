@@ -19,14 +19,13 @@ total_number_of_steps = int(sys.argv[2])
 
 force_constant = sys.argv[3] 
 
-xi_1_0 = sys.argv[4]
-xi_2_0 = sys.argv[5]
+folder_to_store_output_files = '../target/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
+autoencoder_info_file = '../resources/' + sys.argv[5]
 
-folder_to_store_output_files = '../target/' + sys.argv[6] # this is used to separate outputs for different networks into different folders
-autoencoder_info_file = '../resources/' + sys.argv[7]
+potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 
-if len(sys.argv) == 9:  # temperature is optional, it is 300 K by default
-    temperature = int(sys.argv[8])   # in kelvin
+if len(sys.argv) == 8:  # temperature is optional, it is 300 K by default
+    temperature = int(sys.argv[7])   # in kelvin
 else:
     temperature = 300
 
