@@ -13,17 +13,19 @@ it configures all default values/global parameters for constructors/functions
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear"}
 
 #######################################################################
-############   config for ANN_simulation_trp_cage.py  #################
+############   config for ANN_simulation.py  ##########################
 #######################################################################
+
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying
 
 '''class coordinates_data_files_list:'''
 
 CONFIG_1 = ['../target/'] # list of directories that contains all coordinates files
 
 '''class neural_network_for_simulation:'''
-CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
-CONFIG_3 = [8, 15, 4, 15, 8]  # the structure of ANN: number of nodes in each layer
+CONFIG_3 = [8, 15, 2, 15, 8]  # the structure of ANN: number of nodes in each layer
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
@@ -34,7 +36,7 @@ CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
-CONFIG_26 = [[-np.pi, np.pi],[-np.pi, np.pi]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
+CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
 
 '''def generate_coordinates_from_pdb_files'''
 
@@ -53,7 +55,7 @@ CONFIG_24 = 'local'  # machine to run the simulations
 
 CONFIG_14 = 7  # max number of jobs submitted each time
 CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
-CONFIG_29 = True  # whether we need to remove the water molecules from pdb files
+CONFIG_29 = False  # whether we need to remove the water molecules from pdb files
 
 '''def get_plottings'''
 '''class simulation_with_ANN_main'''
@@ -84,3 +86,6 @@ CONFIG_23 = 'Reference'   # simulation platform
 CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
+
+
+

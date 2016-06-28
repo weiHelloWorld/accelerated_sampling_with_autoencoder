@@ -1,4 +1,4 @@
-from ANN_simulation_trp_cage import *
+from ANN_simulation import *
 import argparse, subprocess
 
 parser = argparse.ArgumentParser()
@@ -6,5 +6,5 @@ parser.add_argument("--file", type=str, default="", help="specify which pdb file
 args = parser.parse_args()
 
 
-sutils.generate_coordinates_from_pdb_files(folder_for_pdb = '../target/' + args.file)
+molecule_type.generate_coordinates_from_pdb_files(folder_for_pdb = '../target/' + args.file)
 
