@@ -10,10 +10,22 @@ from pybrain.datasets.supervised import SupervisedDataSet
 import matplotlib.pyplot as plt
 from config import * # configuration file
 from cluster_management import *
+from molecule_spec_sutils import *  # import molecule specific unitity code
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
 """
+
+##################    set types of molecules  ############################
+
+if CONFIG_30 == "Alanine_dipeptide":
+    molecule_type = Alanine_dipeptide()
+elif CONFIG_30 == "Trp_cage":
+    molecule_type = Trp_cage()
+else:
+    raise Exception("molecule type not found")
+
+##########################################################################
 
 class coordinates_data_files_list(object):
     def __init__(self,
@@ -29,206 +41,6 @@ class coordinates_data_files_list(object):
 
     def get_list_of_coor_data_files(self):
         return self._list_of_coor_data_files
-
-
-class single_simulation_coordinates_file(object):
-    """this object contains information of a generated coordinates file, including
-     - filename
-     - potential centers
-     - force constants
-     - num of coordinates
-     - coordinates data
-    """
-    def __init__(self, filename):  # filename if the path to the file
-        self._filename = filename
-        self._force_constant = float(filename.split('biased_output_fc_')[1].split('_x1_')[0])
-        self._potential_center = [float(filename.split('_x1_')[1].split('_x2_')[0]), float(filename.split('_x2_')[1].split('_coordinates.txt')[0])]
-        self._num_of_coors = float(subprocess.check_output(['wc', '-l', filename]).split()[0])  # there would be some problems if using int
-        self._coor_data = np.loadtxt(filename, float)
-        assert (self._coor_data.shape[0] == self._num_of_coors)
-        assert (self._coor_data.shape[1] == 21)
-        return
-
-class sutils(object):
-    """sutils: simulation unilities
-    this class contains some utility tools, that do not belong to **any object instance**
-    """
-    def __init__(self):
-        return
-
-    @staticmethod
-    def get_cossin_from_a_coordinate(a_coordinate):
-        num_of_coordinates = len(a_coordinate) / 3
-        a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
-        diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
-        diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
-        normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
-        normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
-        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
-        diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
-
-        cos_of_angles = range(len(normal_vectors_normalized_1))
-        sin_of_angles_vec = range(len(normal_vectors_normalized_1))
-        sin_of_angles = range(len(normal_vectors_normalized_1)) # initialization
-        result = []
-
-        for index in range(len(normal_vectors_normalized_1)):
-            cos_of_angles[index] = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-            sin_of_angles_vec[index] = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-            sin_of_angles[index] = sqrt(np.dot(sin_of_angles_vec[index], sin_of_angles_vec[index])) * np.sign(sum(sin_of_angles_vec[index]) * sum(diff_coordinates_mid[index]))
-            result += [cos_of_angles[index], sin_of_angles[index]]
-
-        return result
-
-
-    @staticmethod
-    def get_many_cossin_from_coordinates(coordinates):
-        return map(sutils.get_cossin_from_a_coordinate, coordinates)
-
-    @staticmethod
-    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
-        result = []
-        for item in list_of_files:
-            coordinates = np.loadtxt(item)
-            temp = sutils.get_many_cossin_from_coordinates(coordinates)
-            result += temp
-
-        return result
-
-    @staticmethod
-    def get_many_dihedrals_from_coordinates_in_file (list_of_files):
-        # why we need to get dihedreals from a list of coordinate files?
-        # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = sutils.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
-        return sutils.get_many_dihedrals_from_cossin(temp)
-
-    @staticmethod
-    def get_many_dihedrals_from_cossin(cossin):
-        result = []
-        for item in cossin:
-            assert (len(item) == 8)
-            temp_angle = []
-            for ii in range(4):
-                temp_angle += [np.arccos(item[2 * ii]) * np.sign(item[2 * ii + 1])]
-            
-            result += [list(temp_angle)]
-        return result
-
-    @staticmethod
-    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
-
-        index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
-
-        for input_file in filenames:
-            print ('generating coordinates of ' + input_file)
-            output_file = input_file[:-4] + '_coordinates.txt'
-
-            with open(input_file) as f_in:
-                with open(output_file, 'w') as f_out:
-                    for line in f_in:
-                        fields = line.strip().split()
-                        if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
-                            f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
-                            f_out.write('\t')
-                        elif fields[0] == "MODEL" and fields[1] != "1":
-                            f_out.write('\n')
-
-                    f_out.write('\n')  # last line
-        print("Done generating coordinates files\n")
-        return
-
-    @staticmethod
-    def get_boundary_points(list_of_points,
-                            range_of_PCs = CONFIG_26,
-                            num_of_bins = CONFIG_10,
-                            num_of_boundary_points = CONFIG_11,
-                            is_circular_boundary = CONFIG_18,
-                            preprocessing = True,
-                            dimensionality = CONFIG_3[2]
-                            ):
-        '''This is another version of get_boundary_points() function
-        it works for circular layer case
-        :param preprocessing: if True, then more weight is not linear, this would be better based on experience
-        '''
-
-        list_of_points = zip(*list_of_points)
-        hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
-
-        # following is the main algorithm to find boundary and holes
-        # simply find the points that are lower than average of its 4 neighbors
-
-        if preprocessing:
-            hist_matrix = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)   # preprocessing process
-
-        if is_circular_boundary:  # typically works for circular autoencoder
-            diff_with_neighbors = hist_matrix - 1 / (2 * dimensionality) \
-                                            * sum(
-                                                map(lambda x: np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x),
-                                                    range(dimensionality)
-                                                    )
-                                                )
-        else:
-            # TODO: code not concise and general enough, fix this later
-            sum_of_neighbors = np.zeros(num_of_bins * np.ones(dimensionality))
-            for item in range(dimensionality):
-                temp = np.roll(hist_matrix, 1, axis=item)
-                if item == 0:
-                    temp[0] = 0
-                elif item == 1:
-                    temp[:,0] = 0
-                elif item == 2:
-                    temp[:,:,0] = 0
-                elif item == 3:
-                    temp[:,:,:,0] = 0
-                else:
-                    raise Exception("has not been implemented yet!")
-
-                sum_of_neighbors += temp
-
-                temp = np.roll(hist_matrix, -1, axis=item)
-                if item == 0:
-                    temp[-1] = 0
-                elif item == 1:
-                    temp[:,-1] = 0
-                elif item == 2:
-                    temp[:,:,-1] = 0
-                elif item == 3:
-                    temp[:,:,:,-1] = 0
-                else:
-                    raise Exception("has not been implemented yet!")
-
-                sum_of_neighbors += temp
-
-            diff_with_neighbors = hist_matrix - 1 / (2 * dimensionality) * sum_of_neighbors
-
-        # get grid centers
-        edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
-        grid_centers = np.array(list(itertools.product(*edge_centers)))  # "itertools.product" gives Cartesian/direct product of several lists
-        grid_centers = np.reshape(grid_centers, np.append(num_of_bins * np.ones(dimensionality), dimensionality))
-        # print grid_centers
-
-        potential_centers = []
-
-        # now sort these grids (that has no points in it)
-        # based on total number of points in its neighbors
-        
-        temp_seperate_index = []
-
-        for item in range(dimensionality):
-            temp_seperate_index.append(range(num_of_bins))
-
-        index_of_grids = list(itertools.product(
-                        *temp_seperate_index
-                        ))
-
-        sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x]) # sort based on histogram, return index values
-
-        for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
-            temp_potential_center = map(lambda x: round(x, 2), grid_centers[index])
-            potential_centers.append(temp_potential_center)
-
-        return potential_centers
 
 
 class neural_network_for_simulation(object):
@@ -345,16 +157,7 @@ class neural_network_for_simulation(object):
             expression = temp_expression + expression
 
         # 3rd part: definition of inputs
-        index_of_backbone_atoms = [2, 5, 7, 9, 15, 17, 19]
-        for i in range(len(index_of_backbone_atoms) - 3):
-            index_of_coss = 2 * i
-            index_of_sins = 2 * i + 1
-            expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
-            expression += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
-            expression += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
-            expression += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, i)
-            expression += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
-
+        expression += molecule_type.get_expression_for_input_of_this_molecule()
 
         return expression
 
@@ -424,7 +227,10 @@ class neural_network_for_simulation(object):
         else:
             PCs = mid_result_1
 
-        assert (len(PCs[0]) == CONFIG_3[2])
+        if self._hidden_layers_type[1] == CircularLayer:
+            assert (len(PCs[0]) == self._node_num[2] / 2)
+        else:
+            assert (len(PCs[0]) == self._node_num[2])
 
         return PCs
 
@@ -487,13 +293,13 @@ class neural_network_for_simulation(object):
         for item in data_as_input_to_network:
             data_set.addSample(item, item)
 
-        print('start training network with index = %d, training maxEpochs = %d\n' % (self._index, self._max_num_of_training))
+        print('start training network with index = %d, training maxEpochs = %d, structure = %s\n' % (self._index, self._max_num_of_training, str(self._node_num)))
         trainer.trainUntilConvergence(data_set, maxEpochs=self._max_num_of_training)
 
         self._connection_between_layers = connection_between_layers
         self._connection_with_bias_layers = connection_with_bias_layers
 
-        print('Done training network with index = %d, training maxEpochs = %d\n' % (self._index, self._max_num_of_training))
+        print('Done training network with index = %d, training maxEpochs = %d, structure = %s\n' % (self._index, self._max_num_of_training, str(self._node_num)))
         self._trainer = trainer
         return
 
@@ -522,10 +328,10 @@ class neural_network_for_simulation(object):
         either in local machines or on the cluster
         '''
         PCs_of_network = self.get_PCs()
-        assert (len(PCs_of_network[0]) == CONFIG_3[2])
+        assert (len(PCs_of_network[0]) == self._node_num[2])
 
         if list_of_potential_center is None:
-            list_of_potential_center = sutils.get_boundary_points(list_of_points= PCs_of_network)
+            list_of_potential_center = molecule_type.get_boundary_points(list_of_points= PCs_of_network)
         if num_of_simulation_steps is None:
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
@@ -542,8 +348,13 @@ class neural_network_for_simulation(object):
                             filename_of_autoencoder_info,
                             str(potential_center).replace(' ','')[1:-1]  # need to remove white space, otherwise parsing error
                             )
+            if isinstance(molecule_type, Alanine_dipeptide):
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
+            elif isinstance(molecule_type, Trp_cage):
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s" % parameter_list
+            else:
+                raise Exception("molecule type not defined")
 
-            command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
             todo_list_of_commands_for_simulations += [command]
 
         return todo_list_of_commands_for_simulations
@@ -563,10 +374,10 @@ class neural_network_for_simulation(object):
             harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
+            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += temp_coor
-            temp_angles = sutils.get_many_dihedrals_from_coordinates_in_file([item])
+            temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
             temp_umbOP = [a[1:3] for a in temp_angles]
             assert(temp_window_count == len(temp_umbOP))
             assert(2 == len(temp_umbOP[0]))
@@ -607,10 +418,10 @@ class neural_network_for_simulation(object):
             harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(sutils.get_many_cossin_from_coordiantes_in_list_of_files([item]))
+            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += temp_coor
-            temp_angles = sutils.get_many_dihedrals_from_coordinates_in_file([item])
+            temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
             temp_umbOP = [a[1:3] for a in temp_angles]
             assert(temp_window_count == len(temp_umbOP))
             assert(2 == len(temp_umbOP[0]))
@@ -702,7 +513,7 @@ class plotting(object):
             labels = ["PC1", "PC2"]
 
         elif plotting_space == "phipsi":
-            temp_dihedrals = sutils.get_many_dihedrals_from_cossin(cossin_data)
+            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(cossin_data)
 
             (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
             labels = ["phi", "psi"]
@@ -713,10 +524,11 @@ class plotting(object):
         elif color_option == 'step':
             coloring = range(len(x))
         elif color_option == 'phi':
-            coloring = [item[1] for item in sutils.get_many_dihedrals_from_cossin(cossin_data)]
+            coloring = [item[1] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'psi':
-            coloring = [item[2] for item in sutils.get_many_dihedrals_from_cossin(cossin_data)]
+            coloring = [item[2] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'other':
+            assert (len(other_coloring) == len(x))
             coloring = other_coloring
 
         fig, ax = plt.subplots()
@@ -749,7 +561,7 @@ class iteration(object):
         '''
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
         my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target']).get_list_of_coor_data_files()
-        data_set = sutils.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
+        data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
 
         max_FVE = 0
         current_network = None
@@ -794,14 +606,18 @@ class iteration(object):
                 assert(max_FVE > 0)
                 current_network = copy.deepcopy(temp_network)
 
-
         current_network.save_into_file()
         self._network = current_network
         return
 
     def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
-        # self._network.write_expression_into_file()
-        self._network.write_coefficients_of_connections_into_file()
+        if CONFIG_28 == "CustomManyParticleForce":
+            self._network.write_expression_into_file()
+        elif CONFIG_28 == "ANN_Force":
+            self._network.write_coefficients_of_connections_into_file()
+        else:
+            raise Exception("force type not defined!")
+            
         commands = self._network.get_commands_for_further_biased_simulations()
         # print ('in iteration.prepare_simulation: commands = ')
         # print (commands)
@@ -827,8 +643,11 @@ class iteration(object):
             assert (sum(exit_codes) == 0)  # all jobs are done successfully
 
             # TODO: currently they are not run in parallel, fix this later
+        
         # TODO: run next line only when the jobs are done, check this
-        sutils.generate_coordinates_from_pdb_files()
+        if CONFIG_29:
+            molecule_type.remove_water_mol_from_pdb_file()
+        molecule_type.generate_coordinates_from_pdb_files()
         return
 
 
@@ -877,7 +696,7 @@ class single_biased_simulation_data(object):
         return
 
     def get_center_of_data_cloud_in_this_biased_simulation(self):
-        cossin = sutils.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
+        cossin = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
         temp_mid_result = self._my_network.get_mid_result(input_data = cossin)
         PCs = [item[1] for item in temp_mid_result]
         assert(len(PCs[0]) == 2)
