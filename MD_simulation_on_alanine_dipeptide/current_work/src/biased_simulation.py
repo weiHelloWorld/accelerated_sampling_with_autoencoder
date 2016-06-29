@@ -19,8 +19,8 @@ total_number_of_steps = int(sys.argv[2])
 
 force_constant = sys.argv[3] 
 
-folder_to_store_output_files = '../target/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
-autoencoder_info_file = '../resources/' + sys.argv[5]
+folder_to_store_output_files = '../target/Alanine_dipeptide/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
+autoencoder_info_file = '../resources/Alanine_dipeptide/' + sys.argv[5]
 
 potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 

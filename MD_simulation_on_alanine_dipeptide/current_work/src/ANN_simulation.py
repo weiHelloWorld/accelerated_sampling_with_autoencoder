@@ -66,7 +66,7 @@ class neural_network_for_simulation(object):
         self._data_set = data_set_for_training
         self._training_data_interval = training_data_interval
         if autoencoder_info_file is None:
-            self._autoencoder_info_file = "../resources/autoencoder_info_%d.txt" %(index)
+            self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" %(CONFIG_30 ,index)
         else:
             self._autoencoder_info_file = autoencoder_info_file
 
@@ -82,7 +82,7 @@ class neural_network_for_simulation(object):
         self._network_parameters = network_parameters
         self._max_num_of_training = max_num_of_training
         if filename_to_save_network is None:
-            self._filename_to_save_network = "../resources/network_%s.pkl" % str(self._index) # by default naming with its index
+            self._filename_to_save_network = "../resources/%s/network_%s.pkl" % (CONFIG_30, str(self._index)) # by default naming with its index
         else:
             self._filename_to_save_network = filename_to_save_network
 
@@ -336,7 +336,7 @@ class neural_network_for_simulation(object):
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
-            filename_of_autoencoder_info = autoencoder_info_file.split('resources/')[1]
+            filename_of_autoencoder_info = autoencoder_info_file.split('resources/%s/' % CONFIG_30)[1]
         if force_constant_for_biased is None:
             force_constant_for_biased = CONFIG_9
 
@@ -560,7 +560,7 @@ class iteration(object):
         by doing this, we might avoid network with very poor quality
         '''
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
-        my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target']).get_list_of_coor_data_files()
+        my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
         data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
 
         max_FVE = 0

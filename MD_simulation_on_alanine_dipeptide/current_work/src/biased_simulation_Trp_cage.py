@@ -19,8 +19,8 @@ total_number_of_steps = int(sys.argv[2])
 
 force_constant = sys.argv[3] 
 
-folder_to_store_output_files = '../target/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
-autoencoder_info_file = '../resources/' + sys.argv[5]
+folder_to_store_output_files = '../target/Trp_cage/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
+autoencoder_info_file = '../resources/Trp_cage/' + sys.argv[5]
 
 potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 
@@ -96,6 +96,7 @@ pdb = PDBFile(input_pdb_file_of_molecule)
 modeller = Modeller(pdb.topology, pdb.positions)
 
 forcefield = ForceField(force_field_file, water_field_file)
+
 modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
 modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
 
