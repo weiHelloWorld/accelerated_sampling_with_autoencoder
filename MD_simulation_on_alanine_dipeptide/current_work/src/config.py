@@ -30,18 +30,6 @@ CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,mo
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
 
-'''class sutils'''
-
-CONFIG_10 = 10   # num of bins for get_boundary_points()
-CONFIG_11 = 15  # num of boundary points
-CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
-CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
-CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
-
-'''def generate_coordinates_from_pdb_files'''
-
-CONFIG_12 = '../target'  # folder that contains all pdb files
-
 '''class iteration'''
 
 '''def train_network_and_save'''
@@ -57,11 +45,19 @@ CONFIG_14 = 7  # max number of jobs submitted each time
 CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 CONFIG_29 = False  # whether we need to remove the water molecules from pdb files
 
-'''def get_plottings'''
-'''class simulation_with_ANN_main'''
-'''def __init__'''
-'''def run_one_iteration'''
-'''def run_mult_iterations'''
+
+##########################################################################
+############   config for molecule_spec_sutils.py  #######################
+##########################################################################
+
+'''class Sutils'''
+
+CONFIG_10 = 10   # num of bins for get_boundary_points()
+CONFIG_11 = 15  # num of boundary points
+CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
+CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
+CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
+CONFIG_12 = '../target'  # folder that contains all pdb files
 
 ##########################################################################
 ############   config for cluster_management.py  #########################
@@ -78,7 +74,7 @@ CONFIG_19 = '24:00:00'  # max running time for the sge job
 ############   config for biased_simulation.py  ##########################
 ##########################################################################
 
-CONFIG_20 = True  # whether the PC space is periodic in [-pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
+CONFIG_20 = False  # whether the PC space is periodic in [-pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
