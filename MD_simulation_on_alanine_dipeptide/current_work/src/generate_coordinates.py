@@ -6,5 +6,5 @@ parser.add_argument("--file", type=str, default="", help="specify which pdb file
 args = parser.parse_args()
 
 
-molecule_type.generate_coordinates_from_pdb_files(folder_for_pdb = '../target/' + args.file)
-
+Alanine_dipeptide().generate_coordinates_from_pdb_files(folder_for_pdb = '../target/Alanine_dipeptide/' + args.file)
+Trp_cage().generate_coordinates_from_pdb_files(folder_for_pdb = '../target/Trp_cage/' + args.file)

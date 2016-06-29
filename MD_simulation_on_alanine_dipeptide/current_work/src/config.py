@@ -57,7 +57,7 @@ CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
 CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
-CONFIG_12 = '../target'  # folder that contains all pdb files
+CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 ##########################################################################
 ############   config for cluster_management.py  #########################
