@@ -34,7 +34,7 @@ echo "This job is DONE!"
 exit 0
 ''' % command_in_sge_file
 
-sge_filename = '../sge_files/' + command_in_sge_file.replace(' ', '_') + '.sge'
+sge_filename = '../sge_files/' + command_in_sge_file.replace(' ', '_').replace('..', '_').replace('/','_').replace('&', '') + '.sge'
 
 with open(sge_filename, 'w') as sge_file:
     sge_file.write(content_for_sge_file)
