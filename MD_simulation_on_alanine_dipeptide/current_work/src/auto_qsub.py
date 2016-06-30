@@ -12,7 +12,10 @@ parser.add_argument("--submit", help="submit the job", action="store_true")
 args = parser.parse_args()
 
 whether_to_qsub = args.submit
-command_in_sge_file = args.command
+command_in_sge_file = args.command.strip()
+
+if command_in_sge_file[-1] == '&':    # need to remove & otherwise it will not work in the cluster
+    command_in_sge_file = command_in_sge_file[:-1]
 
 content_for_sge_file = '''#!/bin/bash
 
