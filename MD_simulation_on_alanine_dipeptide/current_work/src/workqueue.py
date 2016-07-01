@@ -39,11 +39,17 @@ def main():
         current_running_python_jobs = filter(lambda x: ' python ' in x,
                                             subprocess.check_output(['ps', 'aux']).split('\n')
                                             )
+        current_running_python_jobs = map(lambda x: ' '.join(x.split()[10:]),    # 11th column is command
+                                          current_running_python_jobs
+                                          )
+        # print "current_running_jobs = %s" % str(current_running_python_jobs)
+
         # save finished programs into this file
         with open(args.file_finished, 'a') as file_containing_programs_finished:
             for item in previous_running_python_jobs:
                 if not item in current_running_python_jobs:
                     file_containing_programs_finished.write(item)
+                    file_containing_programs_finished.write('\n')
 
         previous_running_python_jobs = current_running_python_jobs
 
