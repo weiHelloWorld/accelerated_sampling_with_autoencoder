@@ -1,11 +1,6 @@
-*.txt
-*.pdb
-*.pkl
 *.pyc
 **/current_work/.idea/*
 *.sge
 *.sge.*
 *.mat
 **/.ipynb_checkpoints/
-previous_runs/**
-!previous_runs/README.md

@@ -247,11 +247,11 @@ class Trp_cage(object):
         sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]));
 
         try:
-            assert_almost_equal (cos_of_angle ** 2 + sin_of_angle ** 2, 1, decimal=1)  # FIXME: why in some cases it is not close to 1??
+            assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)  
         except:
-            print ("error: cos^2 x+ sin^2 x != 1")
-            print ("coordinates of four atoms are:")
-            print (coords_of_four)
+            print ("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2))
+            # print ("coordinates of four atoms are:")
+            # print (coords_of_four)
 
         return [cos_of_angle, sin_of_angle]
 

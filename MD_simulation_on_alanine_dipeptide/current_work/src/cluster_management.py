@@ -6,9 +6,22 @@ class cluster_management(object):
         return
 
     @staticmethod
-    def create_sge_files_for_commands(list_of_commands_to_run):
+    def create_sge_files_from_a_file_containing_commands(command_file, folder_to_store_sge_files):
+        with open(command_file, 'r') as commmand_file:
+            commands_to_run = commmand_file.readlines()
+            commands_to_run = map(lambda x: x.strip(), commands_to_run)
+            cluster_management.create_sge_files_for_commands(commands_to_run, folder_to_store_sge_files)
+
+        return commands_to_run
+
+    @staticmethod
+    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/'):
         for item in list_of_commands_to_run:
-            sge_filename = '../sge_files/' + item.replace(' ', '_') + '.sge'
+            item = item.strip()
+            if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
+                item = item[:-1]
+
+            sge_filename = folder_to_store_sge_files + item.replace(' ', '_').replace('..', '_').replace('/','_').replace('&', '') + '.sge'
             content_for_sge_files = '''#!/bin/bash
 
 #$ -S /bin/bash           # use bash shell
@@ -27,7 +40,7 @@ class cluster_management(object):
 echo "This job is DONE!"
 
 exit 0
-''' % (CONFIG_19, command)
+''' % (CONFIG_19, item)
             with open(sge_filename, 'w') as f_out:
                 f_out.write(content_for_sge_files)
                 f_out.write("\n")
