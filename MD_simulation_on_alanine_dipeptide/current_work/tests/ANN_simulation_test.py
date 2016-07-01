@@ -1,8 +1,7 @@
 '''This is a test for functionality of ANN_simulation.py
 '''
 
-import sys
-import math
+import sys, os, math, subprocess
 
 sys.path.append('../src/')  # add the source file folder
 
@@ -37,4 +36,26 @@ class test_molecule_spec_sutils(object):
         return
 
 
+class test_cluster_management(object):
+    @staticmethod
+    def test_create_sge_files_from_a_file_containing_commands():
+        input_file = 'dependency/command_file.txt'
+        folder_to_store_sge_files = 'dependency/out_sge/'
+        if os.path.exists(folder_to_store_sge_files):
+            subprocess.check_output(['rm', '-rf', folder_to_store_sge_files])
 
+        subprocess.check_output(['mkdir', folder_to_store_sge_files])
+
+        temp = cluster_management()
+        commands = temp.create_sge_files_from_a_file_containing_commands(input_file, folder_to_store_sge_files)
+        commands = map(lambda x: x[:-1].strip(), commands)
+        print commands
+        for out_file in subprocess.check_output(['ls', folder_to_store_sge_files]).strip().split('\n'):
+            with open(folder_to_store_sge_files + out_file, 'r') as temp_file:
+                content = temp_file.readlines()
+                content = map(lambda x: x.strip(), content)
+                this_command = filter(lambda x: x.startswith('python'), content)
+                print this_command[0]
+                assert this_command[0] in commands
+
+        return
