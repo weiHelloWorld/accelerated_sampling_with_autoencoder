@@ -6,8 +6,21 @@ class cluster_management(object):
         return
 
     @staticmethod
+    def create_sge_files_from_a_file_containing_commands(command_file):
+        with open(command_file, 'r') as commmand_file:
+            commands_to_run = commmand_file.readlines()
+            commands_to_run = map(lambda x: x.strip(), commands_to_run)
+            cluster_management.create_sge_files_for_commands(commands_to_run)
+
+        return
+
+    @staticmethod
     def create_sge_files_for_commands(list_of_commands_to_run):
         for item in list_of_commands_to_run:
+            item = item.strip()
+            if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
+                item = item[:-1]
+
             sge_filename = '../sge_files/' + item.replace(' ', '_') + '.sge'
             content_for_sge_files = '''#!/bin/bash
 
