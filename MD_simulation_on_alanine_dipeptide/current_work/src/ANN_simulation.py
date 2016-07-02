@@ -359,6 +359,31 @@ class neural_network_for_simulation(object):
 
         return todo_list_of_commands_for_simulations
 
+    def get_proper_potential_centers_for_WHAM(self, list_of_points, threshold_radius, min_num_of_neighbors):
+        """
+        This function selects some 'proper' potential centers within the domain from list_of_points, by "proper"
+        we mean there are at least min_num_of_neighbors data points that are located within the radius of threshold_radius
+        of the specific potential center.
+        Typically list_of_points could be evenly distributed grid points in PC space
+        """
+        data_points = np.array(self.get_PCs())
+        list_of_points = np.array(list_of_points)
+        assert (data_points.shape[1] == list_of_points.shape[1])
+        distance_cal = lambda x,y: sqrt(np.dot(x-y,x-y))
+
+        proper_potential_centers = []
+
+        for item in list_of_points:
+            distances = map(lambda x: distance_cal(item, x),
+                            data_points
+                            )
+            neighbors_num = len(filter(lambda x: x < threshold_radius,
+                                       distances))
+            if neighbors_num >= min_num_of_neighbors:
+                proper_potential_centers += [item]
+
+        return proper_potential_centers
+
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files):
         # FIXME: this one does not work quite well for circular layer case, need further processing
         list_of_coor_data_files = coordinates_data_files_list([directory_containing_coor_files])._list_of_coor_data_files
