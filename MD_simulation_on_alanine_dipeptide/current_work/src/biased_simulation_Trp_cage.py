@@ -24,6 +24,9 @@ autoencoder_info_file = '../resources/Trp_cage/' + sys.argv[5]
 
 potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 
+xi_1_0 = potential_center[0]
+xi_2_0 = potential_center[1]
+
 if len(sys.argv) == 8:  # temperature is optional, it is 300 K by default
     temperature = int(sys.argv[7])   # in kelvin
 else:
@@ -58,21 +61,6 @@ if os.path.isfile(state_data_reporter_file):
 k1 = force_constant
 k2 = force_constant
 
-# with open(autoencoder_info_file, 'r') as f_in:
-#     energy_expression = f_in.read()
-#
-# if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
-#     energy_expression = '''
-#     %s * d1_square + %s * d2_square;
-#     d1_square = min( min( (PC0 - %s)^2, (PC0 - %s + 6.2832)^2 ), (PC0 - %s - 6.2832)^2 );
-#     d2_square = min( min( (PC1 - %s)^2, (PC1 - %s + 6.2832)^2 ), (PC1 - %s - 6.2832)^2 );
-#     ''' % (k1, k2, xi_1_0, xi_1_0, xi_1_0, xi_2_0, xi_2_0, xi_2_0) + energy_expression
-#
-# else:
-#     energy_expression = '''
-#     %s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
-#
-#     ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
 
 flag_random_seed = 0 # whether we need to fix this random seed
 
@@ -95,16 +83,22 @@ layer_types = ['Tanh', 'Tanh']
 pdb = PDBFile(input_pdb_file_of_molecule)
 modeller = Modeller(pdb.topology, pdb.positions)
 
-forcefield = ForceField(force_field_file, water_field_file)
+if CONFIG_31:    # if we include water in the simulation
+    forcefield = ForceField(force_field_file, water_field_file)
 
-modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
-modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
+    modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
+    modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
+    system = forcefield.createSystem(modeller.topology, nonbondedMethod=Ewald, nonbondedCutoff=1.0 * nanometers,
+                                     constraints = AllBonds, ewaldErrorTolerance = 0.0005)
+
+else:
+    forcefield = ForceField(force_field_file)
+    modeller.addExtraParticles(forcefield)
+    system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, nonbondedCutoff=1.0 * nanometers,
+                                     constraints=AllBonds)
 
 platform = Platform.getPlatformByName(CONFIG_23)
 platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
-
-system = forcefield.createSystem(modeller.topology,  nonbondedMethod=Ewald, nonbondedCutoff = 1.0*nanometers, \
-                                 constraints=AllBonds, ewaldErrorTolerance=0.0005)
 
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
 system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))

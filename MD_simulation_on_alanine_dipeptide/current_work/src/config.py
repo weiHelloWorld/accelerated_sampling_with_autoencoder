@@ -16,7 +16,7 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 
 '''class coordinates_data_files_list:'''
 
@@ -25,10 +25,13 @@ CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all co
 '''class neural_network_for_simulation:'''
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
-CONFIG_3 = [8, 15, 2, 15, 8]  # the structure of ANN: number of nodes in each layer
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
+if CONFIG_30 == "Alanine_dipeptide":
+    CONFIG_3 = [8, 15, 2, 15, 8]  # the structure of ANN: number of nodes in each layer
+elif CONFIG_30 == "Trp_cage":
+    CONFIG_3 = [76, 10, 2, 10, 76]
 
 '''class iteration'''
 
@@ -83,3 +86,4 @@ CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the p
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 
+CONFIG_31 = False   # whether to include water molecules in the simulation
