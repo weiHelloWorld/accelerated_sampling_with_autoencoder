@@ -68,9 +68,11 @@ def run_programs(command_list, start_index, end_index):
     run programs with index [start_index, end_index - 1]
     """
     for item in range(start_index, end_index):
-        command_arg = command_list[item].strip().split()
+        command_arg = command_list[item].strip()
         if command_arg[-1] == "&":  
             command_arg = command_arg[:-1]
+            
+        command_arg = command_arg.split()
         print ("running command: " + str(command_arg))
         subprocess.Popen(command_arg)
 
