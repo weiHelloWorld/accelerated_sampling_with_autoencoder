@@ -384,8 +384,13 @@ class neural_network_for_simulation(object):
 
         return proper_potential_centers
 
-    def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files):
+    def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files, folder_to_store_files = './standard_WHAM/'):
         # FIXME: this one does not work quite well for circular layer case, need further processing
+        if folder_to_store_files[-1] != '/':
+            folder_to_store_files += '/'
+        if not os.path.exists(folder_to_store_files):
+            subprocess.check_output(['mkdir', folder_to_store_files])
+
         list_of_coor_data_files = coordinates_data_files_list([directory_containing_coor_files])._list_of_coor_data_files
         force_constants = []
         harmonic_centers = []
@@ -413,13 +418,13 @@ class neural_network_for_simulation(object):
         interval = 0.1
 
         window_counts = np.array(window_counts)
-        sciio.savemat('WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
+        sciio.savemat(folder_to_store_files + 'WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
             'force_constants': force_constants, 'harmonic_centers': harmonic_centers,
             'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[1.0],[1.0]],
             'dF_tol': 0.0001,
             'min_gap_max_ORIG': [[min_of_coor[0], interval, max_of_coor[0]], [min_of_coor[1], interval, max_of_coor[1]]]
             })
-        sciio.savemat('umbrella_OP.mat',
+        sciio.savemat(folder_to_store_files + 'umbrella_OP.mat',
             {'umbOP': umbOP
             })
         return
