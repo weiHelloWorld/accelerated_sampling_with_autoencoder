@@ -394,9 +394,9 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_x1_')[0])
+            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
@@ -438,9 +438,9 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_x1_')[0])
+            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
