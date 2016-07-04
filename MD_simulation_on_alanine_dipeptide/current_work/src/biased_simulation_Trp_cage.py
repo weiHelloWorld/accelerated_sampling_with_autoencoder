@@ -24,9 +24,6 @@ autoencoder_info_file = '../resources/Trp_cage/' + sys.argv[5]
 
 potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 
-xi_1_0 = potential_center[0]
-xi_2_0 = potential_center[1]
-
 if len(sys.argv) == 8:  # temperature is optional, it is 300 K by default
     temperature = int(sys.argv[7])   # in kelvin
 else:
@@ -49,9 +46,10 @@ if force_constant == '0':   # unbiased case
     pdb_reporter_file = '%s/unbiased_%dK_output.pdb' % (folder_to_store_output_files, temperature)  # typically the folder for unbiased case is ../target/unbiased/
     state_data_reporter_file = '%s/unbiased_%dK_report.txt' % (folder_to_store_output_files, temperature)
 else:
-    pdb_reporter_file = '%s/biased_output_fc_%s_x1_%s_x2_%s.pdb' %(folder_to_store_output_files, force_constant, xi_1_0, xi_2_0)
-    state_data_reporter_file = '%s/biased_report_fc_%s_x1_%s_x2_%s.txt' %(folder_to_store_output_files, force_constant, xi_1_0, xi_2_0)
-
+    pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s_T_%d.pdb' % (folder_to_store_output_files, force_constant,
+                                                              str(potential_center).replace(' ', ''), temperature)
+    state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s_T_%d.txt' % (folder_to_store_output_files, force_constant,
+                                                                     str(potential_center).replace(' ', ''), temperature)
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
@@ -112,9 +110,7 @@ if force_constant != '0':
 
     force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
     force.set_num_of_nodes(CONFIG_3[:3])
-    force.set_potential_center(
-        [float(xi_1_0), float(xi_2_0)] 
-        )
+    force.set_potential_center(potential_center)
     force.set_force_constant(float(force_constant))
 
     # TODO: parse coef_file
