@@ -224,7 +224,7 @@ class Alanine_dipeptide(Sutils):
         return expression_for_input_of_this_molecule
 
 
-class Trp_cage(object):
+class Trp_cage(Sutils):
     """docstring for Trp_cage"""
     def __init__(self):
         return
