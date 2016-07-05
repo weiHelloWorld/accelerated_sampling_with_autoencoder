@@ -359,8 +359,38 @@ class neural_network_for_simulation(object):
 
         return todo_list_of_commands_for_simulations
 
-    def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files):
+    def get_proper_potential_centers_for_WHAM(self, list_of_points, threshold_radius, min_num_of_neighbors):
+        """
+        This function selects some 'proper' potential centers within the domain from list_of_points, by "proper"
+        we mean there are at least min_num_of_neighbors data points that are located within the radius of threshold_radius
+        of the specific potential center.
+        Typically list_of_points could be evenly distributed grid points in PC space
+        """
+        data_points = np.array(self.get_PCs())
+        list_of_points = np.array(list_of_points)
+        assert (data_points.shape[1] == list_of_points.shape[1])
+        distance_cal = lambda x,y: sqrt(np.dot(x-y,x-y))
+
+        proper_potential_centers = []
+
+        for item in list_of_points:
+            distances = map(lambda x: distance_cal(item, x),
+                            data_points
+                            )
+            neighbors_num = len(filter(lambda x: x < threshold_radius,
+                                       distances))
+            if neighbors_num >= min_num_of_neighbors:
+                proper_potential_centers += [item]
+
+        return proper_potential_centers
+
+    def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files, folder_to_store_files = './standard_WHAM/'):
         # FIXME: this one does not work quite well for circular layer case, need further processing
+        if folder_to_store_files[-1] != '/':
+            folder_to_store_files += '/'
+        if not os.path.exists(folder_to_store_files):
+            subprocess.check_output(['mkdir', folder_to_store_files])
+
         list_of_coor_data_files = coordinates_data_files_list([directory_containing_coor_files])._list_of_coor_data_files
         force_constants = []
         harmonic_centers = []
@@ -369,9 +399,9 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_x1_')[0])
+            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
@@ -388,13 +418,13 @@ class neural_network_for_simulation(object):
         interval = 0.1
 
         window_counts = np.array(window_counts)
-        sciio.savemat('WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
+        sciio.savemat(folder_to_store_files + 'WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
             'force_constants': force_constants, 'harmonic_centers': harmonic_centers,
             'coords': coords, 'dim': 2.0, 'temperature': 300.0, 'periodicity': [[1.0],[1.0]],
             'dF_tol': 0.0001,
             'min_gap_max_ORIG': [[min_of_coor[0], interval, max_of_coor[0]], [min_of_coor[1], interval, max_of_coor[1]]]
             })
-        sciio.savemat('umbrella_OP.mat',
+        sciio.savemat(folder_to_store_files + 'umbrella_OP.mat',
             {'umbOP': umbOP
             })
         return
@@ -413,9 +443,9 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_x1_')[0])
+            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_x1_')[1].split('_x2_')[0]), float(item.split('_x2_')[1].split('_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))

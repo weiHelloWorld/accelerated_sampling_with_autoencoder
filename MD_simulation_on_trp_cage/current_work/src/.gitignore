@@ -1,7 +1,0 @@
-*.png
-nohup.out
-temp.py
-*.ipynb
-ANN.py
-ANN.pyc
-ANN_wrap.cxx

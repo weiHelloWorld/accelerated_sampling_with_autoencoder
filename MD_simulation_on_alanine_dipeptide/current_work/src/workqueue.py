@@ -62,17 +62,23 @@ def main():
                 run_programs(command_list, next_job_index, next_job_index + num_of_programs_allowed - num_of_running_jobs)
                 next_job_index += num_of_programs_allowed - num_of_running_jobs
 
+    print "Done all programs in " + args.cmdfile
+    return
+
 
 def run_programs(command_list, start_index, end_index):
     """
     run programs with index [start_index, end_index - 1]
     """
     for item in range(start_index, end_index):
-        command_arg = command_list[item].strip().split()
-        if command_arg[-1] == "&":  
-            command_arg = command_arg[:-1]
-        print ("running command: " + str(command_arg))
-        subprocess.Popen(command_arg)
+        command_arg = command_list[item].strip()
+        if command_arg != "":
+            if command_arg[-1] == "&":
+                command_arg = command_arg[:-1]
+
+            command_arg = command_arg.split()
+            print ("running command: " + str(command_arg))
+            subprocess.Popen(command_arg)
 
     return
     

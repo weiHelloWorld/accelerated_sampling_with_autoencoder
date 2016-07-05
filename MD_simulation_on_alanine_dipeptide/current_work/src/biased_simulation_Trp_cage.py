@@ -24,10 +24,19 @@ autoencoder_info_file = '../resources/Trp_cage/' + sys.argv[5]
 
 potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 
-if len(sys.argv) == 8:  # temperature is optional, it is 300 K by default
-    temperature = int(sys.argv[7])   # in kelvin
+if sys.argv[7] == 'with_water':
+    whether_to_include_water_in_simulation = True
+elif sys.argv[7] == 'without_water':
+    whether_to_include_water_in_simulation = False
+else:
+    raise Exception('parameter error')
+
+if len(sys.argv) == 9:  # temperature is optional, it is 300 K by default
+    temperature = int(sys.argv[8])   # in kelvin
 else:
     temperature = 300
+
+
 
 if not os.path.exists(folder_to_store_output_files):
     try:
@@ -43,12 +52,13 @@ force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
 
 if force_constant == '0':   # unbiased case
-    pdb_reporter_file = '%s/unbiased_%dK_output.pdb' % (folder_to_store_output_files, temperature)  # typically the folder for unbiased case is ../target/unbiased/
-    state_data_reporter_file = '%s/unbiased_%dK_report.txt' % (folder_to_store_output_files, temperature)
+    pdb_reporter_file = '%s/unbiased_output_T_%d_%s.pdb' % (folder_to_store_output_files, temperature, sys.argv[7]) 
+    state_data_reporter_file = '%s/unbiased_report_T_%d_%s.txt' % (folder_to_store_output_files, temperature, sys.argv[7])
 else:
-    pdb_reporter_file = '%s/biased_output_fc_%s_x1_%s_x2_%s.pdb' %(folder_to_store_output_files, force_constant, xi_1_0, xi_2_0)
-    state_data_reporter_file = '%s/biased_report_fc_%s_x1_%s_x2_%s.txt' %(folder_to_store_output_files, force_constant, xi_1_0, xi_2_0)
-
+    pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
+                                                              str(potential_center).replace(' ', ''), temperature, sys.argv[7])
+    state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s_T_%d_%s.txt' % (folder_to_store_output_files, force_constant,
+                                                                     str(potential_center).replace(' ', ''), temperature, sys.argv[7])
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
@@ -58,21 +68,6 @@ if os.path.isfile(state_data_reporter_file):
 k1 = force_constant
 k2 = force_constant
 
-# with open(autoencoder_info_file, 'r') as f_in:
-#     energy_expression = f_in.read()
-#
-# if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
-#     energy_expression = '''
-#     %s * d1_square + %s * d2_square;
-#     d1_square = min( min( (PC0 - %s)^2, (PC0 - %s + 6.2832)^2 ), (PC0 - %s - 6.2832)^2 );
-#     d2_square = min( min( (PC1 - %s)^2, (PC1 - %s + 6.2832)^2 ), (PC1 - %s - 6.2832)^2 );
-#     ''' % (k1, k2, xi_1_0, xi_1_0, xi_1_0, xi_2_0, xi_2_0, xi_2_0) + energy_expression
-#
-# else:
-#     energy_expression = '''
-#     %s * (PC0 - %s)^2 + %s * (PC1 - %s)^2;
-#
-#     ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
 
 flag_random_seed = 0 # whether we need to fix this random seed
 
@@ -95,16 +90,22 @@ layer_types = ['Tanh', 'Tanh']
 pdb = PDBFile(input_pdb_file_of_molecule)
 modeller = Modeller(pdb.topology, pdb.positions)
 
-forcefield = ForceField(force_field_file, water_field_file)
+if whether_to_include_water_in_simulation:    # if we include water in the simulation
+    forcefield = ForceField(force_field_file, water_field_file)
 
-modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
-modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
+    modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
+    modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
+    system = forcefield.createSystem(modeller.topology, nonbondedMethod=Ewald, nonbondedCutoff=1.0 * nanometers,
+                                     constraints = AllBonds, ewaldErrorTolerance = 0.0005)
+
+else:
+    forcefield = ForceField(force_field_file)
+    modeller.addExtraParticles(forcefield)
+    system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, nonbondedCutoff=1.0 * nanometers,
+                                     constraints=AllBonds)
 
 platform = Platform.getPlatformByName(CONFIG_23)
 platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
-
-system = forcefield.createSystem(modeller.topology,  nonbondedMethod=Ewald, nonbondedCutoff = 1.0*nanometers, \
-                                 constraints=AllBonds, ewaldErrorTolerance=0.0005)
 
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
 system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
@@ -118,9 +119,7 @@ if force_constant != '0':
 
     force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
     force.set_num_of_nodes(CONFIG_3[:3])
-    force.set_potential_center(
-        [float(xi_1_0), float(xi_2_0)] 
-        )
+    force.set_potential_center(potential_center)
     force.set_force_constant(float(force_constant))
 
     # TODO: parse coef_file
