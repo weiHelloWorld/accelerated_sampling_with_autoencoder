@@ -6,4 +6,4 @@ parser.add_argument("--file", type=str, default="", help="specify which pdb file
 args = parser.parse_args()
 
 
-Trp_cage().remove_water_mol_from_pdb_file(folder_for_pdb = '../target/' + args.file)
+Trp_cage().remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = '../target/' + args.file)
