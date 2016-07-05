@@ -86,4 +86,3 @@ CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the p
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 
-CONFIG_31 = False   # whether to include water molecules in the simulation

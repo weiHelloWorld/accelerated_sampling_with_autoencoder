@@ -24,10 +24,19 @@ autoencoder_info_file = '../resources/Trp_cage/' + sys.argv[5]
 
 potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
 
-if len(sys.argv) == 8:  # temperature is optional, it is 300 K by default
-    temperature = int(sys.argv[7])   # in kelvin
+if sys.argv[7] == 'with_water':
+    whether_to_include_water_in_simulation = True
+elif sys.argv[7] == 'without_water':
+    whether_to_include_water_in_simulation = False
+else:
+    raise Exception('parameter error')
+
+if len(sys.argv) == 9:  # temperature is optional, it is 300 K by default
+    temperature = int(sys.argv[8])   # in kelvin
 else:
     temperature = 300
+
+
 
 if not os.path.exists(folder_to_store_output_files):
     try:
@@ -43,13 +52,13 @@ force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
 
 if force_constant == '0':   # unbiased case
-    pdb_reporter_file = '%s/unbiased_%dK_output.pdb' % (folder_to_store_output_files, temperature)  # typically the folder for unbiased case is ../target/unbiased/
-    state_data_reporter_file = '%s/unbiased_%dK_report.txt' % (folder_to_store_output_files, temperature)
+    pdb_reporter_file = '%s/unbiased_output_T_%d_%s.pdb' % (folder_to_store_output_files, temperature, sys.argv[7]) 
+    state_data_reporter_file = '%s/unbiased_report_T_%d_%s.txt' % (folder_to_store_output_files, temperature, sys.argv[7])
 else:
-    pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s_T_%d.pdb' % (folder_to_store_output_files, force_constant,
-                                                              str(potential_center).replace(' ', ''), temperature)
-    state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s_T_%d.txt' % (folder_to_store_output_files, force_constant,
-                                                                     str(potential_center).replace(' ', ''), temperature)
+    pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
+                                                              str(potential_center).replace(' ', ''), temperature, sys.argv[7])
+    state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s_T_%d_%s.txt' % (folder_to_store_output_files, force_constant,
+                                                                     str(potential_center).replace(' ', ''), temperature, sys.argv[7])
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
@@ -81,7 +90,7 @@ layer_types = ['Tanh', 'Tanh']
 pdb = PDBFile(input_pdb_file_of_molecule)
 modeller = Modeller(pdb.topology, pdb.positions)
 
-if CONFIG_31:    # if we include water in the simulation
+if whether_to_include_water_in_simulation:    # if we include water in the simulation
     forcefield = ForceField(force_field_file, water_field_file)
 
     modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
