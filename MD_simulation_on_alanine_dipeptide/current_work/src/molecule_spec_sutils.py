@@ -3,7 +3,7 @@
 
 import copy, pickle, re, os, time, subprocess, datetime, itertools
 from config import *
-from Bio.PDB import PDBParser
+from Bio import PDB
 
 class Sutils(object):
     def __init__(self):
@@ -354,7 +354,7 @@ class Trp_cage(Sutils):
     @staticmethod
     def get_pairwise_distance_matrices_of_alpha_carbon(file_name):
         num_of_residues = 20
-        p = PDBParser()
+        p = PDB.PDBParser()
         structure = p.get_structure('X', file_name)
         atom_list = [item for item in structure.get_atoms()]
         atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
@@ -389,6 +389,41 @@ class Trp_cage(Sutils):
         result = map(lambda x: sum(sum(((x < threshold) & (mat_2[0] < threshold)).astype(int))),
                      mat_1)
         return result
+
+    @staticmethod
+    def metric_RMSD_of_atoms(filename_1, filename_2 ='../resources/1l2y.pdb', option = "CA"):
+        """
+        modified from the code: https://gist.github.com/andersx/6354971
+        :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
+        """
+        pdb_parser = PDB.PDBParser(QUIET=True)
+
+        ref_structure = pdb_parser.get_structure("reference", filename_2)
+        sample_structure = pdb_parser.get_structure("sample", filename_1)
+
+        ref_atoms = [item for item in ref_structure[0].get_atoms()]
+        if option == "CA":
+            ref_atoms = filter(lambda x: x.get_name() == "CA",
+                               ref_atoms)
+        elif option == "all":
+            pass
+        else:
+            raise Exception("parameter error: wrong option")
+
+        rmsd_of_all_atoms = []
+
+        for sample_model in sample_structure:
+            sample_atoms = [item for item in sample_model.get_atoms()]
+            if option == "CA":
+                sample_atoms = filter(lambda x: x.get_name() == "CA",
+                                      sample_atoms)
+
+            super_imposer = PDB.Superimposer()
+            super_imposer.set_atoms(ref_atoms, sample_atoms)
+            super_imposer.apply(sample_model.get_atoms())
+            rmsd_of_all_atoms.append(super_imposer.rms)
+
+        return rmsd_of_all_atoms
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
