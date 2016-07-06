@@ -676,7 +676,7 @@ class iteration(object):
         
         # TODO: run next line only when the jobs are done, check this
         if CONFIG_29:
-            molecule_type.remove_water_mol_from_pdb_file()
+            molecule_type.remove_water_mol_and_Cl_from_pdb_file()
         molecule_type.generate_coordinates_from_pdb_files()
         return
 
