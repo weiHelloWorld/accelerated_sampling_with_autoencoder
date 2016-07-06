@@ -358,7 +358,7 @@ class Trp_cage(Sutils):
         structure = p.get_structure('X', file_name)
         atom_list = [item for item in structure.get_atoms()]
         atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
-        atom_list = zip(*[iter(atom_list)] * num_of_residues)
+        atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
 
         distances_list = []
 
