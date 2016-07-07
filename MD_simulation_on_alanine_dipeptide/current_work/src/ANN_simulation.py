@@ -316,8 +316,8 @@ class neural_network_for_simulation(object):
 
         output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
         var_of_input = sum(np.var(input_data, axis=0))
-        var_of_output = sum(np.var(output_data, axis=0))
-        return var_of_output / var_of_input
+        var_of_err = sum(np.var(output_data - input_data, axis=0))
+        return 1 - var_of_err / var_of_input
 
     def get_commands_for_further_biased_simulations(self,list_of_potential_center = None,
                                                   num_of_simulation_steps = None,
