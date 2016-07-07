@@ -32,12 +32,14 @@ if CONFIG_30 == "Alanine_dipeptide":
     CONFIG_3 = [8, 15, 2, 15, 8]  # the structure of ANN: number of nodes in each layer
 elif CONFIG_30 == "Trp_cage":
     CONFIG_3 = [76, 10, 2, 10, 76]
+else:
+    raise Exception('molecule type error')
 
 '''class iteration'''
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = 1  # num of network trainings we are going to run, and pick the one with least FVE from them
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
@@ -69,7 +71,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 500   # force constant for biased simulations
+CONFIG_9 = 5000   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 

@@ -34,9 +34,10 @@ class coordinates_data_files_list(object):
         self._list_of_dir_of_coor_data_files = list_of_dir_of_coor_data_files
         self._list_of_coor_data_files = []
         for item in self._list_of_dir_of_coor_data_files:
-            self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).split('\n')[:-1]
+            self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
+        self._list_of_coor_data_files.sort()                # to be consistent
         return
 
     def get_list_of_coor_data_files(self):
@@ -351,7 +352,7 @@ class neural_network_for_simulation(object):
             if isinstance(molecule_type, Alanine_dipeptide):
                 command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
             elif isinstance(molecule_type, Trp_cage):
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s" % parameter_list
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s without_water 500" % parameter_list   #TODO: move the last two parameters into somewhere else (not hard-coded)
             else:
                 raise Exception("molecule type not defined")
 

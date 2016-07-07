@@ -2,7 +2,7 @@ from ANN_simulation import *
 import argparse, subprocess, os
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--path", type=str, default="", help="specify the directory/file containing the pdb files")
+parser.add_argument("--path", type=str, default="../target", help="specify the directory/file containing the pdb files")
 args = parser.parse_args()
 
 temp_path = args.path
