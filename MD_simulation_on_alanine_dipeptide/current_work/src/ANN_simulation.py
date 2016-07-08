@@ -346,7 +346,10 @@ class neural_network_for_simulation(object):
         either in local machines or on the cluster
         '''
         PCs_of_network = self.get_PCs()
-        assert (len(PCs_of_network[0]) == self._node_num[2])
+        if self._hidden_layers_type[1] == CircularLayer:
+            assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
+        else:
+            assert (len(PCs_of_network[0]) == self._node_num[2])
 
         if list_of_potential_center is None:
             list_of_potential_center = molecule_type.get_boundary_points(list_of_points= PCs_of_network)
@@ -369,7 +372,7 @@ class neural_network_for_simulation(object):
             if isinstance(molecule_type, Alanine_dipeptide):
                 command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
             elif isinstance(molecule_type, Trp_cage):
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s without_water 500" % parameter_list   #TODO: move the last two parameters into somewhere else (not hard-coded)
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list   #TODO: move the last two parameters into somewhere else (not hard-coded)
             else:
                 raise Exception("molecule type not defined")
 

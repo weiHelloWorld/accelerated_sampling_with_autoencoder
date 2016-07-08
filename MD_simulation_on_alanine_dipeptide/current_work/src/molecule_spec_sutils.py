@@ -39,12 +39,11 @@ class Sutils(object):
                             num_of_boundary_points = CONFIG_11,
                             is_circular_boundary = CONFIG_18,
                             preprocessing = True,
-                            dimensionality = CONFIG_3[2]
                             ):
         '''
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
-
+        dimensionality = len(list_of_points[0])
         list_of_points = zip(*list_of_points)
         hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
 
