@@ -27,7 +27,7 @@ def main():
     interval = args.interval
 
     with open(command_file, 'r') as cmdf:
-        command_list = cmdf.read().split('\n')[1:]
+        command_list = cmdf.read().split('\n')
 
     total_num_jobs = len(command_list)
     next_job_index = 0

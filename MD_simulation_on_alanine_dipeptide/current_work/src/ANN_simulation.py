@@ -29,18 +29,36 @@ else:
 
 class coordinates_data_files_list(object):
     def __init__(self,
-                list_of_dir_of_coor_data_files = CONFIG_1 # this is the directory that holds corrdinates data files
+                list_of_dir_of_coor_data_files = CONFIG_1, # this is the directory that holds corrdinates data files
+                file_type='coordinates_txt',   # could be 'coordinates_txt' or 'pdb' or 'both'
+                assertion_required = True    # whether we need to check one-to-one correspondence between pdb files and corresponding coordinates_txt files
                 ):
         self._list_of_dir_of_coor_data_files = list_of_dir_of_coor_data_files
-        self._list_of_coor_data_files = []
-        for item in self._list_of_dir_of_coor_data_files:
-            self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).split('\n')[:-1]
+        self._list_of_coor_data_files = [];  self._list_of_pdb_files = []
+
+        if file_type == 'coordinates_txt' or file_type == 'both':
+            for item in self._list_of_dir_of_coor_data_files:
+                self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).strip().split('\n')
+        if file_type == 'pdb' or file_type == 'both':
+            for item in self._list_of_dir_of_coor_data_files:
+                self._list_of_pdb_files += subprocess.check_output(['find', item,'-name' ,'*.pdb']).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
+        self._list_of_pdb_files = list(set(self._list_of_pdb_files))              # remove duplicates
+        self._list_of_coor_data_files.sort()                # to be consistent
+        self._list_of_pdb_files.sort()
+        if file_type == 'both' and assertion_required:
+            assert (len(self._list_of_coor_data_files) == len(self._list_of_pdb_files))
+            for item in self._list_of_pdb_files:
+                assert (item.split('.pdb')[0] + '_coordinates.txt' in self._list_of_coor_data_files)
+
         return
 
     def get_list_of_coor_data_files(self):
         return self._list_of_coor_data_files
+
+    def get_list_of_pdb_files(self):
+        return self._list_of_pdb_files
 
 
 class neural_network_for_simulation(object):
@@ -316,8 +334,8 @@ class neural_network_for_simulation(object):
 
         output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
         var_of_input = sum(np.var(input_data, axis=0))
-        var_of_output = sum(np.var(output_data, axis=0))
-        return var_of_output / var_of_input
+        var_of_err = sum(np.var(output_data - input_data, axis=0))
+        return 1 - var_of_err / var_of_input
 
     def get_commands_for_further_biased_simulations(self,list_of_potential_center = None,
                                                   num_of_simulation_steps = None,
@@ -328,7 +346,10 @@ class neural_network_for_simulation(object):
         either in local machines or on the cluster
         '''
         PCs_of_network = self.get_PCs()
-        assert (len(PCs_of_network[0]) == self._node_num[2])
+        if self._hidden_layers_type[1] == CircularLayer:
+            assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
+        else:
+            assert (len(PCs_of_network[0]) == self._node_num[2])
 
         if list_of_potential_center is None:
             list_of_potential_center = molecule_type.get_boundary_points(list_of_points= PCs_of_network)
@@ -351,7 +372,7 @@ class neural_network_for_simulation(object):
             if isinstance(molecule_type, Alanine_dipeptide):
                 command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
             elif isinstance(molecule_type, Trp_cage):
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s" % parameter_list
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list   #TODO: move the last two parameters into somewhere else (not hard-coded)
             else:
                 raise Exception("molecule type not defined")
 

@@ -39,12 +39,11 @@ class Sutils(object):
                             num_of_boundary_points = CONFIG_11,
                             is_circular_boundary = CONFIG_18,
                             preprocessing = True,
-                            dimensionality = CONFIG_3[2]
                             ):
         '''
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
-
+        dimensionality = len(list_of_points[0])
         list_of_points = zip(*list_of_points)
         hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
 
@@ -352,76 +351,76 @@ class Trp_cage(Sutils):
         return
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(file_name):
-        num_of_residues = 20
-        p = PDB.PDBParser()
-        structure = p.get_structure('X', file_name)
-        atom_list = [item for item in structure.get_atoms()]
-        atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
-        atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
-
+    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files):
+        list_of_files.sort()   # to make the order consistent
         distances_list = []
+        for item in list_of_files:
+            num_of_residues = 20
+            p = PDB.PDBParser()
+            structure = p.get_structure('X', item)
+            atom_list = [item for item in structure.get_atoms()]
+            atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
+            atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
 
-        for model in atom_list:
-            assert (len(model) == num_of_residues)
-            p_distances = np.zeros((num_of_residues, num_of_residues))
-            for _1, atom_1 in enumerate(model):
-                for _2, atom_2 in enumerate(model):
-                    p_distances[_1][_2] += [atom_1 - atom_2]
-            distances_list += [p_distances]
+            for model in atom_list:
+                assert (len(model) == num_of_residues)
+                p_distances = np.zeros((num_of_residues, num_of_residues))
+                for _1, atom_1 in enumerate(model):
+                    for _2, atom_2 in enumerate(model):
+                        p_distances[_1][_2] += [atom_1 - atom_2]
+                distances_list += [p_distances]
 
-        distances_list = np.array(distances_list)
-
-        return distances_list
+        return np.array(distances_list)
 
     @staticmethod
-    def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(filename_1, filename_2 ='../resources/1l2y.pdb'):
-        ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(filename_2)
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(filename_1)
+    def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb'):
+        ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
+        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
         diff = map(lambda x: np.linalg.norm(ref[0] - x), sample)
         return diff
 
     @staticmethod
-    def metric_get_number_of_native_contacts(filename_1, filename_2 ='../resources/1l2y.pdb', threshold = 8):
-        mat_1 = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(filename_1)
-        mat_2 = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(filename_2)
+    def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8):
+        ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
+        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
 
-        result = map(lambda x: sum(sum(((x < threshold) & (mat_2[0] < threshold)).astype(int))),
-                     mat_1)
+        result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
+                     sample)
         return result
 
     @staticmethod
-    def metric_RMSD_of_atoms(filename_1, filename_2 ='../resources/1l2y.pdb', option = "CA"):
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA"):
         """
         modified from the code: https://gist.github.com/andersx/6354971
         :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
         """
+        list_of_files.sort()
         pdb_parser = PDB.PDBParser(QUIET=True)
-
-        ref_structure = pdb_parser.get_structure("reference", filename_2)
-        sample_structure = pdb_parser.get_structure("sample", filename_1)
-
-        ref_atoms = [item for item in ref_structure[0].get_atoms()]
-        if option == "CA":
-            ref_atoms = filter(lambda x: x.get_name() == "CA",
-                               ref_atoms)
-        elif option == "all":
-            pass
-        else:
-            raise Exception("parameter error: wrong option")
-
         rmsd_of_all_atoms = []
 
-        for sample_model in sample_structure:
-            sample_atoms = [item for item in sample_model.get_atoms()]
-            if option == "CA":
-                sample_atoms = filter(lambda x: x.get_name() == "CA",
-                                      sample_atoms)
+        ref_structure = pdb_parser.get_structure("reference", ref_file)
+        for sample_file in list_of_files:
+            sample_structure = pdb_parser.get_structure("sample", sample_file)
 
-            super_imposer = PDB.Superimposer()
-            super_imposer.set_atoms(ref_atoms, sample_atoms)
-            super_imposer.apply(sample_model.get_atoms())
-            rmsd_of_all_atoms.append(super_imposer.rms)
+            ref_atoms = [item for item in ref_structure[0].get_atoms()]
+            if option == "CA":
+                ref_atoms = filter(lambda x: x.get_name() == "CA",
+                                   ref_atoms)
+            elif option == "all":
+                pass
+            else:
+                raise Exception("parameter error: wrong option")
+
+            for sample_model in sample_structure:
+                sample_atoms = [item for item in sample_model.get_atoms()]
+                if option == "CA":
+                    sample_atoms = filter(lambda x: x.get_name() == "CA",
+                                          sample_atoms)
+
+                super_imposer = PDB.Superimposer()
+                super_imposer.set_atoms(ref_atoms, sample_atoms)
+                super_imposer.apply(sample_model.get_atoms())
+                rmsd_of_all_atoms.append(super_imposer.rms)
 
         return rmsd_of_all_atoms
 
