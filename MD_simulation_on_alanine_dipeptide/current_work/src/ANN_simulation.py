@@ -538,6 +538,8 @@ class plotting(object):
         pass
 
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
+                                            fig_object,
+                                            axis_object,
                                             network=None,
                                             cossin_data_for_plotting=None,
                                             color_option='pure',
@@ -582,20 +584,19 @@ class plotting(object):
             assert (len(other_coloring) == len(x))
             coloring = other_coloring
 
-        fig, ax = plt.subplots()
-        im = ax.scatter(x,y, c=coloring)
-        ax.set_xlabel(labels[0])
-        ax.set_ylabel(labels[1])
-        ax.set_title(title)
+        im = axis_object.scatter(x,y, c=coloring)
+        axis_object.set_xlabel(labels[0])
+        axis_object.set_ylabel(labels[1])
+        axis_object.set_title(title)
 
         if not axis_ranges is None:
-            ax.set_xlim(axis_ranges[0])
-            ax.set_ylim(axis_ranges[1])
+            axis_object.set_xlim(axis_ranges[0])
+            axis_object.set_ylim(axis_ranges[1])
 
         if contain_colorbar:
-            fig.colorbar(im, ax=ax)
+            fig_object.colorbar(im, ax=ax)
 
-        return fig, ax, im
+        return fig_object, axis_object, im
 
 
 class iteration(object):
