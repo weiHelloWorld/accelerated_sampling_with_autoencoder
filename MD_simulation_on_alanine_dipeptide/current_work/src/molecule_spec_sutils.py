@@ -54,7 +54,7 @@ class Sutils(object):
             hist_matrix = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)   # preprocessing process
 
         if is_circular_boundary:  # typically works for circular autoencoder
-            diff_with_neighbors = hist_matrix - 1 / (2 * dimensionality) \
+            diff_with_neighbors = hist_matrix - 1.0 / (2 * dimensionality) \
                                             * sum(
                                                 map(lambda x: np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x),
                                                     range(dimensionality)
