@@ -39,7 +39,7 @@ else:
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 1  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one with least FVE from them
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations

@@ -594,7 +594,7 @@ class plotting(object):
             axis_object.set_ylim(axis_ranges[1])
 
         if contain_colorbar:
-            fig_object.colorbar(im, ax=ax)
+            fig_object.colorbar(im, ax=axis_object)
 
         return fig_object, axis_object, im
 
