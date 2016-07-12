@@ -35,6 +35,18 @@ class test_molecule_spec_sutils(object):
                 assert_almost_equal(actual[item][index], expected[item][index], 4)
         return
 
+    @staticmethod
+    def test_get_non_repeated_pairwise_distance_as_list_of_alpha_carbon():
+        pdb_file_list = ['dependency/1l2y.pdb']
+        a = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(pdb_file_list)
+        a = [item.reshape(400, 1) for item in a]
+        b = Trp_cage.get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(pdb_file_list)
+        assert (len(a) == len(b))
+        for _1 in range(len(b)):
+            for _2 in b[_1]:
+                assert (_2 in a[_1])
+        return
+
 
 class test_cluster_management(object):
     @staticmethod

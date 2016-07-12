@@ -373,6 +373,22 @@ class Trp_cage(Sutils):
         return np.array(distances_list)
 
     @staticmethod
+    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files):
+        """each element in this result is a list, not a matrix"""
+        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        num_of_residues = 20
+        result = []
+        for mat in dis_matrix_list:
+            p_distances = []
+            for item_1 in range(num_of_residues):
+                for item_2 in range(item_1 + 1, num_of_residues):
+                    p_distances += [mat[item_1][item_2]]
+            assert (len(p_distances) == num_of_residues * (num_of_residues - 1 ) / 2)
+            result += [p_distances]
+
+        return result
+
+    @staticmethod
     def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb'):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
         sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
