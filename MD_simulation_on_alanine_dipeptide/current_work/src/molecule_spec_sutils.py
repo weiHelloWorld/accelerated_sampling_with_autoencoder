@@ -10,7 +10,7 @@ class Sutils(object):
         return
 
     @staticmethod
-    def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=False):
+    def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
         """
         This is used to remove water molecule from pdb file, purposes:
         - save storage space
