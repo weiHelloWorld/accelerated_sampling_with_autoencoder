@@ -581,7 +581,7 @@ class plotting(object):
             assert (len(other_coloring) == len(x))
             coloring = other_coloring
 
-        im = axis_object.scatter(x,y, c=coloring)
+        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow')
         axis_object.set_xlabel(labels[0])
         axis_object.set_ylabel(labels[1])
         axis_object.set_title(title)
