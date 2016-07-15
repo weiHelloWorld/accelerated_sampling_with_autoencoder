@@ -1,4 +1,4 @@
-import copy, pickle, re, os, time, subprocess, datetime, itertools
+import copy, pickle, re, os, time, subprocess, datetime, itertools, sys
 from scipy import io as sciio
 import numpy as np
 from numpy.testing import assert_almost_equal
