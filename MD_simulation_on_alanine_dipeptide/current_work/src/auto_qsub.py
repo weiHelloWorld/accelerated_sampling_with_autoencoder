@@ -9,10 +9,15 @@ import argparse, subprocess
 parser = argparse.ArgumentParser()
 parser.add_argument("command", type=str, help="command to run")
 parser.add_argument("--submit", help="submit the job", action="store_true")
+parser.add_argument('--gpu', help="whether to run on GPU", action="store_true")
 args = parser.parse_args()
 
 whether_to_qsub = args.submit
 command_in_sge_file = args.command.strip()
+if args.gpu:
+    gpu_option_string = '#$ -l gpu=1'
+else:
+    gpu_option_string = ''
 
 if command_in_sge_file[-1] == '&':    # need to remove & otherwise it will not work in the cluster
     command_in_sge_file = command_in_sge_file[:-1]
@@ -28,6 +33,9 @@ content_for_sge_file = '''#!/bin/bash
 
 #$ -q all.q               # queue name
 #$ -l h_rt=24:00:00       # run time (hh:mm:ss)
+
+%s
+
 ######$ -l hostname=compute-0-3
 
 %s
@@ -35,7 +43,7 @@ content_for_sge_file = '''#!/bin/bash
 echo "This job is DONE!"
 
 exit 0
-''' % command_in_sge_file
+''' % (gpu_option_string, command_in_sge_file)
 
 sge_filename = '../sge_files/' + command_in_sge_file.replace(' ', '_').replace('..', '_').replace('/','_').replace('&', '') + '.sge'
 

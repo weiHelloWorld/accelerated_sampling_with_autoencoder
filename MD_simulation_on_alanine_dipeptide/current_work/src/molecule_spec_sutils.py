@@ -10,7 +10,29 @@ class Sutils(object):
         return
 
     @staticmethod
-    def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=False):
+    def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, new_pdb_file_name=None):  # start_index included, end_index not included
+        print ('writing frames of %s from frame %d to frame %d...' % (pdb_file_name, start_index, end_index))
+        if new_pdb_file_name is None:
+            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_from_frame_%d_to_frame_%d.pdb' % (start_index, end_index)
+
+        write_flag = False
+        with open(pdb_file_name) as f_in:
+            with open(new_pdb_file_name, 'w') as f_out:
+                for line in f_in:
+                    fields = line.strip().split()
+                    if fields[0] == "MODEL":  # see if we need to change write_flag
+                        if int(fields[1]) >= start_index and int(fields[1]) < end_index:
+                            write_flag = True
+                        else:
+                            write_flag = False
+
+                    if write_flag:
+                        f_out.write(line)
+                f_out.write("END\n")
+        return
+
+    @staticmethod
+    def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
         """
         This is used to remove water molecule from pdb file, purposes:
         - save storage space
@@ -54,7 +76,7 @@ class Sutils(object):
             hist_matrix = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)   # preprocessing process
 
         if is_circular_boundary:  # typically works for circular autoencoder
-            diff_with_neighbors = hist_matrix - 1 / (2 * dimensionality) \
+            diff_with_neighbors = hist_matrix - 1.0 / (2 * dimensionality) \
                                             * sum(
                                                 map(lambda x: np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x),
                                                     range(dimensionality)
@@ -371,6 +393,22 @@ class Trp_cage(Sutils):
                 distances_list += [p_distances]
 
         return np.array(distances_list)
+
+    @staticmethod
+    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files):
+        """each element in this result is a list, not a matrix"""
+        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        num_of_residues = 20
+        result = []
+        for mat in dis_matrix_list:
+            p_distances = []
+            for item_1 in range(num_of_residues):
+                for item_2 in range(item_1 + 1, num_of_residues):
+                    p_distances += [mat[item_1][item_2]]
+            assert (len(p_distances) == num_of_residues * (num_of_residues - 1 ) / 2)
+            result += [p_distances]
+
+        return result
 
     @staticmethod
     def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb'):

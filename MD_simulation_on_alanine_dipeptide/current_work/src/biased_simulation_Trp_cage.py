@@ -8,7 +8,6 @@ from simtk.unit import *
 from sys import stdout
 import ast
 
-from ANN import *
 from config import *
 
 ############################ PARAMETERS BEGIN ###############################################################
@@ -112,6 +111,7 @@ system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
 
 # add custom force (only for biased simulation)
 if force_constant != '0':
+    from ANN import *
     force = ANN_Force()
 
     force.set_layer_types(layer_types)

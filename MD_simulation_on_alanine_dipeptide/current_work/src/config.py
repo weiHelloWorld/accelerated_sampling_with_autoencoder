@@ -39,7 +39,7 @@ else:
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 1  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one with least FVE from them
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
@@ -83,7 +83,7 @@ CONFIG_20 = False  # whether the PC space is periodic in [-pi, pi], True for cir
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
-CONFIG_23 = 'Reference'   # simulation platform
+CONFIG_23 = 'CUDA'   # simulation platform
 CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)

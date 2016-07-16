@@ -6,16 +6,21 @@ class cluster_management(object):
         return
 
     @staticmethod
-    def create_sge_files_from_a_file_containing_commands(command_file, folder_to_store_sge_files):
+    def create_sge_files_from_a_file_containing_commands(command_file, folder_to_store_sge_files='../sge_files/', run_on_gpu = False):
         with open(command_file, 'r') as commmand_file:
             commands_to_run = commmand_file.readlines()
             commands_to_run = map(lambda x: x.strip(), commands_to_run)
-            cluster_management.create_sge_files_for_commands(commands_to_run, folder_to_store_sge_files)
+            cluster_management.create_sge_files_for_commands(commands_to_run, folder_to_store_sge_files, run_on_gpu)
 
         return commands_to_run
 
     @staticmethod
-    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/'):
+    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/', run_on_gpu = False):
+        if run_on_gpu:
+            gpu_option_string = '#$ -l gpu=1'
+        else:
+            gpu_option_string = ''
+
         for item in list_of_commands_to_run:
             item = item.strip()
             if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
@@ -33,6 +38,8 @@ class cluster_management(object):
 
 #$ -q all.q               # queue name
 #$ -l h_rt=%s       # run time (hh:mm:ss)
+
+%s
 ####$ -l hostname=compute-0-3
 
 %s
@@ -40,7 +47,7 @@ class cluster_management(object):
 echo "This job is DONE!"
 
 exit 0
-''' % (CONFIG_19, item)
+''' % (CONFIG_19, gpu_option_string, item)
             with open(sge_filename, 'w') as f_out:
                 f_out.write(content_for_sge_files)
                 f_out.write("\n")

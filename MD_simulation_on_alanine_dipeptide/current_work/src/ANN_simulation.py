@@ -1,4 +1,4 @@
-import copy, pickle, re, os, time, subprocess, datetime, itertools
+import copy, pickle, re, os, time, subprocess, datetime, itertools, sys
 from scipy import io as sciio
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -30,35 +30,32 @@ else:
 class coordinates_data_files_list(object):
     def __init__(self,
                 list_of_dir_of_coor_data_files = CONFIG_1, # this is the directory that holds corrdinates data files
-                file_type='coordinates_txt',   # could be 'coordinates_txt' or 'pdb' or 'both'
-                assertion_required = True    # whether we need to check one-to-one correspondence between pdb files and corresponding coordinates_txt files
                 ):
         self._list_of_dir_of_coor_data_files = list_of_dir_of_coor_data_files
-        self._list_of_coor_data_files = [];  self._list_of_pdb_files = []
+        self._list_of_coor_data_files = []
 
-        if file_type == 'coordinates_txt' or file_type == 'both':
-            for item in self._list_of_dir_of_coor_data_files:
-                self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).strip().split('\n')
-        if file_type == 'pdb' or file_type == 'both':
-            for item in self._list_of_dir_of_coor_data_files:
-                self._list_of_pdb_files += subprocess.check_output(['find', item,'-name' ,'*.pdb']).strip().split('\n')
+        for item in self._list_of_dir_of_coor_data_files:
+            self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
-        self._list_of_pdb_files = list(set(self._list_of_pdb_files))              # remove duplicates
         self._list_of_coor_data_files.sort()                # to be consistent
-        self._list_of_pdb_files.sort()
-        if file_type == 'both' and assertion_required:
-            assert (len(self._list_of_coor_data_files) == len(self._list_of_pdb_files))
-            for item in self._list_of_pdb_files:
-                assert (item.split('.pdb')[0] + '_coordinates.txt' in self._list_of_coor_data_files)
 
         return
 
     def get_list_of_coor_data_files(self):
         return self._list_of_coor_data_files
 
-    def get_list_of_pdb_files(self):
-        return self._list_of_pdb_files
+    def get_list_of_corresponding_pdb_files(self):
+        list_of_corresponding_pdb_files = map(lambda x: x.strip().split('_coordinates.txt')[0] + '.pdb',
+                                              self.get_list_of_coor_data_files()
+                                              )
+        for item in list_of_corresponding_pdb_files:
+            try:
+                assert os.path.exists(item)
+            except:
+                raise Exception('%s does not exist!' % item)
+
+        return list_of_corresponding_pdb_files
 
 
 class neural_network_for_simulation(object):
@@ -538,6 +535,8 @@ class plotting(object):
         pass
 
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
+                                            fig_object,
+                                            axis_object,
                                             network=None,
                                             cossin_data_for_plotting=None,
                                             color_option='pure',
@@ -582,20 +581,19 @@ class plotting(object):
             assert (len(other_coloring) == len(x))
             coloring = other_coloring
 
-        fig, ax = plt.subplots()
-        im = ax.scatter(x,y, c=coloring)
-        ax.set_xlabel(labels[0])
-        ax.set_ylabel(labels[1])
-        ax.set_title(title)
+        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow')
+        axis_object.set_xlabel(labels[0])
+        axis_object.set_ylabel(labels[1])
+        axis_object.set_title(title)
 
         if not axis_ranges is None:
-            ax.set_xlim(axis_ranges[0])
-            ax.set_ylim(axis_ranges[1])
+            axis_object.set_xlim(axis_ranges[0])
+            axis_object.set_ylim(axis_ranges[1])
 
         if contain_colorbar:
-            fig.colorbar(im, ax=ax)
+            fig_object.colorbar(im, ax=axis_object)
 
-        return fig, ax, im
+        return fig_object, axis_object, im
 
 
 class iteration(object):
@@ -697,7 +695,7 @@ class iteration(object):
         
         # TODO: run next line only when the jobs are done, check this
         if CONFIG_29:
-            molecule_type.remove_water_mol_and_Cl_from_pdb_file()
+            molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = False)
         molecule_type.generate_coordinates_from_pdb_files()
         return
 

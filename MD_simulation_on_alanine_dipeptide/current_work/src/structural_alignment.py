@@ -2,17 +2,24 @@
 modified from the code: https://gist.github.com/andersx/6354971
 """
 
-import Bio.PDB, sys
+import Bio.PDB, argparse, subprocess
 
-ref_structure_pdb_file = sys.argv[1]
-sample_structure_pdb_file = sys.argv[2]
+parser = argparse.ArgumentParser()
+parser.add_argument("sample", type=str, help="pdb file to be aligned")
+parser.add_argument("--ref", type=str, default="../resources/1l2y.pdb", help="reference pdb file")
+parser.add_argument("--name", type=str, default=None, help='name of the aligned pdb file')
+parser.add_argument('--remove_original', help='remove original pdb file after doing structural alignment', action="store_true")
+args = parser.parse_args()
 
-if len(sys.argv) == 4:
-    output_pdb_file = sys.argv[3]
-elif len(sys.argv) == 3:
+ref_structure_pdb_file = args.ref
+sample_structure_pdb_file = args.sample
+
+print "doing structural alignment for %s" % sample_structure_pdb_file
+
+if args.name is None:
     output_pdb_file = sample_structure_pdb_file.split('.pdb')[0] + '_aligned.pdb'
 else:
-    raise Exception('parameter num error')
+    output_pdb_file = parser.name
 
 pdb_parser = Bio.PDB.PDBParser(QUIET = True)
 
@@ -32,3 +39,10 @@ for sample_model in sample_structure:
 io = Bio.PDB.PDBIO()
 io.set_structure(sample_structure)
 io.save(output_pdb_file)
+
+print "done structural alignment for %s" % sample_structure_pdb_file
+
+if args.remove_original:
+    subprocess.check_output(['rm', sample_structure_pdb_file])
+    print "%s removed!" % sample_structure_pdb_file
+    
