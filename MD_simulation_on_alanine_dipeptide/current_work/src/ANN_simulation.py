@@ -580,7 +580,7 @@ class plotting(object):
             assert (len(other_coloring) == len(x))
             coloring = other_coloring
 
-        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow')
+        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
         axis_object.set_ylabel(labels[1])
         axis_object.set_title(title)
@@ -591,6 +591,14 @@ class plotting(object):
 
         if contain_colorbar:
             fig_object.colorbar(im, ax=axis_object)
+
+        # mouse clicking event
+        def onclick(event):
+            ind = event.ind  # what is the index of this?
+            for item in ind:
+                print('onclick:', item, x[item], y[item])
+
+        fig_object.canvas.mpl_connect('pick_event', onclick)
 
         return fig_object, axis_object, im
 
