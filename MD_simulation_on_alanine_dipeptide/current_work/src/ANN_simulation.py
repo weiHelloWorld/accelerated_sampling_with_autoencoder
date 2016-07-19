@@ -39,6 +39,8 @@ class coordinates_data_files_list(object):
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         self._list_of_coor_data_files.sort()                # to be consistent
+        self._list_of_line_num_of_coor_data_file = map(lambda x: int(subprocess.check_output(['wc', '-l', x]).strip().split()[0]),
+                                                       self._list_of_coor_data_files)
 
         return
 
@@ -56,6 +58,38 @@ class coordinates_data_files_list(object):
                 raise Exception('%s does not exist!' % item)
 
         return list_of_corresponding_pdb_files
+
+    def get_list_of_line_num_of_coor_data_file(self):
+        return self._list_of_line_num_of_coor_data_file
+
+    def write_pdb_frames_into_file_with_list_of_coor_index(self, list_of_coor_index, out_file_name):
+        """
+        This function picks several frames from pdb files, and write a new pdb file as output,
+        we could use this together with the mouse-clicking callback implemented in the scatter plot:
+        first we select a few points interactively in the scatter plot, and get corresponding index in the data point
+        list, the we find the corresponding pdb frames with the index
+        """
+        list_of_coor_index.sort()
+        pdb_files = self.get_list_of_corresponding_pdb_files()
+        accum_sum = np.cumsum(np.array(self._list_of_line_num_of_coor_data_file))  # use accumulative sum to find corresponding pdb files
+        for item in range(len(accum_sum)):
+            if item == 0:
+                temp_index_related_to_this_pdb_file = filter(lambda x: x < accum_sum[item], list_of_coor_index)
+            else:
+                temp_index_related_to_this_pdb_file = filter(lambda x: accum_sum[item - 1] <= x < accum_sum[item], list_of_coor_index)
+                temp_index_related_to_this_pdb_file = map(lambda x: x - accum_sum[item - 1], temp_index_related_to_this_pdb_file)
+            temp_index_related_to_this_pdb_file.sort()
+
+            if len(temp_index_related_to_this_pdb_file) != 0:
+                print(pdb_files[item])
+                with open(pdb_files[item], 'r') as in_file:
+                    content = in_file.read().split('MODEL')[1:]  # remove header
+                    frames_to_use = [content[ii] for ii in temp_index_related_to_this_pdb_file]
+                    with open(out_file_name, 'a') as out_file:
+                        for frame in frames_to_use:
+                            out_file.write("MODEL" + frame)
+
+        return
 
 
 class neural_network_for_simulation(object):
