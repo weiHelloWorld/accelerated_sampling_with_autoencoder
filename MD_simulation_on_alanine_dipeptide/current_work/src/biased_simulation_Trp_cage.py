@@ -65,10 +65,10 @@ else:
                                                                      str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
 
 if args.starting_pdb_file != '../resources/1l2y.pdb':
-    pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_start_from_%s.pdb' % \
-                            args.starting_pdb_file.split('.pdb')[0].replace('/','_').replace('.','_')
-    state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_start_from_%s.txt' % \
-                            args.starting_pdb_file.split('.pdb')[0].replace('/','_').replace('.','_')
+    pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
+                            args.starting_pdb_file.split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
+    state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_sf_%s.txt' % \
+                            args.starting_pdb_file.split('.pdb')[0].split('/')[-1]
 
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same

@@ -548,7 +548,6 @@ class plotting(object):
         """
         by default, we are using training data, and we also allow external data input
         """
-        #TODO: plotting for circular layer network
         if network is None: network = self._network
         if title is None: title = "plotting in %s, coloring with %s" % (plotting_space, color_option)  # default title
         if cossin_data_for_plotting is None:
