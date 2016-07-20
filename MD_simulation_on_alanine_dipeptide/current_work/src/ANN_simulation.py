@@ -69,6 +69,10 @@ class coordinates_data_files_list(object):
         first we select a few points interactively in the scatter plot, and get corresponding index in the data point
         list, the we find the corresponding pdb frames with the index
         """
+        if os.path.isfile(out_file_name):  # backup files
+            os.rename(out_file_name,
+                      out_file_name.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb")
+
         list_of_coor_index.sort()
         pdb_files = self.get_list_of_corresponding_pdb_files()
         accum_sum = np.cumsum(np.array(self._list_of_line_num_of_coor_data_file))  # use accumulative sum to find corresponding pdb files
@@ -563,9 +567,10 @@ class plotting(object):
     """this class implements different plottings
     """
 
-    def __init__(self, network):
+    def __init__(self, network, related_coor_list_obj = None):
         assert isinstance(network, neural_network_for_simulation)
         self._network = network
+        self._related_coor_list_obj = related_coor_list_obj
         pass
 
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
@@ -627,10 +632,30 @@ class plotting(object):
             fig_object.colorbar(im, ax=axis_object)
 
         # mouse clicking event
+        import matplotlib
+        axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
+
+        global temp_list_of_coor_index   # TODO: use better way instead of global variable
+        temp_list_of_coor_index = []
         def onclick(event):
-            ind = event.ind  # what is the index of this?
-            for item in ind:
-                print('onclick:', item, x[item], y[item])
+            global temp_list_of_coor_index
+            if isinstance(event.artist, matplotlib.text.Text):
+                if event.artist.get_text() == 'save_frames':
+                    print temp_list_of_coor_index
+                    if not self._related_coor_list_obj is None:
+                        self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
+                                                                                                       'temp_pdb/temp_frames.pdb')  # TODO: better naming
+                    else:
+                        raise Exception('related_coor_list_obj not defined!')
+                    temp_list_of_coor_index = []  # output pdb file and clean up
+                    print ('done saving frames!')
+            elif isinstance(event.artist, matplotlib.collections.PathCollection):
+                ind_list = list(event.ind)  # what is the index of this?
+                print ('onclick:')
+                temp_list_of_coor_index += ind_list
+
+                for item in ind_list:
+                    print(item, x[item], y[item])
 
         fig_object.canvas.mpl_connect('pick_event', onclick)
 
