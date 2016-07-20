@@ -20,6 +20,7 @@ parser.add_argument("folder_to_store_output_files", type=str, help="folder to st
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
 parser.add_argument("potential_center", type=str, help="potential center")
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether we need to add water molecules in the simulation')
+parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
@@ -118,7 +119,12 @@ platform = Platform.getPlatformByName(CONFIG_23)
 platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
-system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
+if args.ensemble_type == "NPT":
+    system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
+elif args.ensemble_type == "NVT":
+    pass
+else:
+    raise Exception("ensemble = %s not found!" % args.ensemble_type)
 
 # add custom force (only for biased simulation)
 if force_constant != '0':
@@ -146,7 +152,7 @@ if force_constant != '0':
     system.addForce(force)
 # end add custom force
 
-integrator = LangevinIntegrator(temperature*kelvin, 1/picosecond, time_step*picoseconds)
+integrator = VerletIntegrator(time_step*picoseconds)
 
 if flag_random_seed:
     integrator.setRandomNumberSeed(1)  # set random seed
