@@ -407,7 +407,9 @@ class neural_network_for_simulation(object):
             if isinstance(molecule_type, Alanine_dipeptide):
                 command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
             elif isinstance(molecule_type, Trp_cage):
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list   #TODO: move the last two parameters into somewhere else (not hard-coded)
+                # FIXME: this is outdated, should be fixed
+                pass
+                # command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list
             else:
                 raise Exception("molecule type not defined")
 
@@ -633,7 +635,7 @@ class plotting(object):
 
         # mouse clicking event
         import matplotlib
-        axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
+        # axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
 
         global temp_list_of_coor_index   # TODO: use better way instead of global variable
         temp_list_of_coor_index = []

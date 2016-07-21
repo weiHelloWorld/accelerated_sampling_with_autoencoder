@@ -30,10 +30,11 @@ record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
 
-folder_to_store_output_files = '../target/Trp_cage/' + args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
-autoencoder_info_file = '../resources/Trp_cage/' + args.autoencoder_info_file
+folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
+autoencoder_info_file = args.autoencoder_info_file
 
-potential_center = list(map(lambda x: float(x), args.potential_center.replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
+potential_center = list(map(lambda x: float(x), args.potential_center.replace('"','')\
+                                .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
 
 if args.whether_to_add_water_mol_opt == 'with_water':
     whether_to_add_water_mol = True
@@ -56,14 +57,10 @@ input_pdb_file_of_molecule = args.starting_pdb_file
 force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
 
-if force_constant == '0':   # unbiased case
-    pdb_reporter_file = '%s/unbiased_output_T_%d_%s.pdb' % (folder_to_store_output_files, temperature, args.whether_to_add_water_mol_opt)
-    state_data_reporter_file = '%s/unbiased_report_T_%d_%s.txt' % (folder_to_store_output_files, temperature, args.whether_to_add_water_mol_opt)
-else:
-    pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
-                                                              str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
-    state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s_T_%d_%s.txt' % (folder_to_store_output_files, force_constant,
-                                                                     str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
+pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
+                                                          str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
+state_data_reporter_file = '%s/report_fc_%s_pc_%s_T_%d_%s.txt' % (folder_to_store_output_files, force_constant,
+                                                                 str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
 
 if args.starting_pdb_file != '../resources/1l2y.pdb':
     pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
