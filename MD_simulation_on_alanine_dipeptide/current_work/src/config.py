@@ -43,6 +43,7 @@ CONFIG_13 = 5  # num of network trainings we are going to run, and pick the one 
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
+CONFIG_31 = 3        # maximum number of failed simulations allowed in each iteration
 
 '''def run_simulation'''
 

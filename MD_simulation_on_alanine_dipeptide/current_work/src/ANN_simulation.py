@@ -757,7 +757,7 @@ class iteration(object):
                 procs_to_run_commands[index] = subprocess.Popen(item.split())
 
             exit_codes = [p.wait() for p in procs_to_run_commands]
-            assert (sum(exit_codes) == 0)  # all jobs are done successfully
+            assert (sum(exit_codes) < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
 
             # TODO: currently they are not run in parallel, fix this later
         
