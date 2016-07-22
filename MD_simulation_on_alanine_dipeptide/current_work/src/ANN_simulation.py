@@ -39,6 +39,8 @@ class coordinates_data_files_list(object):
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         self._list_of_coor_data_files.sort()                # to be consistent
+        self._list_of_line_num_of_coor_data_file = map(lambda x: int(subprocess.check_output(['wc', '-l', x]).strip().split()[0]),
+                                                       self._list_of_coor_data_files)
 
         return
 
@@ -56,6 +58,42 @@ class coordinates_data_files_list(object):
                 raise Exception('%s does not exist!' % item)
 
         return list_of_corresponding_pdb_files
+
+    def get_list_of_line_num_of_coor_data_file(self):
+        return self._list_of_line_num_of_coor_data_file
+
+    def write_pdb_frames_into_file_with_list_of_coor_index(self, list_of_coor_index, out_file_name):
+        """
+        This function picks several frames from pdb files, and write a new pdb file as output,
+        we could use this together with the mouse-clicking callback implemented in the scatter plot:
+        first we select a few points interactively in the scatter plot, and get corresponding index in the data point
+        list, the we find the corresponding pdb frames with the index
+        """
+        if os.path.isfile(out_file_name):  # backup files
+            os.rename(out_file_name,
+                      out_file_name.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb")
+
+        list_of_coor_index.sort()
+        pdb_files = self.get_list_of_corresponding_pdb_files()
+        accum_sum = np.cumsum(np.array(self._list_of_line_num_of_coor_data_file))  # use accumulative sum to find corresponding pdb files
+        for item in range(len(accum_sum)):
+            if item == 0:
+                temp_index_related_to_this_pdb_file = filter(lambda x: x < accum_sum[item], list_of_coor_index)
+            else:
+                temp_index_related_to_this_pdb_file = filter(lambda x: accum_sum[item - 1] <= x < accum_sum[item], list_of_coor_index)
+                temp_index_related_to_this_pdb_file = map(lambda x: x - accum_sum[item - 1], temp_index_related_to_this_pdb_file)
+            temp_index_related_to_this_pdb_file.sort()
+
+            if len(temp_index_related_to_this_pdb_file) != 0:
+                print(pdb_files[item])
+                with open(pdb_files[item], 'r') as in_file:
+                    content = in_file.read().split('MODEL')[1:]  # remove header
+                    frames_to_use = [content[ii] for ii in temp_index_related_to_this_pdb_file]
+                    with open(out_file_name, 'a') as out_file:
+                        for frame in frames_to_use:
+                            out_file.write("MODEL" + frame)
+
+        return
 
 
 class neural_network_for_simulation(object):
@@ -369,7 +407,9 @@ class neural_network_for_simulation(object):
             if isinstance(molecule_type, Alanine_dipeptide):
                 command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
             elif isinstance(molecule_type, Trp_cage):
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list   #TODO: move the last two parameters into somewhere else (not hard-coded)
+                # FIXME: this is outdated, should be fixed
+                pass
+                # command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list
             else:
                 raise Exception("molecule type not defined")
 
@@ -529,9 +569,10 @@ class plotting(object):
     """this class implements different plottings
     """
 
-    def __init__(self, network):
+    def __init__(self, network, related_coor_list_obj = None):
         assert isinstance(network, neural_network_for_simulation)
         self._network = network
+        self._related_coor_list_obj = related_coor_list_obj
         pass
 
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
@@ -548,7 +589,6 @@ class plotting(object):
         """
         by default, we are using training data, and we also allow external data input
         """
-        #TODO: plotting for circular layer network
         if network is None: network = self._network
         if title is None: title = "plotting in %s, coloring with %s" % (plotting_space, color_option)  # default title
         if cossin_data_for_plotting is None:
@@ -581,7 +621,7 @@ class plotting(object):
             assert (len(other_coloring) == len(x))
             coloring = other_coloring
 
-        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow')
+        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
         axis_object.set_ylabel(labels[1])
         axis_object.set_title(title)
@@ -592,6 +632,34 @@ class plotting(object):
 
         if contain_colorbar:
             fig_object.colorbar(im, ax=axis_object)
+
+        # mouse clicking event
+        import matplotlib
+        # axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
+
+        global temp_list_of_coor_index   # TODO: use better way instead of global variable
+        temp_list_of_coor_index = []
+        def onclick(event):
+            global temp_list_of_coor_index
+            if isinstance(event.artist, matplotlib.text.Text):
+                if event.artist.get_text() == 'save_frames':
+                    print temp_list_of_coor_index
+                    if not self._related_coor_list_obj is None:
+                        self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
+                                                                                                       'temp_pdb/temp_frames.pdb')  # TODO: better naming
+                    else:
+                        raise Exception('related_coor_list_obj not defined!')
+                    temp_list_of_coor_index = []  # output pdb file and clean up
+                    print ('done saving frames!')
+            elif isinstance(event.artist, matplotlib.collections.PathCollection):
+                ind_list = list(event.ind)  # what is the index of this?
+                print ('onclick:')
+                temp_list_of_coor_index += ind_list
+
+                for item in ind_list:
+                    print(item, x[item], y[item])
+
+        fig_object.canvas.mpl_connect('pick_event', onclick)
 
         return fig_object, axis_object, im
 

@@ -1,7 +1,7 @@
 
 # no biased potential
 
-import datetime, os
+import datetime, os, argparse
 from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *
@@ -12,52 +12,62 @@ from config import *
 
 ############################ PARAMETERS BEGIN ###############################################################
 
+parser = argparse.ArgumentParser()
+parser.add_argument("record_interval", type=int, help="interval to take snapshots")
+parser.add_argument("total_num_of_steps", type=int, help="total number of simulation steps")
+parser.add_argument("force_constant", type=str, help="force constants")
+parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
+parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
+parser.add_argument("potential_center", type=str, help="potential center")
+parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether we need to add water molecules in the simulation')
+parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
+parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
+parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
+args = parser.parse_args()
 
-record_interval = int(sys.argv[1])
-total_number_of_steps = int(sys.argv[2])
+record_interval = args.record_interval
+total_number_of_steps = args.total_num_of_steps
+force_constant = args.force_constant
 
-force_constant = sys.argv[3] 
+folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
+autoencoder_info_file = args.autoencoder_info_file
 
-folder_to_store_output_files = '../target/Trp_cage/' + sys.argv[4] # this is used to separate outputs for different networks into different folders
-autoencoder_info_file = '../resources/Trp_cage/' + sys.argv[5]
+potential_center = list(map(lambda x: float(x), args.potential_center.replace('"','')\
+                                .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
 
-potential_center = list(map(lambda x: float(x), sys.argv[6].replace('"','').split(',')))   # this API is the generalization for higher-dimensional cases
-
-if sys.argv[7] == 'with_water':
-    whether_to_include_water_in_simulation = True
-elif sys.argv[7] == 'without_water':
-    whether_to_include_water_in_simulation = False
+if args.whether_to_add_water_mol_opt == 'with_water':
+    whether_to_add_water_mol = True
+elif args.whether_to_add_water_mol_opt == 'without_water' or args.whether_to_add_water_mol_opt == 'water_already_added':
+    whether_to_add_water_mol = False
 else:
     raise Exception('parameter error')
 
-if len(sys.argv) == 9:  # temperature is optional, it is 300 K by default
-    temperature = int(sys.argv[8])   # in kelvin
-else:
-    temperature = 300
-
-
+temperature = args.temperature
 
 if not os.path.exists(folder_to_store_output_files):
     try:
         os.makedirs(folder_to_store_output_files)
     except:
         pass
-        
 
 assert(os.path.exists(folder_to_store_output_files))
 
-input_pdb_file_of_molecule = '../resources/1l2y.pdb'
+input_pdb_file_of_molecule = args.starting_pdb_file
 force_field_file = 'amber03.xml'
 water_field_file = 'tip4pew.xml'
 
-if force_constant == '0':   # unbiased case
-    pdb_reporter_file = '%s/unbiased_output_T_%d_%s.pdb' % (folder_to_store_output_files, temperature, sys.argv[7]) 
-    state_data_reporter_file = '%s/unbiased_report_T_%d_%s.txt' % (folder_to_store_output_files, temperature, sys.argv[7])
-else:
-    pdb_reporter_file = '%s/biased_output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
-                                                              str(potential_center).replace(' ', ''), temperature, sys.argv[7])
-    state_data_reporter_file = '%s/biased_report_fc_%s_pc_%s_T_%d_%s.txt' % (folder_to_store_output_files, force_constant,
-                                                                     str(potential_center).replace(' ', ''), temperature, sys.argv[7])
+pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
+                                                          str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
+state_data_reporter_file = '%s/report_fc_%s_pc_%s_T_%d_%s.txt' % (folder_to_store_output_files, force_constant,
+                                                                 str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
+
+if args.starting_pdb_file != '../resources/1l2y.pdb':
+    pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
+                            args.starting_pdb_file.split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
+    state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_sf_%s.txt' % \
+                            args.starting_pdb_file.split('.pdb')[0].split('/')[-1]
+
 if os.path.isfile(pdb_reporter_file):
     os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
@@ -66,7 +76,6 @@ if os.path.isfile(state_data_reporter_file):
 
 k1 = force_constant
 k2 = force_constant
-
 
 flag_random_seed = 0 # whether we need to fix this random seed
 
@@ -89,7 +98,7 @@ layer_types = ['Tanh', 'Tanh']
 pdb = PDBFile(input_pdb_file_of_molecule)
 modeller = Modeller(pdb.topology, pdb.positions)
 
-if whether_to_include_water_in_simulation:    # if we include water in the simulation
+if whether_to_add_water_mol:    # if we need to add water molecules in the simulation
     forcefield = ForceField(force_field_file, water_field_file)
 
     modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
@@ -98,7 +107,7 @@ if whether_to_include_water_in_simulation:    # if we include water in the simul
                                      constraints = AllBonds, ewaldErrorTolerance = 0.0005)
 
 else:
-    forcefield = ForceField(force_field_file)
+    forcefield = ForceField(force_field_file, water_field_file)
     modeller.addExtraParticles(forcefield)
     system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, nonbondedCutoff=1.0 * nanometers,
                                      constraints=AllBonds)
@@ -107,7 +116,12 @@ platform = Platform.getPlatformByName(CONFIG_23)
 platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
-system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
+if args.ensemble_type == "NPT":
+    system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
+elif args.ensemble_type == "NVT":
+    pass
+else:
+    raise Exception("ensemble = %s not found!" % args.ensemble_type)
 
 # add custom force (only for biased simulation)
 if force_constant != '0':
@@ -122,14 +136,11 @@ if force_constant != '0':
     force.set_potential_center(potential_center)
     force.set_force_constant(float(force_constant))
 
-    # TODO: parse coef_file
     with open(autoencoder_info_file, 'r') as f_in:
         content = f_in.readlines()
 
-
     force.set_coeffients_of_connections(
-        [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
-                                    )
+        [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]])
 
     force.set_values_of_biased_nodes([
         ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
@@ -138,7 +149,7 @@ if force_constant != '0':
     system.addForce(force)
 # end add custom force
 
-integrator = LangevinIntegrator(temperature*kelvin, 1/picosecond, time_step*picoseconds)
+integrator = VerletIntegrator(time_step*picoseconds)
 
 if flag_random_seed:
     integrator.setRandomNumberSeed(1)  # set random seed
@@ -146,10 +157,12 @@ if flag_random_seed:
 simulation = Simulation(modeller.topology, system, integrator, platform)
 simulation.context.setPositions(modeller.positions)
 
-
-print('begin Minimizing energy...')
-simulation.minimizeEnergy()
-print('Done minimizing energy.')
+if args.minimize_energy:
+    print('begin Minimizing energy...')
+    simulation.minimizeEnergy()
+    print('Done minimizing energy.')
+else:
+    print('energy minimization not required')
 
 simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
 simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, \

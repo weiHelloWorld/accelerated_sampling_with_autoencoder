@@ -27,7 +27,9 @@ def main():
     interval = args.interval
 
     with open(command_file, 'r') as cmdf:
-        command_list = cmdf.read().split('\n')
+        command_list = cmdf.read().strip().split('\n')
+
+    command_list = filter(lambda x: x.strip() != "" and x.strip()[0] != "#", command_list)  # remove empty commands
 
     total_num_jobs = len(command_list)
     next_job_index = 0
