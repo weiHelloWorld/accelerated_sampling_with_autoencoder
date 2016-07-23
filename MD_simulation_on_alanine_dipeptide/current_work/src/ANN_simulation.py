@@ -806,9 +806,9 @@ class single_biased_simulation_data(object):
         '''my_network is the corresponding network for this biased simulation'''
         self._file_for_single_biased_simulation_coor = file_for_single_biased_simulation_coor
         self._my_network = my_network
-        self._potential_center = [float(file_for_single_biased_simulation_coor.split('_x1_')[1].split('_x2_')[0]), \
-                                  float(file_for_single_biased_simulation_coor.split('_x2_')[1].split('_coordinates.txt')[0])]
-        self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_x1_')[0])
+        self._potential_center = [float(file_for_single_biased_simulation_coor.split('_pc_[')[1].split(',')[0]), \
+                                  float(file_for_single_biased_simulation_coor.split(']')[0].split(',')[1])]
+        self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
         return
 

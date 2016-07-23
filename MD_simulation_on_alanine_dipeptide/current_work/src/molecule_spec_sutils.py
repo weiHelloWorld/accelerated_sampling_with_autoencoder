@@ -208,8 +208,8 @@ class Alanine_dipeptide(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12):
+        filenames = subprocess.check_output(['find', path_for_pdb, '-name' , '*.pdb']).split('\n')[:-1]
 
         index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
 
@@ -229,7 +229,7 @@ class Alanine_dipeptide(Sutils):
 
                     f_out.write('\n')  # last line
         print("Done generating coordinates files\n")
-        return
+        return output_file
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
