@@ -28,10 +28,18 @@ CONFIG_2 = 2     # training data interval
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
 CONFIG_6 = None # filename to save this network
+CONFIG_36 = 2              #   dimensionality
+if CONFIG_17[1] == CircularLayer:
+    CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
+elif CONFIG_17[1] == TanhLayer:
+    CONFIG_37 = CONFIG_36
+else:
+    raise Exception('Layer not defined')
+
 if CONFIG_30 == "Alanine_dipeptide":
-    CONFIG_3 = [8, 15, 2, 15, 8]  # the structure of ANN: number of nodes in each layer
+    CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
 elif CONFIG_30 == "Trp_cage":
-    CONFIG_3 = [76, 15, 2, 15, 76]
+    CONFIG_3 = [76, 15, CONFIG_37, 15, 76]
 else:
     raise Exception('molecule type error')
 
@@ -60,8 +68,17 @@ CONFIG_29 = False  # whether we need to remove the water molecules from pdb file
 
 CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
-CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
-CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
+
+if CONFIG_17[1] == CircularLayer:
+    CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
+    CONFIG_26 = [[-np.pi, np.pi],[-np.pi, np.pi]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
+elif CONFIG_17[1] == TanhLayer:
+    CONFIG_18 = False
+    CONFIG_26 = [[-1, 1],[-1, 1]]
+else:
+    raise Exception('Layer not defined')
+
+
 CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
@@ -80,7 +97,6 @@ CONFIG_19 = '24:00:00'  # max running time for the sge job
 ############   config for biased_simulation.py  ##########################
 ##########################################################################
 
-CONFIG_20 = False  # whether the PC space is periodic in [-pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
