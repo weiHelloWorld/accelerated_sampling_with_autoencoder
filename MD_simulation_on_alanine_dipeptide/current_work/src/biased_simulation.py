@@ -1,5 +1,6 @@
 # biased simulation
 
+from ANN_simulation import *
 from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *
@@ -29,12 +30,11 @@ parser.add_argument("--force_constant_adjustable", help="set the force constant 
 parser.add_argument("--max_fc", type=float, help="max force constant (for force_constant_adjustable mode)")
 parser.add_argument("--fc_step", type=float, help="the value by which the force constant is increased each time (for force_constant_adjustable mode)")
 parser.add_argument("--distance_tolerance", type=float, help="max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)")
-parser.add_argument("--autoencoder_file", type=float, help="pkl file that stores autoencoder (for force_constant_adjustable mode)")
+parser.add_argument("--autoencoder_file", type=str, help="pkl file that stores autoencoder (for force_constant_adjustable mode)")
 args = parser.parse_args()
 
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
-force_constant = args.force_constant
 
 folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = args.autoencoder_info_file
@@ -42,7 +42,7 @@ autoencoder_info_file = args.autoencoder_info_file
 potential_center = list(map(lambda x: float(x), args.potential_center.replace('"','')\
                                 .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
 
-def run_simulation():
+def run_simulation(force_constant):
     if not os.path.exists(folder_to_store_output_files):
         try:
             os.makedirs(folder_to_store_output_files)
@@ -153,6 +153,23 @@ def run_simulation():
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, step=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True))
     simulation.step(total_number_of_steps)
 
-if __name__ == '__main__':
-    run_simulation()
     print('Done biased simulation!')
+    return pdb_reporter_file
+
+def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
+    coor_file = Alanine_dipeptide().generate_coordinates_from_pdb_files(pdb_file)
+    temp_network = pickle.load(open(args.autoencoder_file, 'rb'))
+    this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
+    return this_simulation_data.get_offset_between_potential_center_and_data_cloud_center()
+
+if __name__ == '__main__':
+    if not args.force_constant_adjustable:
+        run_simulation(args.force_constant)
+    else:
+        force_constant = args.force_constant
+        distance_of_data_cloud_center = float("inf")
+        while force_constant < args.max_fc and distance_of_data_cloud_center > args.distance_tolerance:
+            pdb_file = run_simulation(force_constant)
+            distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
+            force_constant += args.fc_step
+
