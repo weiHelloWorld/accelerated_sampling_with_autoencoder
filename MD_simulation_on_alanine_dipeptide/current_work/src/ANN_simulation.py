@@ -405,7 +405,8 @@ class neural_network_for_simulation(object):
                             'pc_' + str(potential_center).replace(' ','')[1:-1],  # need to remove white space, otherwise parsing error
                             '../resources/Alanine_dipeptide/network_%d.pkl' % (self._index)
                             )
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --fc_adjustable --autoencoder_file %s" % parameter_list
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --fc_adjustable --autoencoder_file %s --remove_previous" \
+                          % parameter_list
             elif isinstance(molecule_type, Trp_cage):
                 # FIXME: this is outdated, should be fixed
                 pass

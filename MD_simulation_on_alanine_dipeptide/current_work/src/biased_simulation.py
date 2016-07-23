@@ -31,6 +31,7 @@ parser.add_argument("--max_fc", type=float, default=CONFIG_32, help="max force c
 parser.add_argument("--fc_step", type=float, default=CONFIG_34, help="the value by which the force constant is increased each time (for force_constant_adjustable mode)")
 parser.add_argument("--distance_tolerance", type=float, default=CONFIG_35, help="max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)")
 parser.add_argument("--autoencoder_file", type=str, help="pkl file that stores autoencoder (for force_constant_adjustable mode)")
+parser.add_argument("--remove_previous", help="remove previous outputs while adjusting force constants", action="store_true")
 args = parser.parse_args()
 
 record_interval = args.record_interval
@@ -166,12 +167,20 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     return distance
 
 if __name__ == '__main__':
-    if not args.force_constant_adjustable:
+    if not args.fc_adjustable:
         run_simulation(args.force_constant)
     else:
         force_constant = args.force_constant
         distance_of_data_cloud_center = float("inf")
         while force_constant < args.max_fc and distance_of_data_cloud_center > args.distance_tolerance:
+            if args.remove_previous:
+                try:
+                    command = 'rm %s/*%s*' % (folder_to_store_output_files, str(potential_center).replace(' ',''))
+                    command = command.replace('[','').replace(']','')
+                    subprocess.check_output(command, shell=True)
+                    print "removing previous results..."
+                except:
+                    pass
             pdb_file = run_simulation(force_constant)
             distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
             force_constant += args.fc_step
