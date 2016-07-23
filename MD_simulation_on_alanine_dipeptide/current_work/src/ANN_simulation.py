@@ -392,20 +392,20 @@ class neural_network_for_simulation(object):
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
-            filename_of_autoencoder_info = autoencoder_info_file.split('resources/%s/' % CONFIG_30)[1]
         if force_constant_for_biased is None:
             force_constant_for_biased = CONFIG_9
 
         todo_list_of_commands_for_simulations = []
 
         for potential_center in list_of_potential_center:
-            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            'network_' + str(self._index),
-                            filename_of_autoencoder_info,
-                            str(potential_center).replace(' ','')[1:-1]  # need to remove white space, otherwise parsing error
-                            )
             if isinstance(molecule_type, Alanine_dipeptide):
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
+                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                            '../target/Alanine_dipeptide/network_%d' % (self._index),
+                                  autoencoder_info_file,
+                            'pc_' + str(potential_center).replace(' ','')[1:-1],  # need to remove white space, otherwise parsing error
+                            '../resources/Alanine_dipeptide/network_%d.pkl' % (self._index)
+                            )
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --force_constant_adjustable --max_fc 1000 --fc_step 50 --distance_tolerance 0.1 --autoencoder_file %s" % parameter_list
             elif isinstance(molecule_type, Trp_cage):
                 # FIXME: this is outdated, should be fixed
                 pass
