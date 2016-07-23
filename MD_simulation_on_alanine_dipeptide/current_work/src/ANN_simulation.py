@@ -811,13 +811,17 @@ class single_biased_simulation_data(object):
                                   float(file_for_single_biased_simulation_coor.split(']')[0].split(',')[1])]
         self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
+        if self._my_network._hidden_layers_type[1] == CircularLayer:
+            self._dimension_of_PCs = self._my_network._node_num[2] / 2
+        else:
+            self._dimension_of_PCs = self._my_network._node_num[2]
+
         return
 
     def get_center_of_data_cloud_in_this_biased_simulation(self):
         cossin = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
-        temp_mid_result = self._my_network.get_mid_result(input_data = cossin)
-        PCs = [item[1] for item in temp_mid_result]
-        assert(len(PCs[0]) == 2)
+        PCs = self._my_network.get_PCs(cossin)
+        assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)
         PCs_transpose = zip(*PCs)
         center_of_data_cloud = map(lambda x: sum(x) / len(x), PCs_transpose)
@@ -828,6 +832,6 @@ class single_biased_simulation_data(object):
         does not work well
         '''
         PCs_average = self.get_center_of_data_cloud_in_this_biased_simulation()
-        offset = [PCs_average[0] - self._potential_center[0], PCs_average[1] - self._potential_center[1]]
+        offset = [PCs_average[item] - self._potential_center[item] for item in range(self._dimension_of_PCs)]
         return offset
 

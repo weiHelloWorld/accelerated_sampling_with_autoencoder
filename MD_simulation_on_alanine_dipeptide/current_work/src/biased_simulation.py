@@ -162,6 +162,9 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     temp_network = pickle.load(open(args.autoencoder_file, 'rb'))
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center()
+    if CONFIG_17[1] == CircularLayer:
+        offset = [min(abs(item), abs(item + 2 * np.pi), abs(item - 2 * np.pi)) for item in offset]
+        print "circular offset"
     print 'offset = %s' % str(offset)
     distance = sqrt(sum([item * item for item in offset]))
     return distance
