@@ -116,6 +116,7 @@ class Sutils(object):
                         *temp_seperate_index
                         ))
 
+        index_of_grids =  filter(lambda x: diff_with_neighbors[x] < 0, index_of_grids)     # only apply to grids with diff_with_neighbors value < 0
         sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x]) # sort based on histogram, return index values
 
         for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
@@ -132,7 +133,7 @@ class Alanine_dipeptide(Sutils):
         
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
-        num_of_coordinates = len(a_coordinate) / 3
+        num_of_coordinates = len(list(a_coordinate)) / 3
         a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
         diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
