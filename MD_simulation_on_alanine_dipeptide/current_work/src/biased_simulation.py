@@ -160,7 +160,10 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     coor_file = Alanine_dipeptide().generate_coordinates_from_pdb_files(pdb_file)
     temp_network = pickle.load(open(args.autoencoder_file, 'rb'))
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
-    return this_simulation_data.get_offset_between_potential_center_and_data_cloud_center()
+    offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center()
+    print 'offset = %s' % str(offset)
+    distance = sqrt(sum([item * item for item in offset]))
+    return distance
 
 if __name__ == '__main__':
     if not args.force_constant_adjustable:
@@ -172,4 +175,5 @@ if __name__ == '__main__':
             pdb_file = run_simulation(force_constant)
             distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
             force_constant += args.fc_step
+            print "distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center
 
