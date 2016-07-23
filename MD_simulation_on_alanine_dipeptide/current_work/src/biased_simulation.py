@@ -19,17 +19,17 @@ parser.add_argument("total_num_of_steps", type=int, help="total number of simula
 parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
-parser.add_argument("potential_center", type=str, help="potential center")
+parser.add_argument("potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
 # or distance between center of data cloud and potential center is smaller than distance_tolerance
-parser.add_argument("--force_constant_adjustable", help="set the force constant to be adjustable", action="store_true")
-parser.add_argument("--max_fc", type=float, help="max force constant (for force_constant_adjustable mode)")
-parser.add_argument("--fc_step", type=float, help="the value by which the force constant is increased each time (for force_constant_adjustable mode)")
-parser.add_argument("--distance_tolerance", type=float, help="max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)")
+parser.add_argument("--fc_adjustable", help="set the force constant to be adjustable", action="store_true")
+parser.add_argument("--max_fc", type=float, default=CONFIG_32, help="max force constant (for force_constant_adjustable mode)")
+parser.add_argument("--fc_step", type=float, default=CONFIG_34, help="the value by which the force constant is increased each time (for force_constant_adjustable mode)")
+parser.add_argument("--distance_tolerance", type=float, default=CONFIG_35, help="max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)")
 parser.add_argument("--autoencoder_file", type=str, help="pkl file that stores autoencoder (for force_constant_adjustable mode)")
 args = parser.parse_args()
 

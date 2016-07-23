@@ -18,7 +18,7 @@ parser.add_argument("total_num_of_steps", type=int, help="total number of simula
 parser.add_argument("force_constant", type=str, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
-parser.add_argument("potential_center", type=str, help="potential center")
+parser.add_argument("potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether we need to add water molecules in the simulation')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')

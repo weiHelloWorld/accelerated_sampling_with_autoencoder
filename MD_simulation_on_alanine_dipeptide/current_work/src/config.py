@@ -62,7 +62,7 @@ CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 CONFIG_18 = False  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
 CONFIG_26 = [[-1, 1],[-1, 1]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
-CONFIG_25 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
+CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 ##########################################################################
@@ -88,4 +88,7 @@ CONFIG_23 = 'Reference'   # simulation platform
 CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
+CONFIG_32 = 1000           # maximum force constant allowed (for force constant adjustable mode)
+CONFIG_34 = 100            # force constant step, the value by which the force constant is increased each time (for force constant adjustable mode)
+CONFIG_35 = 0.3            # distance tolerance, max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)
 
