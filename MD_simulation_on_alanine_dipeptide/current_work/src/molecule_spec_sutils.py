@@ -61,13 +61,21 @@ class Sutils(object):
                             num_of_boundary_points = CONFIG_11,
                             is_circular_boundary = CONFIG_18,
                             preprocessing = True,
+                            auto_range_for_histogram = CONFIG_39   # set the range of histogram based on min,max values in each dimension
                             ):
         '''
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
         dimensionality = len(list_of_points[0])
         list_of_points = zip(*list_of_points)
-        hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
+        assert (len(list_of_points) == dimensionality)
+
+        if is_circular_boundary or not auto_range_for_histogram:
+            hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
+        else:
+            temp_hist_range = [[min(item) - (max(item) - min(item)) / (num_of_bins - 2), max(item) + (max(item) - min(item)) / (num_of_bins - 2)]\
+                                for item in list_of_points]
+            hist_matrix, edges = np.histogramdd(list_of_points, bins=num_of_bins * np.ones(dimensionality), range=temp_hist_range)
 
         # following is the main algorithm to find boundary and holes
         # simply find the points that are lower than average of its 4 neighbors
