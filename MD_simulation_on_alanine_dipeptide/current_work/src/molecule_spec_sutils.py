@@ -90,8 +90,8 @@ class Sutils(object):
                 neighbor_index_list = [np.array(grid_index) + temp_2 for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list += [np.array(grid_index) - temp_2 for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list = filter(lambda x: np.all(x >= 0) and np.all(x < num_of_bins), neighbor_index_list)
-                print "grid_index = %s" % str(grid_index)
-                print "neighbor_index_list = %s" % str(neighbor_index_list)
+                # print "grid_index = %s" % str(grid_index)
+                # print "neighbor_index_list = %s" % str(neighbor_index_list)
                 diff_with_neighbors[tuple(grid_index)] = hist_matrix[tuple(grid_index)] - np.average(
                     [hist_matrix[tuple(temp_2)] for temp_2 in neighbor_index_list]
                 )

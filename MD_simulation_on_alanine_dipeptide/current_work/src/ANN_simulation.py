@@ -812,8 +812,8 @@ class single_biased_simulation_data(object):
         '''my_network is the corresponding network for this biased simulation'''
         self._file_for_single_biased_simulation_coor = file_for_single_biased_simulation_coor
         self._my_network = my_network
-        self._potential_center = [float(file_for_single_biased_simulation_coor.split('_pc_[')[1].split(',')[0]), \
-                                  float(file_for_single_biased_simulation_coor.split(']')[0].split(',')[1])]
+        temp_potential_center_string = file_for_single_biased_simulation_coor.split('_pc_[')[1].split(']')[0]
+        self._potential_center = [float(item) for item in temp_potential_center_string.split(',')]
         self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
         if self._my_network._hidden_layers_type[1] == CircularLayer:
