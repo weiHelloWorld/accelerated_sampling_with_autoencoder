@@ -392,22 +392,29 @@ class neural_network_for_simulation(object):
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
-            filename_of_autoencoder_info = autoencoder_info_file.split('resources/%s/' % CONFIG_30)[1]
         if force_constant_for_biased is None:
             force_constant_for_biased = CONFIG_9
 
         todo_list_of_commands_for_simulations = []
 
         for potential_center in list_of_potential_center:
-            parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            'network_' + str(self._index),
-                            filename_of_autoencoder_info,
-                            str(potential_center).replace(' ','')[1:-1]  # need to remove white space, otherwise parsing error
-                            )
             if isinstance(molecule_type, Alanine_dipeptide):
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
+                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                            '../target/Alanine_dipeptide/network_%d' % (self._index),
+                                  autoencoder_info_file,
+                            'pc_' + str(potential_center).replace(' ','')[1:-1],  # need to remove white space, otherwise parsing error
+                            '../resources/Alanine_dipeptide/network_%d.pkl' % (self._index)
+                            )
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --fc_adjustable --autoencoder_file %s --remove_previous" \
+                          % parameter_list
             elif isinstance(molecule_type, Trp_cage):
                 # FIXME: this is outdated, should be fixed
+                parameter_list =  (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                                   '../target/Trp_cage/network_%d/' % (self._index),
+                                   autoencoder_info_file,
+                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                   'without_water', 'NVT')
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s" % parameter_list
                 pass
                 # command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list
             else:
@@ -443,7 +450,6 @@ class neural_network_for_simulation(object):
         return proper_potential_centers
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files, folder_to_store_files = './standard_WHAM/'):
-        # FIXME: this one does not work quite well for circular layer case, need further processing
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -757,7 +763,7 @@ class iteration(object):
                 procs_to_run_commands[index] = subprocess.Popen(item.split())
 
             exit_codes = [p.wait() for p in procs_to_run_commands]
-            assert (sum(exit_codes) == 0)  # all jobs are done successfully
+            assert (sum(exit_codes) < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
 
             # TODO: currently they are not run in parallel, fix this later
         
@@ -806,17 +812,21 @@ class single_biased_simulation_data(object):
         '''my_network is the corresponding network for this biased simulation'''
         self._file_for_single_biased_simulation_coor = file_for_single_biased_simulation_coor
         self._my_network = my_network
-        self._potential_center = [float(file_for_single_biased_simulation_coor.split('_x1_')[1].split('_x2_')[0]), \
-                                  float(file_for_single_biased_simulation_coor.split('_x2_')[1].split('_coordinates.txt')[0])]
-        self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_x1_')[0])
+        self._potential_center = [float(file_for_single_biased_simulation_coor.split('_pc_[')[1].split(',')[0]), \
+                                  float(file_for_single_biased_simulation_coor.split(']')[0].split(',')[1])]
+        self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
+        if self._my_network._hidden_layers_type[1] == CircularLayer:
+            self._dimension_of_PCs = self._my_network._node_num[2] / 2
+        else:
+            self._dimension_of_PCs = self._my_network._node_num[2]
+
         return
 
     def get_center_of_data_cloud_in_this_biased_simulation(self):
         cossin = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
-        temp_mid_result = self._my_network.get_mid_result(input_data = cossin)
-        PCs = [item[1] for item in temp_mid_result]
-        assert(len(PCs[0]) == 2)
+        PCs = self._my_network.get_PCs(cossin)
+        assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)
         PCs_transpose = zip(*PCs)
         center_of_data_cloud = map(lambda x: sum(x) / len(x), PCs_transpose)
@@ -827,6 +837,6 @@ class single_biased_simulation_data(object):
         does not work well
         '''
         PCs_average = self.get_center_of_data_cloud_in_this_biased_simulation()
-        offset = [PCs_average[0] - self._potential_center[0], PCs_average[1] - self._potential_center[1]]
+        offset = [PCs_average[item] - self._potential_center[item] for item in range(self._dimension_of_PCs)]
         return offset
 

@@ -73,7 +73,7 @@ class Sutils(object):
         # simply find the points that are lower than average of its 4 neighbors
 
         if preprocessing:
-            hist_matrix = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)   # preprocessing process
+            hist_matrix = np.array(map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix))   # preprocessing process
 
         if is_circular_boundary:  # typically works for circular autoencoder
             diff_with_neighbors = hist_matrix - 1.0 / (2 * dimensionality) \
@@ -84,37 +84,17 @@ class Sutils(object):
                                                 )
         else:
             # TODO: code not concise and general enough, fix this later
-            sum_of_neighbors = np.zeros(num_of_bins * np.ones(dimensionality))
-            for item in range(dimensionality):
-                temp = np.roll(hist_matrix, 1, axis=item)
-                if item == 0:
-                    temp[0] = 0
-                elif item == 1:
-                    temp[:,0] = 0
-                elif item == 2:
-                    temp[:,:,0] = 0
-                elif item == 3:
-                    temp[:,:,:,0] = 0
-                else:
-                    raise Exception("has not been implemented yet!")
-
-                sum_of_neighbors += temp
-
-                temp = np.roll(hist_matrix, -1, axis=item)
-                if item == 0:
-                    temp[-1] = 0
-                elif item == 1:
-                    temp[:,-1] = 0
-                elif item == 2:
-                    temp[:,:,-1] = 0
-                elif item == 3:
-                    temp[:,:,:,-1] = 0
-                else:
-                    raise Exception("has not been implemented yet!")
-
-                sum_of_neighbors += temp
-
-            diff_with_neighbors = hist_matrix - 1 / (2 * dimensionality) * sum_of_neighbors
+            diff_with_neighbors = np.zeros(hist_matrix.shape)
+            temp_1 = [range(item) for item in hist_matrix.shape]
+            for grid_index in itertools.product(*temp_1):
+                neighbor_index_list = [np.array(grid_index) + temp_2 for temp_2 in np.eye(dimensionality)]
+                neighbor_index_list += [np.array(grid_index) - temp_2 for temp_2 in np.eye(dimensionality)]
+                neighbor_index_list = filter(lambda x: np.all(x >= 0) and np.all(x < num_of_bins), neighbor_index_list)
+                print "grid_index = %s" % str(grid_index)
+                print "neighbor_index_list = %s" % str(neighbor_index_list)
+                diff_with_neighbors[tuple(grid_index)] = hist_matrix[tuple(grid_index)] - np.average(
+                    [hist_matrix[tuple(temp_2)] for temp_2 in neighbor_index_list]
+                )
 
         # get grid centers
         edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
@@ -136,6 +116,7 @@ class Sutils(object):
                         *temp_seperate_index
                         ))
 
+        index_of_grids =  filter(lambda x: diff_with_neighbors[x] < 0, index_of_grids)     # only apply to grids with diff_with_neighbors value < 0
         sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x]) # sort based on histogram, return index values
 
         for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
@@ -152,7 +133,7 @@ class Alanine_dipeptide(Sutils):
         
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
-        num_of_coordinates = len(a_coordinate) / 3
+        num_of_coordinates = len(list(a_coordinate)) / 3
         a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
         diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
@@ -208,8 +189,8 @@ class Alanine_dipeptide(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12):
+        filenames = subprocess.check_output(['find', path_for_pdb, '-name' , '*.pdb']).split('\n')[:-1]
 
         index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
 
@@ -229,7 +210,7 @@ class Alanine_dipeptide(Sutils):
 
                     f_out.write('\n')  # last line
         print("Done generating coordinates files\n")
-        return
+        return output_file
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
@@ -334,7 +315,7 @@ class Trp_cage(Sutils):
         result = []
         for item in cossin:
             temp_angle = []
-            len_of_cos_sin = CONFIG_25
+            len_of_cos_sin = CONFIG_33
             assert (len(item) == len_of_cos_sin)
             for idx_of_angle in range(len_of_cos_sin / 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
