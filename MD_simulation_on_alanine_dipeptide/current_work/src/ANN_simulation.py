@@ -409,6 +409,12 @@ class neural_network_for_simulation(object):
                           % parameter_list
             elif isinstance(molecule_type, Trp_cage):
                 # FIXME: this is outdated, should be fixed
+                parameter_list =  (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                                   '../target/Trp_cage/network_%d/' % (self._index),
+                                   autoencoder_info_file,
+                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                   'without_water', 'NVT')
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s" % parameter_list
                 pass
                 # command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list
             else:
@@ -444,7 +450,6 @@ class neural_network_for_simulation(object):
         return proper_potential_centers
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files, folder_to_store_files = './standard_WHAM/'):
-        # FIXME: this one does not work quite well for circular layer case, need further processing
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
