@@ -19,7 +19,7 @@ parser.add_argument("total_num_of_steps", type=int, help="total number of simula
 parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
-parser.add_argument("potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
+parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
 # note on "force_constant_adjustable" mode:
@@ -40,7 +40,7 @@ total_number_of_steps = args.total_num_of_steps
 folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = args.autoencoder_info_file
 
-potential_center = list(map(lambda x: float(x), args.potential_center.replace('"','')\
+potential_center = list(map(lambda x: float(x), args.pc_potential_center.replace('"','')\
                                 .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
 
 def run_simulation(force_constant):
