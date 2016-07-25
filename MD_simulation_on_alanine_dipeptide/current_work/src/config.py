@@ -73,10 +73,10 @@ CONFIG_39 = False    #  set the range of histogram automatically based on min,ma
 
 if CONFIG_17[1] == CircularLayer:
     CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
-    CONFIG_26 = [[-np.pi, np.pi],[-np.pi, np.pi]]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
+    CONFIG_26 = [[-np.pi, np.pi] for item in range(CONFIG_36)]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
 elif CONFIG_17[1] == TanhLayer:
     CONFIG_18 = False
-    CONFIG_26 = [[-1, 1],[-1, 1]]
+    CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
 else:
     raise Exception('Layer not defined')
 

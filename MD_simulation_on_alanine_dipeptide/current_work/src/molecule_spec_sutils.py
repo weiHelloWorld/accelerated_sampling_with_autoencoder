@@ -4,6 +4,8 @@
 import copy, pickle, re, os, time, subprocess, datetime, itertools
 from config import *
 from Bio import PDB
+from sklearn.metrics import mean_squared_error
+from sklearn import linear_model
 
 class Sutils(object):
     def __init__(self):
@@ -132,6 +134,39 @@ class Sutils(object):
             potential_centers.append(temp_potential_center)
 
         return potential_centers
+
+    @staticmethod
+    def L_method(evaluation_values, num):
+        evaluation_values = np.array(evaluation_values)
+        num = np.array(num)
+        assert (evaluation_values.shape == num.shape)
+        min_weighted_err = float('inf')
+        optimal_num = 0
+        for item in range(1, len(num) - 1):
+            y_left = evaluation_values[:item]
+            x_left = num[:item].reshape(item, 1)
+            y_right = evaluation_values[item - 1:]
+            x_right = num[item - 1:].reshape(len(num) - item + 1, 1)
+            regr_left = linear_model.LinearRegression()
+            regr_left.fit(x_left, y_left)
+            y_left_pred = regr_left.predict(x_left)
+            regr_right = linear_model.LinearRegression()
+            regr_right.fit(x_right, y_right)
+            y_right_pred = regr_right.predict(x_right)
+
+            err_left = mean_squared_error(y_left, y_left_pred)
+            err_right = mean_squared_error(y_right, y_right_pred)
+            weighted_err = (err_left * item + err_right * (len(num) - item + 1)) / len(num)
+            if weighted_err < min_weighted_err:
+                optimal_num = num[item]
+                min_weighted_err = weighted_err
+                best_regr = [regr_left, regr_right]
+
+        x_data = np.linspace(min(num), max(num), 100).reshape(100, 1)
+        y_data_left = best_regr[0].predict(x_data)
+        y_data_right = best_regr[1].predict(x_data)
+
+        return optimal_num, x_data, y_data_left, y_data_right
 
 
 class Alanine_dipeptide(Sutils):
