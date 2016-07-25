@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from config import * # configuration file
 from cluster_management import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
+from sklearn.neighbors import RadiusNeighborsRegressor
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
@@ -590,7 +591,9 @@ class plotting(object):
                                             other_coloring=None,
                                             title=None,
                                             axis_ranges=None,
-                                            contain_colorbar=True
+                                            contain_colorbar=True,
+                                            smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
+                                            smoothing_radius = 0.1
                                       ):
         """
         by default, we are using training data, and we also allow external data input
@@ -626,6 +629,11 @@ class plotting(object):
         elif color_option == 'other':
             assert (len(other_coloring) == len(x))
             coloring = other_coloring
+            if smoothing_using_RNR:    # smooth coloring using RNR
+                r_neigh = RadiusNeighborsRegressor(radius=smoothing_radius, weights='uniform')
+                temp_coors = [list(item) for item in zip(x, y)]
+                r_neigh.fit(temp_coors, coloring)
+                coloring = r_neigh.predict(temp_coors)
 
         im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
@@ -812,8 +820,8 @@ class single_biased_simulation_data(object):
         '''my_network is the corresponding network for this biased simulation'''
         self._file_for_single_biased_simulation_coor = file_for_single_biased_simulation_coor
         self._my_network = my_network
-        self._potential_center = [float(file_for_single_biased_simulation_coor.split('_pc_[')[1].split(',')[0]), \
-                                  float(file_for_single_biased_simulation_coor.split(']')[0].split(',')[1])]
+        temp_potential_center_string = file_for_single_biased_simulation_coor.split('_pc_[')[1].split(']')[0]
+        self._potential_center = [float(item) for item in temp_potential_center_string.split(',')]
         self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
         if self._my_network._hidden_layers_type[1] == CircularLayer:

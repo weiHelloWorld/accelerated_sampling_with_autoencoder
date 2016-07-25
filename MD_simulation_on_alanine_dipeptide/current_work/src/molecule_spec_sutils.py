@@ -4,6 +4,8 @@
 import copy, pickle, re, os, time, subprocess, datetime, itertools
 from config import *
 from Bio import PDB
+from sklearn.metrics import mean_squared_error
+from sklearn import linear_model
 
 class Sutils(object):
     def __init__(self):
@@ -61,13 +63,21 @@ class Sutils(object):
                             num_of_boundary_points = CONFIG_11,
                             is_circular_boundary = CONFIG_18,
                             preprocessing = True,
+                            auto_range_for_histogram = CONFIG_39   # set the range of histogram based on min,max values in each dimension
                             ):
         '''
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
         dimensionality = len(list_of_points[0])
         list_of_points = zip(*list_of_points)
-        hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
+        assert (len(list_of_points) == dimensionality)
+
+        if is_circular_boundary or not auto_range_for_histogram:
+            hist_matrix, edges = np.histogramdd(list_of_points, bins= num_of_bins * np.ones(dimensionality), range = range_of_PCs)
+        else:
+            temp_hist_range = [[min(item) - (max(item) - min(item)) / (num_of_bins - 2), max(item) + (max(item) - min(item)) / (num_of_bins - 2)]\
+                                for item in list_of_points]
+            hist_matrix, edges = np.histogramdd(list_of_points, bins=num_of_bins * np.ones(dimensionality), range=temp_hist_range)
 
         # following is the main algorithm to find boundary and holes
         # simply find the points that are lower than average of its 4 neighbors
@@ -90,8 +100,8 @@ class Sutils(object):
                 neighbor_index_list = [np.array(grid_index) + temp_2 for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list += [np.array(grid_index) - temp_2 for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list = filter(lambda x: np.all(x >= 0) and np.all(x < num_of_bins), neighbor_index_list)
-                print "grid_index = %s" % str(grid_index)
-                print "neighbor_index_list = %s" % str(neighbor_index_list)
+                # print "grid_index = %s" % str(grid_index)
+                # print "neighbor_index_list = %s" % str(neighbor_index_list)
                 diff_with_neighbors[tuple(grid_index)] = hist_matrix[tuple(grid_index)] - np.average(
                     [hist_matrix[tuple(temp_2)] for temp_2 in neighbor_index_list]
                 )
@@ -124,6 +134,39 @@ class Sutils(object):
             potential_centers.append(temp_potential_center)
 
         return potential_centers
+
+    @staticmethod
+    def L_method(evaluation_values, num):
+        evaluation_values = np.array(evaluation_values)
+        num = np.array(num)
+        assert (evaluation_values.shape == num.shape)
+        min_weighted_err = float('inf')
+        optimal_num = 0
+        for item in range(1, len(num) - 1):
+            y_left = evaluation_values[:item]
+            x_left = num[:item].reshape(item, 1)
+            y_right = evaluation_values[item - 1:]
+            x_right = num[item - 1:].reshape(len(num) - item + 1, 1)
+            regr_left = linear_model.LinearRegression()
+            regr_left.fit(x_left, y_left)
+            y_left_pred = regr_left.predict(x_left)
+            regr_right = linear_model.LinearRegression()
+            regr_right.fit(x_right, y_right)
+            y_right_pred = regr_right.predict(x_right)
+
+            err_left = mean_squared_error(y_left, y_left_pred)
+            err_right = mean_squared_error(y_right, y_right_pred)
+            weighted_err = (err_left * item + err_right * (len(num) - item + 1)) / len(num)
+            if weighted_err < min_weighted_err:
+                optimal_num = num[item]
+                min_weighted_err = weighted_err
+                best_regr = [regr_left, regr_right]
+
+        x_data = np.linspace(min(num), max(num), 100).reshape(100, 1)
+        y_data_left = best_regr[0].predict(x_data)
+        y_data_right = best_regr[1].predict(x_data)
+
+        return optimal_num, x_data, y_data_left, y_data_right
 
 
 class Alanine_dipeptide(Sutils):
@@ -329,8 +372,8 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
+    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12):
+        filenames = subprocess.check_output(['find', path_for_pdb, '-name' , '*.pdb']).split('\n')[:-1]
 
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         assert (len(index_of_backbone_atoms) % 3 == 0)
@@ -354,9 +397,12 @@ class Trp_cage(Sutils):
         return
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files):
+    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files,
+                                                       step_interval = 1 # get_matrices every "step_interval" snapshots
+                                                       ):
         list_of_files.sort()   # to make the order consistent
         distances_list = []
+        index = 0
         for item in list_of_files:
             num_of_residues = 20
             p = PDB.PDBParser()
@@ -366,19 +412,21 @@ class Trp_cage(Sutils):
             atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
 
             for model in atom_list:
-                assert (len(model) == num_of_residues)
-                p_distances = np.zeros((num_of_residues, num_of_residues))
-                for _1, atom_1 in enumerate(model):
-                    for _2, atom_2 in enumerate(model):
-                        p_distances[_1][_2] += [atom_1 - atom_2]
-                distances_list += [p_distances]
+                if index % step_interval == 0:
+                    assert (len(model) == num_of_residues)
+                    p_distances = np.zeros((num_of_residues, num_of_residues))
+                    for _1, atom_1 in enumerate(model):
+                        for _2, atom_2 in enumerate(model):
+                            p_distances[_1][_2] += [atom_1 - atom_2]
+                    distances_list += [p_distances]
+                index += 1
 
         return np.array(distances_list)
 
     @staticmethod
-    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files):
+    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval = 1):
         """each element in this result is a list, not a matrix"""
-        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
         num_of_residues = 20
         result = []
         for mat in dis_matrix_list:
@@ -392,23 +440,23 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb'):
+    def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb', step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
         diff = map(lambda x: np.linalg.norm(ref[0] - x), sample)
         return diff
 
     @staticmethod
-    def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8):
+    def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
 
         result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
                      sample)
         return result
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA"):
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1):
         """
         modified from the code: https://gist.github.com/andersx/6354971
         :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
@@ -416,6 +464,7 @@ class Trp_cage(Sutils):
         list_of_files.sort()
         pdb_parser = PDB.PDBParser(QUIET=True)
         rmsd_of_all_atoms = []
+        index = 0
 
         ref_structure = pdb_parser.get_structure("reference", ref_file)
         for sample_file in list_of_files:
@@ -431,15 +480,18 @@ class Trp_cage(Sutils):
                 raise Exception("parameter error: wrong option")
 
             for sample_model in sample_structure:
-                sample_atoms = [item for item in sample_model.get_atoms()]
-                if option == "CA":
-                    sample_atoms = filter(lambda x: x.get_name() == "CA",
-                                          sample_atoms)
+                if index % step_interval == 0:
+                    sample_atoms = [item for item in sample_model.get_atoms()]
+                    if option == "CA":
+                        sample_atoms = filter(lambda x: x.get_name() == "CA",
+                                              sample_atoms)
 
-                super_imposer = PDB.Superimposer()
-                super_imposer.set_atoms(ref_atoms, sample_atoms)
-                super_imposer.apply(sample_model.get_atoms())
-                rmsd_of_all_atoms.append(super_imposer.rms)
+                    super_imposer = PDB.Superimposer()
+                    super_imposer.set_atoms(ref_atoms, sample_atoms)
+                    super_imposer.apply(sample_model.get_atoms())
+                    rmsd_of_all_atoms.append(super_imposer.rms)
+
+                index += 1
 
         return rmsd_of_all_atoms
 
