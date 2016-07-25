@@ -372,8 +372,8 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(folder_for_pdb = CONFIG_12):
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name' ,'*.pdb']).split('\n')[:-1]
+    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12):
+        filenames = subprocess.check_output(['find', path_for_pdb, '-name' , '*.pdb']).split('\n')[:-1]
 
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         assert (len(index_of_backbone_atoms) % 3 == 0)
