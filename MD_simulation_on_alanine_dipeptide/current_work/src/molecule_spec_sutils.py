@@ -402,6 +402,7 @@ class Trp_cage(Sutils):
                                                        ):
         list_of_files.sort()   # to make the order consistent
         distances_list = []
+        index = 0
         for item in list_of_files:
             num_of_residues = 20
             p = PDB.PDBParser()
@@ -410,13 +411,15 @@ class Trp_cage(Sutils):
             atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
             atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
 
-            for model in atom_list[::step_interval]:
-                assert (len(model) == num_of_residues)
-                p_distances = np.zeros((num_of_residues, num_of_residues))
-                for _1, atom_1 in enumerate(model):
-                    for _2, atom_2 in enumerate(model):
-                        p_distances[_1][_2] += [atom_1 - atom_2]
-                distances_list += [p_distances]
+            for model in atom_list:
+                if index % step_interval == 0:
+                    assert (len(model) == num_of_residues)
+                    p_distances = np.zeros((num_of_residues, num_of_residues))
+                    for _1, atom_1 in enumerate(model):
+                        for _2, atom_2 in enumerate(model):
+                            p_distances[_1][_2] += [atom_1 - atom_2]
+                    distances_list += [p_distances]
+                index += 1
 
         return np.array(distances_list)
 
@@ -461,6 +464,7 @@ class Trp_cage(Sutils):
         list_of_files.sort()
         pdb_parser = PDB.PDBParser(QUIET=True)
         rmsd_of_all_atoms = []
+        index = 0
 
         ref_structure = pdb_parser.get_structure("reference", ref_file)
         for sample_file in list_of_files:
@@ -475,16 +479,19 @@ class Trp_cage(Sutils):
             else:
                 raise Exception("parameter error: wrong option")
 
-            for sample_model in sample_structure[::step_interval]:
-                sample_atoms = [item for item in sample_model.get_atoms()]
-                if option == "CA":
-                    sample_atoms = filter(lambda x: x.get_name() == "CA",
-                                          sample_atoms)
+            for sample_model in sample_structure:
+                if index % step_interval == 0:
+                    sample_atoms = [item for item in sample_model.get_atoms()]
+                    if option == "CA":
+                        sample_atoms = filter(lambda x: x.get_name() == "CA",
+                                              sample_atoms)
 
-                super_imposer = PDB.Superimposer()
-                super_imposer.set_atoms(ref_atoms, sample_atoms)
-                super_imposer.apply(sample_model.get_atoms())
-                rmsd_of_all_atoms.append(super_imposer.rms)
+                    super_imposer = PDB.Superimposer()
+                    super_imposer.set_atoms(ref_atoms, sample_atoms)
+                    super_imposer.apply(sample_model.get_atoms())
+                    rmsd_of_all_atoms.append(super_imposer.rms)
+
+                index += 1
 
         return rmsd_of_all_atoms
 
