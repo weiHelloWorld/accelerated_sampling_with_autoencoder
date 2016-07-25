@@ -397,7 +397,9 @@ class Trp_cage(Sutils):
         return
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files):
+    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files,
+                                                       step_interval = 1 # get_matrices every "step_interval" snapshots
+                                                       ):
         list_of_files.sort()   # to make the order consistent
         distances_list = []
         for item in list_of_files:
@@ -408,7 +410,7 @@ class Trp_cage(Sutils):
             atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
             atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
 
-            for model in atom_list:
+            for model in atom_list[::step_interval]:
                 assert (len(model) == num_of_residues)
                 p_distances = np.zeros((num_of_residues, num_of_residues))
                 for _1, atom_1 in enumerate(model):
@@ -419,9 +421,9 @@ class Trp_cage(Sutils):
         return np.array(distances_list)
 
     @staticmethod
-    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files):
+    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval = 1):
         """each element in this result is a list, not a matrix"""
-        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
         num_of_residues = 20
         result = []
         for mat in dis_matrix_list:
@@ -435,23 +437,23 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb'):
+    def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb', step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
         diff = map(lambda x: np.linalg.norm(ref[0] - x), sample)
         return diff
 
     @staticmethod
-    def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8):
+    def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files)
+        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
 
         result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
                      sample)
         return result
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA"):
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1):
         """
         modified from the code: https://gist.github.com/andersx/6354971
         :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
@@ -473,7 +475,7 @@ class Trp_cage(Sutils):
             else:
                 raise Exception("parameter error: wrong option")
 
-            for sample_model in sample_structure:
+            for sample_model in sample_structure[::step_interval]:
                 sample_atoms = [item for item in sample_model.get_atoms()]
                 if option == "CA":
                     sample_atoms = filter(lambda x: x.get_name() == "CA",
