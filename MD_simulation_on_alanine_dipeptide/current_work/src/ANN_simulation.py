@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from config import * # configuration file
 from cluster_management import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
+from sklearn.neighbors import RadiusNeighborsRegressor
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
@@ -590,7 +591,9 @@ class plotting(object):
                                             other_coloring=None,
                                             title=None,
                                             axis_ranges=None,
-                                            contain_colorbar=True
+                                            contain_colorbar=True,
+                                            smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
+                                            smoothing_radius = 0.1
                                       ):
         """
         by default, we are using training data, and we also allow external data input
@@ -626,6 +629,11 @@ class plotting(object):
         elif color_option == 'other':
             assert (len(other_coloring) == len(x))
             coloring = other_coloring
+            if smoothing_using_RNR:    # smooth coloring using RNR
+                r_neigh = RadiusNeighborsRegressor(radius=smoothing_radius, weights='uniform')
+                temp_coors = [list(item) for item in zip(x, y)]
+                r_neigh.fit(temp_coors, coloring)
+                coloring = r_neigh.predict(temp_coors)
 
         im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
