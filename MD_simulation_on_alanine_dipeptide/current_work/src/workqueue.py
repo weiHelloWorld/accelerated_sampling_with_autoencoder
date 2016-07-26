@@ -79,7 +79,7 @@ def run_programs(command_list, start_index, end_index):
                 command_arg = command_arg[:-1]
 
             command_arg = command_arg.split()
-            print ("running command: " + str(command_arg))
+            print ("running command: " + " ".join(command_arg))
             subprocess.Popen(command_arg)
 
     return

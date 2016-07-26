@@ -43,6 +43,8 @@ elif CONFIG_30 == "Trp_cage":
 else:
     raise Exception('molecule type error')
 
+CONFIG_40 = 'with_water'                  # whether to include water molecules, option: "with_water" or "without_water"
+
 '''class iteration'''
 
 '''def train_network_and_save'''

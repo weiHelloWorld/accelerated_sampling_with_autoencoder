@@ -12,6 +12,10 @@ class Sutils(object):
         return
 
     @staticmethod
+    def load_object_from_pkl_file(file_path):
+        return pickle.load(open(file_path, 'rb'))
+
+    @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, new_pdb_file_name=None):  # start_index included, end_index not included
         print ('writing frames of %s from frame %d to frame %d...' % (pdb_file_name, start_index, end_index))
         if new_pdb_file_name is None:
@@ -456,7 +460,9 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1):
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1,
+                             index_of_ref_structure_frame=4       # which frame to use as the ref structure
+                             ):
         """
         modified from the code: https://gist.github.com/andersx/6354971
         :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
@@ -470,7 +476,7 @@ class Trp_cage(Sutils):
         for sample_file in list_of_files:
             sample_structure = pdb_parser.get_structure("sample", sample_file)
 
-            ref_atoms = [item for item in ref_structure[0].get_atoms()]
+            ref_atoms = [item for item in ref_structure[index_of_ref_structure_frame].get_atoms()]
             if option == "CA":
                 ref_atoms = filter(lambda x: x.get_name() == "CA",
                                    ref_atoms)
