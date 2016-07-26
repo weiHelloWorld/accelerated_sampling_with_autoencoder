@@ -10,7 +10,7 @@ it configures all default values/global parameters for constructors/functions
 ######################   some global variables  #######################
 #######################################################################
 
-layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear"}
+layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
 
 #######################################################################
 ############   config for ANN_simulation.py  ##########################
@@ -23,7 +23,7 @@ CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipep
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class neural_network_for_simulation:'''
-CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [ReluLayer, ReluLayer, ReluLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
@@ -31,7 +31,7 @@ CONFIG_6 = None # filename to save this network
 CONFIG_36 = 2              #   dimensionality
 if CONFIG_17[1] == CircularLayer:
     CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
-elif CONFIG_17[1] == TanhLayer:
+elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
     CONFIG_37 = CONFIG_36
 else:
     raise Exception('Layer not defined')
@@ -77,6 +77,9 @@ if CONFIG_17[1] == CircularLayer:
 elif CONFIG_17[1] == TanhLayer:
     CONFIG_18 = False
     CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
+elif CONFIG_17[1] == ReluLayer:
+    CONFIG_18 = False
+    CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]   # FIXME: modify this later
 else:
     raise Exception('Layer not defined')
 
