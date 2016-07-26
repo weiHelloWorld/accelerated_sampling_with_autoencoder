@@ -464,19 +464,20 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
+            temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += temp_coor
-            temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
-            temp_umbOP = [a[1:3] for a in temp_angles]
-            assert(temp_window_count == len(temp_umbOP))
-            assert(2 == len(temp_umbOP[0]))
-            umbOP += temp_umbOP
+            if isinstance(molecule_type, Alanine_dipeptide):
+                temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
+                temp_umbOP = [a[1:3] for a in temp_angles]
+                assert(temp_window_count == len(temp_umbOP))
+                assert(2 == len(temp_umbOP[0]))
+                umbOP += temp_umbOP
 
         max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, zip(*coords)))
         min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, zip(*coords)))
@@ -508,9 +509,9 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
+            temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
