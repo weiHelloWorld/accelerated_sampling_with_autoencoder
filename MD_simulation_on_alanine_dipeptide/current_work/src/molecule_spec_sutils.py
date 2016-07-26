@@ -337,20 +337,20 @@ class Trp_cage(Sutils):
         return map(Trp_cage.get_cossin_from_a_coordinate, coordinates)
 
     @staticmethod
-    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
+    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval=1):
         result = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)
+            coordinates = np.loadtxt(item)[::step_interval]
             temp = Trp_cage.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
         return result
 
     @staticmethod
-    def get_many_dihedrals_from_coordinates_in_file (list_of_files):
+    def get_many_dihedrals_from_coordinates_in_file (list_of_files, step_interval=1):
         # why we need to get dihedrals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
+        temp = Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval)
         return Trp_cage.get_many_dihedrals_from_cossin(temp)
 
     @staticmethod

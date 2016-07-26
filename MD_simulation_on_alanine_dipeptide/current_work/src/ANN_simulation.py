@@ -1,6 +1,6 @@
 import copy, pickle, re, os, time, subprocess, datetime, itertools, sys
 from scipy import io as sciio
-import numpy as np
+import numpy as np, pandas as pd, seaborn as sns
 from numpy.testing import assert_almost_equal
 from math import *
 from pybrain.structure import *
@@ -677,6 +677,27 @@ class plotting(object):
         fig_object.canvas.mpl_connect('pick_event', onclick)
 
         return fig_object, axis_object, im
+
+    def density_plotting(self,fig_object, axis_object,
+                         network=None,
+                         cossin_data_for_plotting=None,
+                         n_levels=40
+                         ):
+
+        if network is None: network = self._network
+
+        if cossin_data_for_plotting is None:
+            cossin_data = self._network._data_set
+        else:
+            cossin_data = cossin_data_for_plotting
+
+        x = [item[0] for item in network.get_PCs(cossin_data)]
+        y = [item[1] for item in network.get_PCs(cossin_data)]
+
+        df = pd.DataFrame({'x': x, 'y': y})
+        sns.kdeplot(df.x, df.y, ax=axis_object, n_levels=n_levels)
+
+        return fig_object, axis_object
 
 
 class iteration(object):
