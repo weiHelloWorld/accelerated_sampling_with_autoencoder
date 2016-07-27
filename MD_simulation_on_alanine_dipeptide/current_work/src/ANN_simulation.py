@@ -348,14 +348,14 @@ class neural_network_for_simulation(object):
             data_set.addSample(item, item)
 
         print('start training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
-              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type)))
+              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
         trainer.trainUntilConvergence(data_set, maxEpochs=self._max_num_of_training)
 
         self._connection_between_layers = connection_between_layers
         self._connection_with_bias_layers = connection_with_bias_layers
 
         print('Done training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
-              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type)))
+              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
         self._trainer = trainer
         return
 
