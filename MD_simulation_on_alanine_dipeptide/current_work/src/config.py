@@ -23,7 +23,7 @@ CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipep
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class neural_network_for_simulation:'''
-CONFIG_17 = [ReluLayer, ReluLayer, ReluLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 CONFIG_5 = 50 # max number of training steps
@@ -43,7 +43,7 @@ elif CONFIG_30 == "Trp_cage":
 else:
     raise Exception('molecule type error')
 
-CONFIG_40 = 'with_water'                  # whether to include water molecules, option: "with_water" or "without_water"
+CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
 
 '''class iteration'''
 

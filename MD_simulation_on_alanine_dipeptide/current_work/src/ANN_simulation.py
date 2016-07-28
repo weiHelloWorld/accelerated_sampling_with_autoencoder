@@ -701,6 +701,14 @@ class plotting(object):
 
         return fig_object, axis_object
 
+    def plotting_potential_centers(self, fig_object, axis_object,
+                                   list_of_coor_data_files, marker='x'):
+        potential_centers = [single_biased_simulation_data(None, item)._potential_center for item in list_of_coor_data_files]
+        (x, y) = zip(*potential_centers)
+
+        axis_object.scatter(x, y, marker=marker)
+        return
+
 
 class iteration(object):
     def __init__(self, index,
@@ -848,10 +856,12 @@ class single_biased_simulation_data(object):
         self._potential_center = [float(item) for item in temp_potential_center_string.split(',')]
         self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
-        if self._my_network._hidden_layers_type[1] == CircularLayer:
-            self._dimension_of_PCs = self._my_network._node_num[2] / 2
-        else:
-            self._dimension_of_PCs = self._my_network._node_num[2]
+
+        if not self._my_network is None:
+            if self._my_network._hidden_layers_type[1] == CircularLayer:
+                self._dimension_of_PCs = self._my_network._node_num[2] / 2
+            else:
+                self._dimension_of_PCs = self._my_network._node_num[2]
 
         return
 
