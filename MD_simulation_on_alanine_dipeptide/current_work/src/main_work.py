@@ -1,9 +1,21 @@
 from ANN_simulation import *
+import argparse
 
-staring_index = 1
-init_iter = iteration(index = staring_index, network = None)
+parser = argparse.ArgumentParser()
+parser.add_argument("--starting_index", type=int, default=1, help="index of starting iteration")
+parser.add_argument("--nun_of_iterations", type=int, default=10, help="number of iterations to run")
+parser.add_argument("--starting_network_file", type=str, default=None, help="the network to start with")
+parser.add_argument("--training_interval", type=int, default=2, help="training interval")
+args = parser.parse_args()
 
-a = simulation_with_ANN_main(num_of_iterations = 10, initial_iteration = init_iter, training_interval=None)
+if args.starting_network_file is None:
+    starting_network = None
+else:
+    starting_network = Sutils.load_object_from_pkl_file(args.starting_network_file)
+
+init_iter = iteration(index = args.starting_index, network = starting_network)
+
+a = simulation_with_ANN_main(num_of_iterations = args.nun_of_iterations, initial_iteration = init_iter, training_interval=None)
 a.run_mult_iterations()
 
 print("Done main work!")
