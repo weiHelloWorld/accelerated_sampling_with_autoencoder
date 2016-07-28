@@ -592,6 +592,7 @@ class plotting(object):
                                             cossin_data_for_plotting=None,
                                             color_option='pure',
                                             other_coloring=None,
+                                            contain_title=True,
                                             title=None,
                                             axis_ranges=None,
                                             contain_colorbar=True,
@@ -641,7 +642,8 @@ class plotting(object):
         im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
         axis_object.set_ylabel(labels[1])
-        axis_object.set_title(title)
+        if contain_title:
+            axis_object.set_title(title)
 
         if not axis_ranges is None:
             axis_object.set_xlim(axis_ranges[0])
