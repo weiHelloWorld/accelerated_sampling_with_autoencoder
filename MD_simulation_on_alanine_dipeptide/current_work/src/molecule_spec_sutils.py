@@ -12,6 +12,10 @@ class Sutils(object):
         return
 
     @staticmethod
+    def load_object_from_pkl_file(file_path):
+        return pickle.load(open(file_path, 'rb'))
+
+    @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, new_pdb_file_name=None):  # start_index included, end_index not included
         print ('writing frames of %s from frame %d to frame %d...' % (pdb_file_name, start_index, end_index))
         if new_pdb_file_name is None:
@@ -311,8 +315,10 @@ class Trp_cage(Sutils):
         # FIXME: how to write unit test for this function?
         # TODO: to be tested
         total_num_of_residues = 20
-        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
-                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], 
+                                                [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]], 
+                                                range(total_num_of_residues))
+        list_of_idx_four_atoms = reduce(lambda x, y: x + y, list_of_idx_four_atoms)
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
 
         assert (len(list_of_idx_four_atoms) == 38)
@@ -337,20 +343,20 @@ class Trp_cage(Sutils):
         return map(Trp_cage.get_cossin_from_a_coordinate, coordinates)
 
     @staticmethod
-    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
+    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval=1):
         result = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)
+            coordinates = np.loadtxt(item)[::step_interval]
             temp = Trp_cage.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
         return result
 
     @staticmethod
-    def get_many_dihedrals_from_coordinates_in_file (list_of_files):
+    def get_many_dihedrals_from_coordinates_in_file (list_of_files, step_interval=1):
         # why we need to get dihedrals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
+        temp = Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval)
         return Trp_cage.get_many_dihedrals_from_cossin(temp)
 
     @staticmethod
@@ -456,7 +462,9 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1):
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1,
+                             index_of_ref_structure_frame=4       # which frame to use as the ref structure
+                             ):
         """
         modified from the code: https://gist.github.com/andersx/6354971
         :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
@@ -470,7 +478,7 @@ class Trp_cage(Sutils):
         for sample_file in list_of_files:
             sample_structure = pdb_parser.get_structure("sample", sample_file)
 
-            ref_atoms = [item for item in ref_structure[0].get_atoms()]
+            ref_atoms = [item for item in ref_structure[index_of_ref_structure_frame].get_atoms()]
             if option == "CA":
                 ref_atoms = filter(lambda x: x.get_name() == "CA",
                                    ref_atoms)

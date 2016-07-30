@@ -1,6 +1,6 @@
 import copy, pickle, re, os, time, subprocess, datetime, itertools, sys
 from scipy import io as sciio
-import numpy as np
+import numpy as np, pandas as pd, seaborn as sns
 from numpy.testing import assert_almost_equal
 from math import *
 from pybrain.structure import *
@@ -347,13 +347,15 @@ class neural_network_for_simulation(object):
         for item in data_as_input_to_network:
             data_set.addSample(item, item)
 
-        print('start training network with index = %d, training maxEpochs = %d, structure = %s\n' % (self._index, self._max_num_of_training, str(self._node_num)))
+        print('start training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
+              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
         trainer.trainUntilConvergence(data_set, maxEpochs=self._max_num_of_training)
 
         self._connection_between_layers = connection_between_layers
         self._connection_with_bias_layers = connection_with_bias_layers
 
-        print('Done training network with index = %d, training maxEpochs = %d, structure = %s\n' % (self._index, self._max_num_of_training, str(self._node_num)))
+        print('Done training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
+              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
         self._trainer = trainer
         return
 
@@ -414,7 +416,7 @@ class neural_network_for_simulation(object):
                                    '../target/Trp_cage/network_%d/' % (self._index),
                                    autoencoder_info_file,
                                    'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                   'without_water', 'NVT')
+                                   CONFIG_40, 'NVT')
                 command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s" % parameter_list
                 pass
                 # command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list
@@ -464,19 +466,20 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
+            temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert(temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += temp_coor
-            temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
-            temp_umbOP = [a[1:3] for a in temp_angles]
-            assert(temp_window_count == len(temp_umbOP))
-            assert(2 == len(temp_umbOP[0]))
-            umbOP += temp_umbOP
+            if isinstance(molecule_type, Alanine_dipeptide):
+                temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
+                temp_umbOP = [a[1:3] for a in temp_angles]
+                assert(temp_window_count == len(temp_umbOP))
+                assert(2 == len(temp_umbOP[0]))
+                umbOP += temp_umbOP
 
         max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, zip(*coords)))
         min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, zip(*coords)))
@@ -508,9 +511,9 @@ class neural_network_for_simulation(object):
         umbOP = []
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
-            temp_force_constant = float(item.split('biased_output_fc_')[1].split('_pc_')[0])
+            temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']_coordinates.txt')[0])]]
+            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']')[0])]]
             temp_window_count = float(subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
@@ -589,6 +592,7 @@ class plotting(object):
                                             cossin_data_for_plotting=None,
                                             color_option='pure',
                                             other_coloring=None,
+                                            contain_title=True,
                                             title=None,
                                             axis_ranges=None,
                                             contain_colorbar=True,
@@ -638,7 +642,8 @@ class plotting(object):
         im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
         axis_object.set_ylabel(labels[1])
-        axis_object.set_title(title)
+        if contain_title:
+            axis_object.set_title(title)
 
         if not axis_ranges is None:
             axis_object.set_xlim(axis_ranges[0])
@@ -676,6 +681,35 @@ class plotting(object):
         fig_object.canvas.mpl_connect('pick_event', onclick)
 
         return fig_object, axis_object, im
+
+    def density_plotting(self,fig_object, axis_object,
+                         network=None,
+                         cossin_data_for_plotting=None,
+                         n_levels=40
+                         ):
+
+        if network is None: network = self._network
+
+        if cossin_data_for_plotting is None:
+            cossin_data = self._network._data_set
+        else:
+            cossin_data = cossin_data_for_plotting
+
+        x = [item[0] for item in network.get_PCs(cossin_data)]
+        y = [item[1] for item in network.get_PCs(cossin_data)]
+
+        df = pd.DataFrame({'x': x, 'y': y})
+        sns.kdeplot(df.x, df.y, ax=axis_object, n_levels=n_levels)
+
+        return fig_object, axis_object
+
+    def plotting_potential_centers(self, fig_object, axis_object,
+                                   list_of_coor_data_files, marker='x'):
+        potential_centers = [single_biased_simulation_data(None, item)._potential_center for item in list_of_coor_data_files]
+        (x, y) = zip(*potential_centers)
+
+        axis_object.scatter(x, y, marker=marker)
+        return
 
 
 class iteration(object):
@@ -824,10 +858,12 @@ class single_biased_simulation_data(object):
         self._potential_center = [float(item) for item in temp_potential_center_string.split(',')]
         self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
-        if self._my_network._hidden_layers_type[1] == CircularLayer:
-            self._dimension_of_PCs = self._my_network._node_num[2] / 2
-        else:
-            self._dimension_of_PCs = self._my_network._node_num[2]
+
+        if not self._my_network is None:
+            if self._my_network._hidden_layers_type[1] == CircularLayer:
+                self._dimension_of_PCs = self._my_network._node_num[2] / 2
+            else:
+                self._dimension_of_PCs = self._my_network._node_num[2]
 
         return
 

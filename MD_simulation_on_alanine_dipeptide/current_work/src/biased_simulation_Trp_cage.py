@@ -24,6 +24,7 @@ parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, e
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
+parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 args = parser.parse_args()
 
 record_interval = args.record_interval
@@ -89,7 +90,7 @@ index_of_backbone_atoms = [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 
         185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252, \
         253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
 
-layer_types = ['Tanh', 'Tanh']
+layer_types = CONFIG_27
 
 
 ############################ PARAMETERS END ###############################################################
@@ -112,7 +113,7 @@ else:
     system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, nonbondedCutoff=1.0 * nanometers,
                                      constraints=AllBonds)
 
-platform = Platform.getPlatformByName(CONFIG_23)
+platform = Platform.getPlatformByName(args.platform)
 platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
 system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
