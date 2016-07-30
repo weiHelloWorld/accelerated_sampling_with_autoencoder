@@ -315,8 +315,10 @@ class Trp_cage(Sutils):
         # FIXME: how to write unit test for this function?
         # TODO: to be tested
         total_num_of_residues = 20
-        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
-                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], 
+                                                [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]], 
+                                                range(total_num_of_residues))
+        list_of_idx_four_atoms = reduce(lambda x, y: x + y, list_of_idx_four_atoms)
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
 
         assert (len(list_of_idx_four_atoms) == 38)
