@@ -244,8 +244,8 @@ class neural_network_for_simulation(object):
         node_num = self._node_num
         num_of_hidden_layers = len(self._hidden_layers_type)
 
-        temp_mid_result = range(num_of_hidden_layers + 1)
-        temp_mid_result_in = range(num_of_hidden_layers + 1)
+        temp_mid_result = list(range(num_of_hidden_layers + 1))
+        temp_mid_result_in = list(range(num_of_hidden_layers + 1))
         mid_result = []
 
         data_as_input_to_network = input_data
@@ -258,7 +258,7 @@ class neural_network_for_simulation(object):
                 bias_coef = connection_with_bias_layers[i].params
                 previous_result = item if i == 0 else temp_mid_result[i - 1]
                 temp_mid_result_in[i] = np.dot(mul_coef, previous_result) + bias_coef
-                output_of_this_hidden_layer = range(len(temp_mid_result_in[i]))  # initialization
+                output_of_this_hidden_layer = list(range(len(temp_mid_result_in[i])))  # initialization
                 hidden_and_out_layers[i]._forwardImplementation(temp_mid_result_in[i], output_of_this_hidden_layer)
                 temp_mid_result[i] = output_of_this_hidden_layer
 
