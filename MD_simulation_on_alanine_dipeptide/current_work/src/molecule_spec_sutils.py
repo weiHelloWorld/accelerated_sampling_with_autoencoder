@@ -468,15 +468,15 @@ class Trp_cage(Sutils):
         return rmsd(position_1, position_2, center=True, superposition=True)
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1):
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', atom_option ="CA", step_interval = 1):
         """
-        :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
+        :param atom_option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
         """
-        if option == "CA":
+        if atom_option == "CA":
             atom_selection_statement = 'name CA'
-        elif option == 'all':
+        elif atom_option == 'all':
             atom_selection_statement = 'protein'
-        elif option == 'backbone':
+        elif atom_option == 'backbone':
             atom_selection_statement = 'backbone'
         else:
             raise Exception('option error')
@@ -499,6 +499,22 @@ class Trp_cage(Sutils):
                 index += 1
 
         return result_rmsd_of_atoms
+
+    @staticmethod
+    def get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_option = 'CA'):
+        if atom_option == "CA":
+            atom_selection_statement = 'name CA'
+        elif atom_option == 'all':
+            atom_selection_statement = 'protein'
+        elif atom_option == 'backbone':
+            atom_selection_statement = 'backbone'
+        else:
+            raise Exception('option error')
+
+        sample_1 = Universe(sample_file); sample_2 = Universe(sample_file)    # should use two variables here, otherwise it will be 0, might be related to iterator issue?
+        sel_1 = sample_1.select_atoms(atom_selection_statement); sel_2 = sample_2.select_atoms(atom_selection_statement)
+
+        return [[rmsd(sel_1.positions, sel_2.positions, center=True, superposition=True) for _2 in sample_2.trajectory] for _1 in sample_1.trajectory]
 
     # @staticmethod
     # def structure_clustering_in_a_file(sample_file):
