@@ -6,6 +6,9 @@ from config import *
 from Bio import PDB
 from sklearn.metrics import mean_squared_error
 from sklearn import linear_model
+from MDAnalysis import Universe
+from MDAnalysis.analysis.align import *
+from MDAnalysis.analysis.rms import rmsd
 
 class Sutils(object):
     def __init__(self):
@@ -337,7 +340,6 @@ class Trp_cage(Sutils):
 
         return result
 
-
     @staticmethod
     def get_many_cossin_from_coordinates(coordinates):
         return map(Trp_cage.get_cossin_from_a_coordinate, coordinates)
@@ -462,46 +464,46 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1,
-                             index_of_ref_structure_frame=4       # which frame to use as the ref structure
-                             ):
+    def get_RMSD_after_alignment(position_1, position_2):
+        return rmsd(position_1, position_2, center=True, superposition=True)
+
+    @staticmethod
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1):
         """
-        modified from the code: https://gist.github.com/andersx/6354971
         :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
         """
+        if option == "CA":
+            atom_selection_statement = 'name CA'
+        elif option == 'all':
+            atom_selection_statement = 'protein'
+        elif option == 'backbone':
+            atom_selection_statement = 'backbone'
+        else:
+            raise Exception('option error')
+
         list_of_files.sort()
-        pdb_parser = PDB.PDBParser(QUIET=True)
-        rmsd_of_all_atoms = []
+        ref = Universe(ref_file)
+        ref_atom_selection = ref.select_atoms(atom_selection_statement)
+        result_rmsd_of_atoms = []
         index = 0
 
-        ref_structure = pdb_parser.get_structure("reference", ref_file)
         for sample_file in list_of_files:
-            sample_structure = pdb_parser.get_structure("sample", sample_file)
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection_statement)
 
-            ref_atoms = [item for item in ref_structure[index_of_ref_structure_frame].get_atoms()]
-            if option == "CA":
-                ref_atoms = filter(lambda x: x.get_name() == "CA",
-                                   ref_atoms)
-            elif option == "all":
-                pass
-            else:
-                raise Exception("parameter error: wrong option")
-
-            for sample_model in sample_structure:
+            for item in sample.trajectory:
                 if index % step_interval == 0:
-                    sample_atoms = [item for item in sample_model.get_atoms()]
-                    if option == "CA":
-                        sample_atoms = filter(lambda x: x.get_name() == "CA",
-                                              sample_atoms)
-
-                    super_imposer = PDB.Superimposer()
-                    super_imposer.set_atoms(ref_atoms, sample_atoms)
-                    super_imposer.apply(sample_model.get_atoms())
-                    rmsd_of_all_atoms.append(super_imposer.rms)
+                    result_rmsd_of_atoms.append(Trp_cage.get_RMSD_after_alignment(ref_atom_selection.positions,
+                                                                                  sample_atom_selection.positions))
 
                 index += 1
 
-        return rmsd_of_all_atoms
+        return result_rmsd_of_atoms
+
+    # @staticmethod
+    # def structure_clustering_in_a_file(sample_file):
+
+
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
