@@ -468,19 +468,14 @@ class Trp_cage(Sutils):
         return rmsd(position_1, position_2, center=True, superposition=True)
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', atom_option ="CA", step_interval = 1):
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', atom_selection_statement ="name CA", step_interval = 1):
         """
-        :param atom_option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
+        :param atom_selection_statement:  could be either
+         - "name CA" for alpha-carbon atoms only
+         - "protein" for all atoms
+         - "backbone" for backbone atoms
+         - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
         """
-        if atom_option == "CA":
-            atom_selection_statement = 'name CA'
-        elif atom_option == 'all':
-            atom_selection_statement = 'protein'
-        elif atom_option == 'backbone':
-            atom_selection_statement = 'backbone'
-        else:
-            raise Exception('option error')
-
         list_of_files.sort()
         ref = Universe(ref_file)
         ref_atom_selection = ref.select_atoms(atom_selection_statement)
@@ -501,16 +496,7 @@ class Trp_cage(Sutils):
         return result_rmsd_of_atoms
 
     @staticmethod
-    def get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_option = 'CA'):
-        if atom_option == "CA":
-            atom_selection_statement = 'name CA'
-        elif atom_option == 'all':
-            atom_selection_statement = 'protein'
-        elif atom_option == 'backbone':
-            atom_selection_statement = 'backbone'
-        else:
-            raise Exception('option error')
-
+    def get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_selection_statement = 'name CA'):
         sample_1 = Universe(sample_file); sample_2 = Universe(sample_file)    # should use two variables here, otherwise it will be 0, might be related to iterator issue?
         sel_1 = sample_1.select_atoms(atom_selection_statement); sel_2 = sample_2.select_atoms(atom_selection_statement)
 
