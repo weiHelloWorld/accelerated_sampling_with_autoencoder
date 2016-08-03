@@ -213,7 +213,10 @@ class Alanine_dipeptide(Sutils):
     def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
         result = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)
+            coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            if len(coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
+                coordinates = coordinates[:, None].T
+
             temp = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
@@ -348,7 +351,11 @@ class Trp_cage(Sutils):
     def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval=1):
         result = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)[::step_interval]
+            coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            if len(coordinates.shape) == 1:    # if 1D numpy array, convert it to 2D array for consistency
+                coordinates = coordinates[:,None].T
+
+            coordinates = coordinates[::step_interval]
             temp = Trp_cage.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
