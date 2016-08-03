@@ -12,6 +12,7 @@ from config import * # configuration file
 from cluster_management import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from sklearn.neighbors import RadiusNeighborsRegressor
+import matplotlib
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
@@ -598,7 +599,8 @@ class plotting(object):
                                             contain_colorbar=True,
                                             smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
                                             smoothing_radius = 0.1,
-                                            enable_mousing_clicking_event = False
+                                            enable_mousing_clicking_event = False,
+                                            saving_snapshot_mode = 'single_point'
                                       ):
         """
         by default, we are using training data, and we also allow external data input
@@ -657,31 +659,59 @@ class plotting(object):
         if enable_mousing_clicking_event:
             if self._related_coor_list_obj is None:
                 raise Exception('related_coor_list_obj not defined!')
-            # currently I only implement the case for step_interval = 1, therefore the following assertion is required
-            assert (sum(self._related_coor_list_obj.get_list_of_line_num_of_coor_data_file()) == len(cossin_data))
+            # should calculate step_interval
+            total_num_of_lines_in_coor_files = sum(self._related_coor_list_obj.get_list_of_line_num_of_coor_data_file())
+            step_interval = int(total_num_of_lines_in_coor_files / len(cossin_data))
 
-            import matplotlib
-            axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
+            if saving_snapshot_mode == 'multiple_points':
+                axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
 
-            global temp_list_of_coor_index   # TODO: use better way instead of global variable
-            temp_list_of_coor_index = []
-            def onclick(event):
-                global temp_list_of_coor_index
-                if isinstance(event.artist, matplotlib.text.Text):
-                    if event.artist.get_text() == 'save_frames':
-                        print temp_list_of_coor_index
-                        self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
-                                                                        'temp_pdb/temp_frames.pdb')  # TODO: better naming
+                global temp_list_of_coor_index   # TODO: use better way instead of global variable
+                temp_list_of_coor_index = []
+                def onclick(event):
+                    global temp_list_of_coor_index
+                    if isinstance(event.artist, matplotlib.text.Text):
+                        if event.artist.get_text() == 'save_frames':
+                            print temp_list_of_coor_index
+                            self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
+                                                                            'temp_pdb/temp_frames.pdb')  # TODO: better naming
 
-                        temp_list_of_coor_index = []  # output pdb file and clean up
-                        print ('done saving frames!')
-                elif isinstance(event.artist, matplotlib.collections.PathCollection):
-                    ind_list = list(event.ind)  # what is the index of this?
-                    print ('onclick:')
-                    temp_list_of_coor_index += ind_list
+                            temp_list_of_coor_index = []  # output pdb file and clean up
+                            print ('done saving frames!')
+                    elif isinstance(event.artist, matplotlib.collections.PathCollection):
+                        ind_list = list(event.ind)
+                        print ('onclick:')
+                        temp_list_of_coor_index += [item * step_interval for item in ind_list]  # should include step_interval
 
-                    for item in ind_list:
-                        print(item, x[item], y[item])
+                        for item in ind_list:
+                            print(item, x[item], y[item])
+                    return
+
+            elif saving_snapshot_mode == 'single_point':
+                def onclick(event):
+                    if isinstance(event.artist, matplotlib.collections.PathCollection):
+                        ind_list = list(event.ind)
+                        print ('onclick:')
+                        for item in ind_list:
+                            print(item, x[item], y[item])
+                        temp_ind_list = [item * step_interval for item in ind_list]  # should include step_interval
+                        average_x = sum([x[item] for item in ind_list]) / len(ind_list)
+                        average_y = sum([y[item] for item in ind_list]) / len(ind_list)
+                        out_file_name = 'temp_pdb/temp_frames_[%f,%f].pdb' % (average_x, average_y)
+
+                        self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_ind_list,
+                            out_file_name=out_file_name)
+                        # need to verify PCs generated from this output pdb file are consistent from those in the list selected
+                        molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
+                        cossin_data_selected = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(
+                            list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
+                        PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
+                        assert (PCs_of_points_selected == [[x[item], y[item]] for item in ind_list])
+
+
+                    return
+            else:
+                raise Exception('saving_snapshot_mode error')
 
             fig_object.canvas.mpl_connect('pick_event', onclick)
 
