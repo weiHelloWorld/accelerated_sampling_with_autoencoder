@@ -322,8 +322,8 @@ class neural_network_for_simulation(object):
 
         molecule_net.addOutputModule(out_layer)
 
-        connection_between_layers = range(num_of_hidden_layers + 1)
-        connection_with_bias_layers = range(num_of_hidden_layers + 1)
+        connection_between_layers = list(range(num_of_hidden_layers + 1))
+        connection_with_bias_layers = list(range(num_of_hidden_layers + 1))
 
         for i in range(num_of_hidden_layers + 1):
             connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])

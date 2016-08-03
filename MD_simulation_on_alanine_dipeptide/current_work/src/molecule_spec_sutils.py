@@ -497,7 +497,7 @@ class Trp_cage(Sutils):
             sample = Universe(sample_file)
             sample_atom_selection = sample.select_atoms(atom_selection_statement)
 
-            for item in sample.trajectory:
+            for _ in sample.trajectory:
                 if index % step_interval == 0:
                     result_rmsd_of_atoms.append(Trp_cage.get_RMSD_after_alignment(ref_atom_selection.positions,
                                                                                   sample_atom_selection.positions))
@@ -505,6 +505,20 @@ class Trp_cage(Sutils):
                 index += 1
 
         return result_rmsd_of_atoms
+
+    @staticmethod
+    def metric_radius_of_gyration(list_of_files, step_interval = 1):
+        list_of_files.sort()
+        result = []
+        index = 0
+        for item_file in list_of_files:
+            temp_sample = Universe(item_file)
+            for _ in temp_sample.trajectory:
+                if index % step_interval == 0:
+                    result.append(temp_sample.atoms.radius_of_gyration())
+                index += 1
+
+        return result
 
     @staticmethod
     def get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_selection_statement = 'name CA'):
@@ -516,19 +530,21 @@ class Trp_cage(Sutils):
     @staticmethod
     def structure_clustering_in_a_file(sample_file, atom_selection_statement = 'name CA',
                                        write_most_common_class_into_file = False,
-                                       output_file_name = None
+                                       output_file_name = None,
+                                       eps=0.5,
+                                       min_num_of_neighboring_samples = 2
                                        ):
         pairwise_RMSD = Trp_cage.get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_selection_statement=atom_selection_statement)
         from sklearn.cluster import DBSCAN
 
-        dbscan_obj = DBSCAN(metric='precomputed', eps=0.5, min_samples=4).fit(pairwise_RMSD)
+        dbscan_obj = DBSCAN(metric='precomputed', eps=eps, min_samples=min_num_of_neighboring_samples).fit(pairwise_RMSD)
         class_labels = dbscan_obj.labels_
         max_class_label = max(class_labels)
-        num_in_each_class = {label: np.where(class_labels == label)[0].shape[0] for label in range(max_class_label + 1)}
+        num_in_each_class = {label: np.where(class_labels == label)[0].shape[0] for label in range(-1, max_class_label + 1)}
         most_common_class_labels = sorted(num_in_each_class.keys(), key=lambda x: num_in_each_class[x], reverse=True)
         with open(sample_file, 'r') as in_file:
             content = [item for item in in_file.readlines() if not 'REMARK' in item]
-            content = '\n'.join(content)
+            content = ''.join(content)
             content = content.split('MODEL')[1:]  # remove header
             assert (len(content) == len(class_labels))
 

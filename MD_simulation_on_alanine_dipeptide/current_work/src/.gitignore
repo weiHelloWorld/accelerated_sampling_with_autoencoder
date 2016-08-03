@@ -8,3 +8,5 @@ ANN_wrap.cxx
 *.pkl
 temp_*.py
 temp_*.sh
+*.pdb
+*_coordinates.txt
