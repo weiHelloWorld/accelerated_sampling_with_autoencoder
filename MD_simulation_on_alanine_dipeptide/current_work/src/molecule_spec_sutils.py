@@ -385,10 +385,11 @@ class Trp_cage(Sutils):
 
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         assert (len(index_of_backbone_atoms) % 3 == 0)
+        first_time_meeting_MODEL = True
 
         for input_file in filenames:
             print ('generating coordinates of ' + input_file)
-            output_file = input_file[:-4] + '_coordinates.txt'
+            output_file = input_file.replace('.pdb', '_coordinates.txt')
 
             with open(input_file) as f_in:
                 with open(output_file, 'w') as f_out:
@@ -397,8 +398,11 @@ class Trp_cage(Sutils):
                         if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
                             f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
                             f_out.write('\t')
-                        elif fields[0] == "MODEL" and fields[1] != "1":
-                            f_out.write('\n')
+                        elif fields[0] == "MODEL":
+                            if first_time_meeting_MODEL:     # no newline for the first "MODEL"
+                                first_time_meeting_MODEL = False
+                            else:
+                                f_out.write('\n')
 
                     f_out.write('\n')  # last line
         print("Done generating coordinates files\n")
