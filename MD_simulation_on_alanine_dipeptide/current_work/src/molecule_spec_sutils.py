@@ -502,10 +502,36 @@ class Trp_cage(Sutils):
 
         return [[rmsd(sel_1.positions, sel_2.positions, center=True, superposition=True) for _2 in sample_2.trajectory] for _1 in sample_1.trajectory]
 
-    # @staticmethod
-    # def structure_clustering_in_a_file(sample_file):
+    @staticmethod
+    def structure_clustering_in_a_file(sample_file, atom_selection_statement = 'name CA',
+                                       write_most_common_class_into_file = False,
+                                       output_file_name = None
+                                       ):
+        pairwise_RMSD = Trp_cage.get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_selection_statement=atom_selection_statement)
+        from sklearn.cluster import DBSCAN
 
+        dbscan_obj = DBSCAN(metric='precomputed', eps=0.5, min_samples=4).fit(pairwise_RMSD)
+        class_labels = dbscan_obj.labels_
+        max_class_label = max(class_labels)
+        num_in_each_class = {label: np.where(class_labels == label)[0].shape[0] for label in range(max_class_label + 1)}
+        most_common_class_labels = sorted(num_in_each_class.keys(), key=lambda x: num_in_each_class[x], reverse=True)
+        with open(sample_file, 'r') as in_file:
+            content = [item for item in in_file.readlines() if not 'REMARK' in item]
+            content = '\n'.join(content)
+            content = content.split('MODEL')[1:]  # remove header
+            assert (len(content) == len(class_labels))
 
+        index_of_most_common_class = np.where(class_labels == most_common_class_labels[0])[0]
+        if write_most_common_class_into_file:
+            if output_file_name is None:
+                output_file_name = sample_file.replace('.pdb', '_most_common.pdb')
+
+            frames_to_use = [content[ii] for ii in index_of_most_common_class]
+            with open(output_file_name, 'w') as out_file:
+                for frame in frames_to_use:
+                    out_file.write("MODEL" + frame)
+
+        return num_in_each_class, index_of_most_common_class
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():

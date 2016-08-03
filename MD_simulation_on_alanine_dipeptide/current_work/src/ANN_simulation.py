@@ -597,7 +597,8 @@ class plotting(object):
                                             axis_ranges=None,
                                             contain_colorbar=True,
                                             smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
-                                            smoothing_radius = 0.1
+                                            smoothing_radius = 0.1,
+                                            enable_mousing_clicking_event = False
                                       ):
         """
         by default, we are using training data, and we also allow external data input
@@ -653,32 +654,36 @@ class plotting(object):
             fig_object.colorbar(im, ax=axis_object)
 
         # mouse clicking event
-        import matplotlib
-        # axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
+        if enable_mousing_clicking_event:
+            if self._related_coor_list_obj is None:
+                raise Exception('related_coor_list_obj not defined!')
+            # currently I only implement the case for step_interval = 1, therefore the following assertion is required
+            assert (sum(self._related_coor_list_obj.get_list_of_line_num_of_coor_data_file()) == len(cossin_data))
 
-        global temp_list_of_coor_index   # TODO: use better way instead of global variable
-        temp_list_of_coor_index = []
-        def onclick(event):
-            global temp_list_of_coor_index
-            if isinstance(event.artist, matplotlib.text.Text):
-                if event.artist.get_text() == 'save_frames':
-                    print temp_list_of_coor_index
-                    if not self._related_coor_list_obj is None:
+            import matplotlib
+            axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
+
+            global temp_list_of_coor_index   # TODO: use better way instead of global variable
+            temp_list_of_coor_index = []
+            def onclick(event):
+                global temp_list_of_coor_index
+                if isinstance(event.artist, matplotlib.text.Text):
+                    if event.artist.get_text() == 'save_frames':
+                        print temp_list_of_coor_index
                         self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
-                                                                                                       'temp_pdb/temp_frames.pdb')  # TODO: better naming
-                    else:
-                        raise Exception('related_coor_list_obj not defined!')
-                    temp_list_of_coor_index = []  # output pdb file and clean up
-                    print ('done saving frames!')
-            elif isinstance(event.artist, matplotlib.collections.PathCollection):
-                ind_list = list(event.ind)  # what is the index of this?
-                print ('onclick:')
-                temp_list_of_coor_index += ind_list
+                                                                        'temp_pdb/temp_frames.pdb')  # TODO: better naming
 
-                for item in ind_list:
-                    print(item, x[item], y[item])
+                        temp_list_of_coor_index = []  # output pdb file and clean up
+                        print ('done saving frames!')
+                elif isinstance(event.artist, matplotlib.collections.PathCollection):
+                    ind_list = list(event.ind)  # what is the index of this?
+                    print ('onclick:')
+                    temp_list_of_coor_index += ind_list
 
-        fig_object.canvas.mpl_connect('pick_event', onclick)
+                    for item in ind_list:
+                        print(item, x[item], y[item])
+
+            fig_object.canvas.mpl_connect('pick_event', onclick)
 
         return fig_object, axis_object, im
 
