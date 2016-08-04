@@ -251,10 +251,12 @@ class Alanine_dipeptide(Sutils):
         filenames = subprocess.check_output(['find', path_for_pdb, '-name' , '*.pdb']).split('\n')[:-1]
 
         index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
+        output_file_list = []
 
         for input_file in filenames:
             print ('generating coordinates of ' + input_file)
-            output_file = input_file[:-4] + '_coordinates.txt'
+            output_file = input_file.replace('.pdb', '_coordinates.txt')
+            output_file_list += [output_file]
 
             with open(input_file) as f_in:
                 with open(output_file, 'w') as f_out:
@@ -268,7 +270,7 @@ class Alanine_dipeptide(Sutils):
 
                     f_out.write('\n')  # last line
         print("Done generating coordinates files\n")
-        return output_file
+        return output_file_list
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
