@@ -763,9 +763,6 @@ class iteration(object):
         my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
         data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
 
-        max_FVE = 0
-        current_network = None
-        
         # start of multiprocessing
         # from multiprocessing import Process
         # temp_training = lambda x: neural_network_for_simulation(index=self._index,
@@ -791,20 +788,24 @@ class iteration(object):
         # print("max_FVE = %f" % current_network.get_fraction_of_variance_explained())
         # end of multiprocessing
 
-
-        for item in range(num_of_trainings):
-            temp_network = neural_network_for_simulation(index=self._index,
+        temp_networks = [neural_network_for_simulation(index=self._index,
                                                          data_set_for_training= data_set,
                                                          training_data_interval=training_interval,
                                                         )
+                         for _ in range(num_of_trainings)]
 
-            temp_network.train()
-            print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))
-            if temp_network.get_fraction_of_variance_explained() > max_FVE:
-                max_FVE = temp_network.get_fraction_of_variance_explained()
-                print("max_FVE = %f" % max_FVE)
-                assert(max_FVE > 0)
-                current_network = copy.deepcopy(temp_network)
+        for item in temp_networks:
+            item.train()
+
+        temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_networks]
+        max_FVE = max(temp_FVE_list)
+        print("temp_FVE_list = %s, max_FVE = %s" % (str(temp_FVE_list), str(max_FVE)))
+        select_network_manually = False
+        if select_network_manually:
+            network_index = int(raw_input('select a network:'))
+            current_network = temp_networks[network_index]
+        else:
+            current_network = temp_networks[temp_FVE_list.index(max_FVE)]
 
         current_network.save_into_file()
         self._network = current_network
