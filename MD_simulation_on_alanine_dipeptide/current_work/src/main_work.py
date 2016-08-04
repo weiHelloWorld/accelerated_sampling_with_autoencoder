@@ -15,7 +15,7 @@ else:
 
 init_iter = iteration(index = args.starting_index, network = starting_network)
 
-a = simulation_with_ANN_main(num_of_iterations = args.nun_of_iterations, initial_iteration = init_iter, training_interval=None)
+a = simulation_with_ANN_main(num_of_iterations = args.nun_of_iterations, initial_iteration = init_iter, training_interval=args.training_interval)
 a.run_mult_iterations()
 
 print("Done main work!")

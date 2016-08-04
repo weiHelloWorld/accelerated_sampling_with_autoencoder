@@ -6,6 +6,9 @@ from config import *
 from Bio import PDB
 from sklearn.metrics import mean_squared_error
 from sklearn import linear_model
+from MDAnalysis import Universe
+from MDAnalysis.analysis.align import *
+from MDAnalysis.analysis.rms import rmsd
 
 class Sutils(object):
     def __init__(self):
@@ -67,13 +70,14 @@ class Sutils(object):
                             num_of_boundary_points = CONFIG_11,
                             is_circular_boundary = CONFIG_18,
                             preprocessing = True,
-                            auto_range_for_histogram = CONFIG_39   # set the range of histogram based on min,max values in each dimension
+                            auto_range_for_histogram = CONFIG_39,   # set the range of histogram based on min,max values in each dimension
+                            reverse_sorting_mode = CONFIG_41        # whether we reverse the order of sorting of diff_with_neighbors values
                             ):
         '''
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
         dimensionality = len(list_of_points[0])
-        list_of_points = zip(*list_of_points)
+        list_of_points = list(zip(*list_of_points))
         assert (len(list_of_points) == dimensionality)
 
         if is_circular_boundary or not auto_range_for_histogram:
@@ -93,13 +97,13 @@ class Sutils(object):
             diff_with_neighbors = hist_matrix - 1.0 / (2 * dimensionality) \
                                             * sum(
                                                 map(lambda x: np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x),
-                                                    range(dimensionality)
+                                                    list(range(dimensionality))
                                                     )
                                                 )
         else:
             # TODO: code not concise and general enough, fix this later
             diff_with_neighbors = np.zeros(hist_matrix.shape)
-            temp_1 = [range(item) for item in hist_matrix.shape]
+            temp_1 = [list(range(item)) for item in hist_matrix.shape]
             for grid_index in itertools.product(*temp_1):
                 neighbor_index_list = [np.array(grid_index) + temp_2 for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list += [np.array(grid_index) - temp_2 for temp_2 in np.eye(dimensionality)]
@@ -123,8 +127,8 @@ class Sutils(object):
         
         temp_seperate_index = []
 
-        for item in range(dimensionality):
-            temp_seperate_index.append(range(num_of_bins))
+        for _ in range(dimensionality):
+            temp_seperate_index.append(list(range(num_of_bins)))
 
         index_of_grids = list(itertools.product(
                         *temp_seperate_index
@@ -132,6 +136,8 @@ class Sutils(object):
 
         index_of_grids =  filter(lambda x: diff_with_neighbors[x] < 0, index_of_grids)     # only apply to grids with diff_with_neighbors value < 0
         sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x]) # sort based on histogram, return index values
+        if reverse_sorting_mode:
+            sorted_index_of_grids.reverse()
 
         for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
             temp_potential_center = map(lambda x: round(x, 2), grid_centers[index])
@@ -189,9 +195,9 @@ class Alanine_dipeptide(Sutils):
         normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
-        cos_of_angles = range(len(normal_vectors_normalized_1))
-        sin_of_angles_vec = range(len(normal_vectors_normalized_1))
-        sin_of_angles = range(len(normal_vectors_normalized_1)) # initialization
+        cos_of_angles = list(range(len(normal_vectors_normalized_1)))
+        sin_of_angles_vec = list(range(len(normal_vectors_normalized_1)))
+        sin_of_angles = list(range(len(normal_vectors_normalized_1))) # initialization
         result = []
 
         for index in range(len(normal_vectors_normalized_1)):
@@ -210,7 +216,10 @@ class Alanine_dipeptide(Sutils):
     def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
         result = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)
+            coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            if len(coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
+                coordinates = coordinates[:, None].T
+
             temp = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
@@ -317,7 +326,7 @@ class Trp_cage(Sutils):
         total_num_of_residues = 20
         list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], 
                                                 [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]], 
-                                                range(total_num_of_residues))
+                                                list(range(total_num_of_residues)))
         list_of_idx_four_atoms = reduce(lambda x, y: x + y, list_of_idx_four_atoms)
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
 
@@ -337,7 +346,6 @@ class Trp_cage(Sutils):
 
         return result
 
-
     @staticmethod
     def get_many_cossin_from_coordinates(coordinates):
         return map(Trp_cage.get_cossin_from_a_coordinate, coordinates)
@@ -346,7 +354,11 @@ class Trp_cage(Sutils):
     def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval=1):
         result = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)[::step_interval]
+            coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            if len(coordinates.shape) == 1:    # if 1D numpy array, convert it to 2D array for consistency
+                coordinates = coordinates[:,None].T
+
+            coordinates = coordinates[::step_interval]
             temp = Trp_cage.get_many_cossin_from_coordinates(coordinates)
             result += temp
 
@@ -383,10 +395,11 @@ class Trp_cage(Sutils):
 
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         assert (len(index_of_backbone_atoms) % 3 == 0)
+        first_time_meeting_MODEL = True
 
         for input_file in filenames:
             print ('generating coordinates of ' + input_file)
-            output_file = input_file[:-4] + '_coordinates.txt'
+            output_file = input_file.replace('.pdb', '_coordinates.txt')
 
             with open(input_file) as f_in:
                 with open(output_file, 'w') as f_out:
@@ -395,8 +408,11 @@ class Trp_cage(Sutils):
                         if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
                             f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
                             f_out.write('\t')
-                        elif fields[0] == "MODEL" and fields[1] != "1":
-                            f_out.write('\n')
+                        elif fields[0] == "MODEL":
+                            if first_time_meeting_MODEL:     # no newline for the first "MODEL"
+                                first_time_meeting_MODEL = False
+                            else:
+                                f_out.write('\n')
 
                     f_out.write('\n')  # last line
         print("Done generating coordinates files\n")
@@ -415,7 +431,7 @@ class Trp_cage(Sutils):
             structure = p.get_structure('X', item)
             atom_list = [item for item in structure.get_atoms()]
             atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
-            atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
+            atom_list = list(zip(*[iter(atom_list)] * num_of_residues))   # reshape the list
 
             for model in atom_list:
                 if index % step_interval == 0:
@@ -462,53 +478,97 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', option = "CA", step_interval = 1,
-                             index_of_ref_structure_frame=4       # which frame to use as the ref structure
-                             ):
+    def get_RMSD_after_alignment(position_1, position_2):
+        return rmsd(position_1, position_2, center=True, superposition=True)
+
+    @staticmethod
+    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', atom_selection_statement ="name CA", step_interval = 1):
         """
-        modified from the code: https://gist.github.com/andersx/6354971
-        :param option:  could be either "CA" for alpha-carbon atoms only or "all" for all atoms
+        :param atom_selection_statement:  could be either
+         - "name CA" for alpha-carbon atoms only
+         - "protein" for all atoms
+         - "backbone" for backbone atoms
+         - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
         """
         list_of_files.sort()
-        pdb_parser = PDB.PDBParser(QUIET=True)
-        rmsd_of_all_atoms = []
+        ref = Universe(ref_file)
+        ref_atom_selection = ref.select_atoms(atom_selection_statement)
+        result_rmsd_of_atoms = []
         index = 0
 
-        ref_structure = pdb_parser.get_structure("reference", ref_file)
         for sample_file in list_of_files:
-            sample_structure = pdb_parser.get_structure("sample", sample_file)
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection_statement)
 
-            ref_atoms = [item for item in ref_structure[index_of_ref_structure_frame].get_atoms()]
-            if option == "CA":
-                ref_atoms = filter(lambda x: x.get_name() == "CA",
-                                   ref_atoms)
-            elif option == "all":
-                pass
-            else:
-                raise Exception("parameter error: wrong option")
-
-            for sample_model in sample_structure:
+            for _ in sample.trajectory:
                 if index % step_interval == 0:
-                    sample_atoms = [item for item in sample_model.get_atoms()]
-                    if option == "CA":
-                        sample_atoms = filter(lambda x: x.get_name() == "CA",
-                                              sample_atoms)
-
-                    super_imposer = PDB.Superimposer()
-                    super_imposer.set_atoms(ref_atoms, sample_atoms)
-                    super_imposer.apply(sample_model.get_atoms())
-                    rmsd_of_all_atoms.append(super_imposer.rms)
+                    result_rmsd_of_atoms.append(Trp_cage.get_RMSD_after_alignment(ref_atom_selection.positions,
+                                                                                  sample_atom_selection.positions))
 
                 index += 1
 
-        return rmsd_of_all_atoms
+        return result_rmsd_of_atoms
+
+    @staticmethod
+    def metric_radius_of_gyration(list_of_files, step_interval = 1):
+        list_of_files.sort()
+        result = []
+        index = 0
+        for item_file in list_of_files:
+            temp_sample = Universe(item_file)
+            for _ in temp_sample.trajectory:
+                if index % step_interval == 0:
+                    result.append(temp_sample.atoms.radius_of_gyration())
+                index += 1
+
+        return result
+
+    @staticmethod
+    def get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_selection_statement = 'name CA'):
+        sample_1 = Universe(sample_file); sample_2 = Universe(sample_file)    # should use two variables here, otherwise it will be 0, might be related to iterator issue?
+        sel_1 = sample_1.select_atoms(atom_selection_statement); sel_2 = sample_2.select_atoms(atom_selection_statement)
+
+        return [[rmsd(sel_1.positions, sel_2.positions, center=True, superposition=True) for _2 in sample_2.trajectory] for _1 in sample_1.trajectory]
+
+    @staticmethod
+    def structure_clustering_in_a_file(sample_file, atom_selection_statement = 'name CA',
+                                       write_most_common_class_into_file = False,
+                                       output_file_name = None,
+                                       eps=0.5,
+                                       min_num_of_neighboring_samples = 2
+                                       ):
+        pairwise_RMSD = Trp_cage.get_pairwise_RMSD_after_alignment_for_a_file(sample_file, atom_selection_statement=atom_selection_statement)
+        from sklearn.cluster import DBSCAN
+
+        dbscan_obj = DBSCAN(metric='precomputed', eps=eps, min_samples=min_num_of_neighboring_samples).fit(pairwise_RMSD)
+        class_labels = dbscan_obj.labels_
+        max_class_label = max(class_labels)
+        num_in_each_class = {label: np.where(class_labels == label)[0].shape[0] for label in range(-1, max_class_label + 1)}
+        most_common_class_labels = sorted(num_in_each_class.keys(), key=lambda x: num_in_each_class[x], reverse=True)
+        with open(sample_file, 'r') as in_file:
+            content = [item for item in in_file.readlines() if not 'REMARK' in item]
+            content = ''.join(content)
+            content = content.split('MODEL')[1:]  # remove header
+            assert (len(content) == len(class_labels))
+
+        index_of_most_common_class = np.where(class_labels == most_common_class_labels[0])[0]
+        if write_most_common_class_into_file:
+            if output_file_name is None:
+                output_file_name = sample_file.replace('.pdb', '_most_common.pdb')
+
+            frames_to_use = [content[ii] for ii in index_of_most_common_class]
+            with open(output_file_name, 'w') as out_file:
+                for frame in frames_to_use:
+                    out_file.write("MODEL" + frame)
+
+        return num_in_each_class, index_of_most_common_class
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         total_num_of_residues = 20
-        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
-                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], list(range(total_num_of_residues))) \
+                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], list(range(total_num_of_residues)))
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
         assert (len(list_of_idx_four_atoms) == 38)
 

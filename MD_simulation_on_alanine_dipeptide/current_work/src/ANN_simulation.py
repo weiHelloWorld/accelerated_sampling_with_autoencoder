@@ -12,6 +12,7 @@ from config import * # configuration file
 from cluster_management import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from sklearn.neighbors import RadiusNeighborsRegressor
+import matplotlib
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
@@ -244,8 +245,8 @@ class neural_network_for_simulation(object):
         node_num = self._node_num
         num_of_hidden_layers = len(self._hidden_layers_type)
 
-        temp_mid_result = range(num_of_hidden_layers + 1)
-        temp_mid_result_in = range(num_of_hidden_layers + 1)
+        temp_mid_result = list(range(num_of_hidden_layers + 1))
+        temp_mid_result_in = list(range(num_of_hidden_layers + 1))
         mid_result = []
 
         data_as_input_to_network = input_data
@@ -258,7 +259,7 @@ class neural_network_for_simulation(object):
                 bias_coef = connection_with_bias_layers[i].params
                 previous_result = item if i == 0 else temp_mid_result[i - 1]
                 temp_mid_result_in[i] = np.dot(mul_coef, previous_result) + bias_coef
-                output_of_this_hidden_layer = range(len(temp_mid_result_in[i]))  # initialization
+                output_of_this_hidden_layer = list(range(len(temp_mid_result_in[i])))  # initialization
                 hidden_and_out_layers[i]._forwardImplementation(temp_mid_result_in[i], output_of_this_hidden_layer)
                 temp_mid_result[i] = output_of_this_hidden_layer
 
@@ -321,8 +322,8 @@ class neural_network_for_simulation(object):
 
         molecule_net.addOutputModule(out_layer)
 
-        connection_between_layers = range(num_of_hidden_layers + 1)
-        connection_with_bias_layers = range(num_of_hidden_layers + 1)
+        connection_between_layers = list(range(num_of_hidden_layers + 1))
+        connection_with_bias_layers = list(range(num_of_hidden_layers + 1))
 
         for i in range(num_of_hidden_layers + 1):
             connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])
@@ -481,8 +482,8 @@ class neural_network_for_simulation(object):
                 assert(2 == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
 
-        max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, zip(*coords)))
-        min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, zip(*coords)))
+        max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))
+        min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, list(zip(*coords))))
         interval = 0.1
 
         window_counts = np.array(window_counts)
@@ -597,7 +598,9 @@ class plotting(object):
                                             axis_ranges=None,
                                             contain_colorbar=True,
                                             smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
-                                            smoothing_radius = 0.1
+                                            smoothing_radius = 0.1,
+                                            enable_mousing_clicking_event = False,
+                                            saving_snapshot_mode = 'single_point'
                                       ):
         """
         by default, we are using training data, and we also allow external data input
@@ -625,7 +628,7 @@ class plotting(object):
         if color_option == 'pure':
             coloring = 'red'
         elif color_option == 'step':
-            coloring = range(len(x))
+            coloring = list(range(len(x)))
         elif color_option == 'phi':
             coloring = [item[1] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'psi':
@@ -653,32 +656,64 @@ class plotting(object):
             fig_object.colorbar(im, ax=axis_object)
 
         # mouse clicking event
-        import matplotlib
-        # axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
+        if enable_mousing_clicking_event:
+            if self._related_coor_list_obj is None:
+                raise Exception('related_coor_list_obj not defined!')
+            # should calculate step_interval
+            total_num_of_lines_in_coor_files = sum(self._related_coor_list_obj.get_list_of_line_num_of_coor_data_file())
+            step_interval = int(total_num_of_lines_in_coor_files / len(cossin_data))
 
-        global temp_list_of_coor_index   # TODO: use better way instead of global variable
-        temp_list_of_coor_index = []
-        def onclick(event):
-            global temp_list_of_coor_index
-            if isinstance(event.artist, matplotlib.text.Text):
-                if event.artist.get_text() == 'save_frames':
-                    print temp_list_of_coor_index
-                    if not self._related_coor_list_obj is None:
-                        self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
-                                                                                                       'temp_pdb/temp_frames.pdb')  # TODO: better naming
-                    else:
-                        raise Exception('related_coor_list_obj not defined!')
-                    temp_list_of_coor_index = []  # output pdb file and clean up
-                    print ('done saving frames!')
-            elif isinstance(event.artist, matplotlib.collections.PathCollection):
-                ind_list = list(event.ind)  # what is the index of this?
-                print ('onclick:')
-                temp_list_of_coor_index += ind_list
+            if saving_snapshot_mode == 'multiple_points':
+                axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
 
-                for item in ind_list:
-                    print(item, x[item], y[item])
+                global temp_list_of_coor_index   # TODO: use better way instead of global variable
+                temp_list_of_coor_index = []
+                def onclick(event):
+                    global temp_list_of_coor_index
+                    if isinstance(event.artist, matplotlib.text.Text):
+                        if event.artist.get_text() == 'save_frames':
+                            print temp_list_of_coor_index
+                            self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
+                                                                            'temp_pdb/temp_frames.pdb')  # TODO: better naming
 
-        fig_object.canvas.mpl_connect('pick_event', onclick)
+                            temp_list_of_coor_index = []  # output pdb file and clean up
+                            print ('done saving frames!')
+                    elif isinstance(event.artist, matplotlib.collections.PathCollection):
+                        ind_list = list(event.ind)
+                        print ('onclick:')
+                        temp_list_of_coor_index += [item * step_interval for item in ind_list]  # should include step_interval
+
+                        for item in ind_list:
+                            print(item, x[item], y[item])
+                    return
+
+            elif saving_snapshot_mode == 'single_point':
+                def onclick(event):
+                    if isinstance(event.artist, matplotlib.collections.PathCollection):
+                        ind_list = list(event.ind)
+                        print ('onclick:')
+                        for item in ind_list:
+                            print(item, x[item], y[item])
+                        temp_ind_list = [item * step_interval for item in ind_list]  # should include step_interval
+                        average_x = sum([x[item] for item in ind_list]) / len(ind_list)
+                        average_y = sum([y[item] for item in ind_list]) / len(ind_list)
+                        out_file_name = 'temp_pdb/temp_frames_[%f,%f].pdb' % (average_x, average_y)
+
+                        self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_ind_list,
+                            out_file_name=out_file_name)
+                        # need to verify PCs generated from this output pdb file are consistent from those in the list selected
+                        molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
+                        cossin_data_selected = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(
+                            list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
+                        PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
+                        assert (PCs_of_points_selected == [[x[item], y[item]] for item in ind_list])
+
+
+                    return
+            else:
+                raise Exception('saving_snapshot_mode error')
+
+            fig_object.canvas.mpl_connect('pick_event', onclick)
 
         return fig_object, axis_object, im
 
@@ -706,7 +741,7 @@ class plotting(object):
     def plotting_potential_centers(self, fig_object, axis_object,
                                    list_of_coor_data_files, marker='x'):
         potential_centers = [single_biased_simulation_data(None, item)._potential_center for item in list_of_coor_data_files]
-        (x, y) = zip(*potential_centers)
+        [x, y] = list(zip(*potential_centers))
 
         axis_object.scatter(x, y, marker=marker)
         return
@@ -799,7 +834,7 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            procs_to_run_commands = range(len(commands))
+            procs_to_run_commands = list(range(len(commands)))
             for index, item in enumerate(commands):
                 print ("running: \t" + item)
                 procs_to_run_commands[index] = subprocess.Popen(item.split())
@@ -856,7 +891,7 @@ class single_biased_simulation_data(object):
         self._my_network = my_network
         temp_potential_center_string = file_for_single_biased_simulation_coor.split('_pc_[')[1].split(']')[0]
         self._potential_center = [float(item) for item in temp_potential_center_string.split(',')]
-        self._force_constant = float(file_for_single_biased_simulation_coor.split('biased_output_fc_')[1].split('_pc_')[0])
+        self._force_constant = float(file_for_single_biased_simulation_coor.split('output_fc_')[1].split('_pc_')[0])
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
 
         if not self._my_network is None:
@@ -872,7 +907,7 @@ class single_biased_simulation_data(object):
         PCs = self._my_network.get_PCs(cossin)
         assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)
-        PCs_transpose = zip(*PCs)
+        PCs_transpose = list(zip(*PCs))
         center_of_data_cloud = map(lambda x: sum(x) / len(x), PCs_transpose)
         return center_of_data_cloud
 
