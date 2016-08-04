@@ -70,7 +70,8 @@ class Sutils(object):
                             num_of_boundary_points = CONFIG_11,
                             is_circular_boundary = CONFIG_18,
                             preprocessing = True,
-                            auto_range_for_histogram = CONFIG_39   # set the range of histogram based on min,max values in each dimension
+                            auto_range_for_histogram = CONFIG_39,   # set the range of histogram based on min,max values in each dimension
+                            reverse_sorting_mode = CONFIG_41        # whether we reverse the order of sorting of diff_with_neighbors values
                             ):
         '''
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
@@ -126,7 +127,7 @@ class Sutils(object):
         
         temp_seperate_index = []
 
-        for item in range(dimensionality):
+        for _ in range(dimensionality):
             temp_seperate_index.append(range(num_of_bins))
 
         index_of_grids = list(itertools.product(
@@ -135,6 +136,8 @@ class Sutils(object):
 
         index_of_grids =  filter(lambda x: diff_with_neighbors[x] < 0, index_of_grids)     # only apply to grids with diff_with_neighbors value < 0
         sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x]) # sort based on histogram, return index values
+        if reverse_sorting_mode:
+            sorted_index_of_grids.reverse()
 
         for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
             temp_potential_center = map(lambda x: round(x, 2), grid_centers[index])
