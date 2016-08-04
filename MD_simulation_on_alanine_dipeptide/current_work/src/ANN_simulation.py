@@ -40,6 +40,7 @@ class coordinates_data_files_list(object):
             self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
+        self._list_of_coor_data_files = filter(lambda x: os.stat(x).st_size > 0, self._list_of_coor_data_files)   # remove empty files
         self._list_of_coor_data_files.sort()                # to be consistent
         self._list_of_line_num_of_coor_data_file = map(lambda x: int(subprocess.check_output(['wc', '-l', x]).strip().split()[0]),
                                                        self._list_of_coor_data_files)
@@ -358,7 +359,7 @@ class neural_network_for_simulation(object):
         print('Done training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
               (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
         self._trainer = trainer
-        return
+        return self
 
     def get_training_error(self):
         # it turns out that this error info cannot be a good measure of the quality of the autoencoder
@@ -763,43 +764,35 @@ class iteration(object):
         my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
         data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
 
-        # start of multiprocessing
-        # from multiprocessing import Process
-        # temp_training = lambda x: neural_network_for_simulation(index=self._index,
-        #                                                  data_set_for_training= data_set,
-        #                                                  training_data_interval=training_interval,
-        #                                                 )
- 
-        # temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
-        # print (temp_list_of_trained_autoencoders)
-        
-        # task_list = range(num_of_trainings)
-        # for item in range(num_of_trainings):
-        #     task_list[item] = Process(target = temp_list_of_trained_autoencoders[item].train)
-        #     task_list[item].start()
-         
-        # map(lambda x: x.join(), task_list)
-            
+        parallelize_training = CONFIG_43
+        if parallelize_training:
+            from multiprocessing import Process
+            training_and_saving_task = lambda x: neural_network_for_simulation(index=self._index,
+                                                                           data_set_for_training=data_set,
+                                                                           training_data_interval=training_interval,
+                                                                           ).train().save_into_file(x)
+            task_list = list(range(num_of_trainings))
+            temp_intermediate_result_file_list = ['/tmp/%d.pkl' % item for item in range(num_of_trainings)]
+            for item in range(num_of_trainings):
+                task_list[item] = Process(target = training_and_saving_task, args = (temp_intermediate_result_file_list[item], ))   # train and save intermediate result in /tmp folder
+                task_list[item].start()
 
-        # print ('temp_FVE_list =')
-        # print (temp_list_of_trained_autoencoders[0].get_fraction_of_variance_explained())
-        # print (map(lambda x: x.get_fraction_of_variance_explained(), temp_list_of_trained_autoencoders))
-        # current_network = max(temp_list_of_trained_autoencoders, get_fraction_of_variance_explained)  # find the network with largest FVE
-        # print("max_FVE = %f" % current_network.get_fraction_of_variance_explained())
-        # end of multiprocessing
+            map(lambda x: x.join(), task_list)
+            temp_networks = [Sutils.load_object_from_pkl_file(item) for item in temp_intermediate_result_file_list]
 
-        temp_networks = [neural_network_for_simulation(index=self._index,
-                                                         data_set_for_training= data_set,
-                                                         training_data_interval=training_interval,
-                                                        )
-                         for _ in range(num_of_trainings)]
-
-        for item in temp_networks:
-            item.train()
+        else:
+            temp_networks = [neural_network_for_simulation(index=self._index,
+                                                           data_set_for_training=data_set,
+                                                           training_data_interval=training_interval,
+                                                           )
+                             for _ in range(num_of_trainings)]
+            for item in temp_networks:
+                item.train()
 
         temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_networks]
         max_FVE = max(temp_FVE_list)
         print("temp_FVE_list = %s, max_FVE = %s" % (str(temp_FVE_list), str(max_FVE)))
+
         select_network_manually = False
         if select_network_manually:
             network_index = int(raw_input('select a network:'))
