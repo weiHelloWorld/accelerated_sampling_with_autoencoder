@@ -409,21 +409,23 @@ class neural_network_for_simulation(object):
                 parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                             '../target/Alanine_dipeptide/network_%d' % self._index,
                                   autoencoder_info_file,
-                            'pc_' + str(potential_center).replace(' ','')[1:-1],  # need to remove white space, otherwise parsing error
-                            '../resources/Alanine_dipeptide/network_%d.pkl' % self._index
+                            'pc_' + str(potential_center).replace(' ','')[1:-1]  # need to remove white space, otherwise parsing error
                             )
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --fc_adjustable --autoencoder_file %s --remove_previous" \
-                          % parameter_list
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
+                if CONFIG_42:           # whether the force constant adjustable mode is enabled
+                    command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
+                        '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
+
             elif isinstance(molecule_type, Trp_cage):
-                # FIXME: this is outdated, should be fixed
                 parameter_list =  (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                                    '../target/Trp_cage/network_%d/' % self._index,
                                    autoencoder_info_file,
                                    'pc_' + str(potential_center).replace(' ', '')[1:-1],
                                    CONFIG_40, 'NVT')
                 command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s" % parameter_list
-                pass
-                # command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list
+                if CONFIG_42:
+                    command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                        '../resources/Trp_cage/network_%d.pkl' % self._index)
             else:
                 raise Exception("molecule type not defined")
 

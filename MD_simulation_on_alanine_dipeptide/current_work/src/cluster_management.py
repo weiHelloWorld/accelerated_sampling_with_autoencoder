@@ -100,6 +100,8 @@ exit 0
             min_num_of_unsubmitted_jobs = 0
         elif monitor_mode == 'always_wait_for_submit':
             min_num_of_unsubmitted_jobs = -1
+        else:
+            raise Exception('monitor_mode not defined')
 
         num_of_unsubmitted_jobs = len(cluster_management.get_sge_files_list())
         # first check if there are unsubmitted jobs
