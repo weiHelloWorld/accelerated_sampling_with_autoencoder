@@ -482,8 +482,8 @@ class neural_network_for_simulation(object):
                 assert(2 == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
 
-        max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, zip(*coords)))
-        min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, zip(*coords)))
+        max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))
+        min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, list(zip(*coords))))
         interval = 0.1
 
         window_counts = np.array(window_counts)
@@ -628,7 +628,7 @@ class plotting(object):
         if color_option == 'pure':
             coloring = 'red'
         elif color_option == 'step':
-            coloring = range(len(x))
+            coloring = list(range(len(x)))
         elif color_option == 'phi':
             coloring = [item[1] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'psi':
@@ -741,7 +741,7 @@ class plotting(object):
     def plotting_potential_centers(self, fig_object, axis_object,
                                    list_of_coor_data_files, marker='x'):
         potential_centers = [single_biased_simulation_data(None, item)._potential_center for item in list_of_coor_data_files]
-        (x, y) = zip(*potential_centers)
+        [x, y] = list(zip(*potential_centers))
 
         axis_object.scatter(x, y, marker=marker)
         return
@@ -834,7 +834,7 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            procs_to_run_commands = range(len(commands))
+            procs_to_run_commands = list(range(len(commands)))
             for index, item in enumerate(commands):
                 print ("running: \t" + item)
                 procs_to_run_commands[index] = subprocess.Popen(item.split())
@@ -907,7 +907,7 @@ class single_biased_simulation_data(object):
         PCs = self._my_network.get_PCs(cossin)
         assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)
-        PCs_transpose = zip(*PCs)
+        PCs_transpose = list(zip(*PCs))
         center_of_data_cloud = map(lambda x: sum(x) / len(x), PCs_transpose)
         return center_of_data_cloud
 

@@ -77,7 +77,7 @@ class Sutils(object):
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
         '''
         dimensionality = len(list_of_points[0])
-        list_of_points = zip(*list_of_points)
+        list_of_points = list(zip(*list_of_points))
         assert (len(list_of_points) == dimensionality)
 
         if is_circular_boundary or not auto_range_for_histogram:
@@ -97,13 +97,13 @@ class Sutils(object):
             diff_with_neighbors = hist_matrix - 1.0 / (2 * dimensionality) \
                                             * sum(
                                                 map(lambda x: np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x),
-                                                    range(dimensionality)
+                                                    list(range(dimensionality))
                                                     )
                                                 )
         else:
             # TODO: code not concise and general enough, fix this later
             diff_with_neighbors = np.zeros(hist_matrix.shape)
-            temp_1 = [range(item) for item in hist_matrix.shape]
+            temp_1 = [list(range(item)) for item in hist_matrix.shape]
             for grid_index in itertools.product(*temp_1):
                 neighbor_index_list = [np.array(grid_index) + temp_2 for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list += [np.array(grid_index) - temp_2 for temp_2 in np.eye(dimensionality)]
@@ -128,7 +128,7 @@ class Sutils(object):
         temp_seperate_index = []
 
         for _ in range(dimensionality):
-            temp_seperate_index.append(range(num_of_bins))
+            temp_seperate_index.append(list(range(num_of_bins)))
 
         index_of_grids = list(itertools.product(
                         *temp_seperate_index
@@ -195,9 +195,9 @@ class Alanine_dipeptide(Sutils):
         normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
-        cos_of_angles = range(len(normal_vectors_normalized_1))
-        sin_of_angles_vec = range(len(normal_vectors_normalized_1))
-        sin_of_angles = range(len(normal_vectors_normalized_1)) # initialization
+        cos_of_angles = list(range(len(normal_vectors_normalized_1)))
+        sin_of_angles_vec = list(range(len(normal_vectors_normalized_1)))
+        sin_of_angles = list(range(len(normal_vectors_normalized_1))) # initialization
         result = []
 
         for index in range(len(normal_vectors_normalized_1)):
@@ -326,7 +326,7 @@ class Trp_cage(Sutils):
         total_num_of_residues = 20
         list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], 
                                                 [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]], 
-                                                range(total_num_of_residues))
+                                                list(range(total_num_of_residues)))
         list_of_idx_four_atoms = reduce(lambda x, y: x + y, list_of_idx_four_atoms)
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
 
@@ -431,7 +431,7 @@ class Trp_cage(Sutils):
             structure = p.get_structure('X', item)
             atom_list = [item for item in structure.get_atoms()]
             atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
-            atom_list = zip(*[iter(atom_list)] * num_of_residues)   # reshape the list
+            atom_list = list(zip(*[iter(atom_list)] * num_of_residues))   # reshape the list
 
             for model in atom_list:
                 if index % step_interval == 0:
@@ -567,8 +567,8 @@ class Trp_cage(Sutils):
     def get_expression_for_input_of_this_molecule():
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         total_num_of_residues = 20
-        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], range(total_num_of_residues)) \
-                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], range(total_num_of_residues))
+        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], list(range(total_num_of_residues))) \
+                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], list(range(total_num_of_residues)))
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
         assert (len(list_of_idx_four_atoms) == 38)
 
