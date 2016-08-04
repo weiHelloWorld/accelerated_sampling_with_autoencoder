@@ -30,7 +30,7 @@ class Sutils(object):
                 for line in f_in:
                     fields = line.strip().split()
                     if fields[0] == "MODEL":  # see if we need to change write_flag
-                        if int(fields[1]) >= start_index and int(fields[1]) < end_index:
+                        if start_index <= int(fields[1]) < end_index:
                             write_flag = True
                         else:
                             write_flag = False
@@ -73,9 +73,9 @@ class Sutils(object):
                             auto_range_for_histogram = CONFIG_39,   # set the range of histogram based on min,max values in each dimension
                             reverse_sorting_mode = CONFIG_41        # whether we reverse the order of sorting of diff_with_neighbors values
                             ):
-        '''
+        """
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
-        '''
+        """
         dimensionality = len(list_of_points[0])
         list_of_points = list(zip(*list_of_points))
         assert (len(list_of_points) == dimensionality)
@@ -182,6 +182,7 @@ class Sutils(object):
 class Alanine_dipeptide(Sutils):
     """docstring for Alanine_dipeptide"""
     def __init__(self):
+        super(Alanine_dipeptide, self).__init__()
         return
         
     @staticmethod
@@ -192,7 +193,7 @@ class Alanine_dipeptide(Sutils):
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
         normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
-        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
+        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:]
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
         cos_of_angles = list(range(len(normal_vectors_normalized_1)))
@@ -259,7 +260,7 @@ class Alanine_dipeptide(Sutils):
                 with open(output_file, 'w') as f_out:
                     for line in f_in:
                         fields = line.strip().split()
-                        if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
+                        if fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms:
                             f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
                             f_out.write('\t')
                         elif fields[0] == "MODEL" and fields[1] != "1":
@@ -287,6 +288,7 @@ class Alanine_dipeptide(Sutils):
 class Trp_cage(Sutils):
     """docstring for Trp_cage"""
     def __init__(self):
+        super(Trp_cage, self).__init__()
         return
         
     @staticmethod
@@ -298,13 +300,13 @@ class Trp_cage(Sutils):
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
         normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
-        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
+        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:]
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
         index = 0
         cos_of_angle = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
         sin_of_angle_vec = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]));
+        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]))
 
         try:
             assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)  
@@ -406,7 +408,7 @@ class Trp_cage(Sutils):
                 with open(output_file, 'w') as f_out:
                     for line in f_in:
                         fields = line.strip().split()
-                        if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
+                        if fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms:
                             f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
                             f_out.write('\t')
                             if fields[1] == index_of_backbone_atoms[-1]:

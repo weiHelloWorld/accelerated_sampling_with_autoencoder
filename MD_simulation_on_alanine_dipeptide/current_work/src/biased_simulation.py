@@ -102,14 +102,14 @@ def run_simulation(force_constant):
 
     pdb = PDBFile(input_pdb_file_of_molecule)
     forcefield = ForceField(force_field_file) # without water
-    system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff, \
+    system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff,
                                      constraints=AllBonds)
 
     # add biased force, could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 
     if CONFIG_28 == "CustomManyParticleForce":
         force = CustomManyParticleForce(22, energy_expression)
-        for i in range(system.getNumParticles()):
+        for _ in range(system.getNumParticles()):
             force.addParticle("",0)  # what kinds of types should we specify here for each atom?
         system.addForce(force)
 

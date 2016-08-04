@@ -1,7 +1,7 @@
-'''
+"""
 This program takes a "terminal command" (should be within quotation mark) as an argument, 
 generate corresponding sge file, and qsub it.
-'''
+"""
 
 
 import argparse, subprocess
