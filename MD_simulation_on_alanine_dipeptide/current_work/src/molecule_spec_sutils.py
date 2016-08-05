@@ -469,6 +469,12 @@ class Trp_cage(Sutils):
         return diff
 
     @staticmethod
+    def metric_get_residue_9_16_distance(list_of_files, step_interval = 1):
+        dis_matrix_list = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        distance_9_16 = [_2[8][15] for _2 in dis_matrix_list]
+        return distance_9_16
+
+    @staticmethod
     def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
         sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
