@@ -15,6 +15,16 @@ class Sutils(object):
         return
 
     @staticmethod
+    def create_subclass_instance_using_name(name):
+        assert (isinstance(name, str))
+        if name == 'Alanine_dipeptide':
+            return Alanine_dipeptide()
+        elif name == "Trp_cage":
+            return Trp_cage()
+        else:
+            raise Exception('type name not defined')
+
+    @staticmethod
     def load_object_from_pkl_file(file_path):
         return pickle.load(open(file_path, 'rb'))
 

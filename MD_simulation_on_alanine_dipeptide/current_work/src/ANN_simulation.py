@@ -20,12 +20,7 @@ from config.py
 
 ##################    set types of molecules  ############################
 
-if CONFIG_30 == "Alanine_dipeptide":
-    molecule_type = Alanine_dipeptide()
-elif CONFIG_30 == "Trp_cage":
-    molecule_type = Trp_cage()
-else:
-    raise Exception("molecule type not found")
+molecule_type = Sutils.create_subclass_instance_using_name(CONFIG_30)
 
 ##########################################################################
 
@@ -33,6 +28,7 @@ class coordinates_data_files_list(object):
     def __init__(self,
                 list_of_dir_of_coor_data_files = CONFIG_1, # this is the directory that holds corrdinates data files
                 ):
+        assert (isinstance(list_of_dir_of_coor_data_files, list))    # to avoid passing the string in the constructor
         self._list_of_dir_of_coor_data_files = list_of_dir_of_coor_data_files
         self._list_of_coor_data_files = []
 
