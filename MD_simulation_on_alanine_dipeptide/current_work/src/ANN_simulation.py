@@ -33,7 +33,7 @@ class coordinates_data_files_list(object):
         self._list_of_coor_data_files = []
 
         for item in self._list_of_dir_of_coor_data_files:
-            self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).strip().split('\n')
+            self._list_of_coor_data_files += subprocess.check_output('find %s -name *coordinates.txt' % item, shell=True).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         self._list_of_coor_data_files = filter(lambda x: os.stat(x).st_size > 0, self._list_of_coor_data_files)   # remove empty files
@@ -620,6 +620,7 @@ class plotting(object):
             labels = ["PC1", "PC2"]
 
         elif plotting_space == "phipsi":
+            assert (isinstance(molecule_type, Alanine_dipeptide))
             temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(cossin_data)
 
             (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
@@ -747,7 +748,7 @@ class plotting(object):
     def plotting_potential_centers(fig_object, axis_object,
                                    list_of_coor_data_files, marker='x'):
         potential_centers = [single_biased_simulation_data(None, item)._potential_center for item in list_of_coor_data_files]
-        [x, y] = list(zip(*potential_centers))
+        [x, y, _] = list(zip(*potential_centers))
 
         axis_object.scatter(x, y, marker=marker)
         return fig_object, axis_object

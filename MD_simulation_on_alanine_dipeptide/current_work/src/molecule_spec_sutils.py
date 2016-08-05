@@ -32,22 +32,22 @@ class Sutils(object):
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, new_pdb_file_name=None):  # start_index included, end_index not included
         print ('writing frames of %s from frame %d to frame %d...' % (pdb_file_name, start_index, end_index))
         if new_pdb_file_name is None:
-            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_from_frame_%d_to_frame_%d.pdb' % (start_index, end_index)
+            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_to_%d.pdb' % (start_index, end_index)
 
-        write_flag = False
-        with open(pdb_file_name) as f_in:
-            with open(new_pdb_file_name, 'w') as f_out:
-                for line in f_in:
-                    fields = line.strip().split()
-                    if fields[0] == "MODEL":  # see if we need to change write_flag
-                        if start_index <= int(fields[1]) < end_index:
-                            write_flag = True
-                        else:
-                            write_flag = False
+        with open(pdb_file_name, 'r') as f_in:
+            content = [item for item in f_in.readlines() if not 'REMARK' in item]
+            content = ''.join(content)
+            content = content.split('MODEL')[1:]  # remove header
+            if end_index == 0:
+                content_to_write = content[start_index:]     # for selecting last few frames
+            else:
+                content_to_write = content[start_index:end_index]
 
-                    if write_flag:
-                        f_out.write(line)
-                f_out.write("END\n")
+        with open(new_pdb_file_name, 'w') as f_out:
+            for item in content_to_write:
+                f_out.write("MODEL")
+                f_out.write(item)
+
         return
 
     @staticmethod
