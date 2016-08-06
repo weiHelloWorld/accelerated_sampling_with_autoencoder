@@ -748,7 +748,7 @@ class plotting(object):
     def plotting_potential_centers(fig_object, axis_object,
                                    list_of_coor_data_files, marker='x'):
         potential_centers = [single_biased_simulation_data(None, item)._potential_center for item in list_of_coor_data_files]
-        [x, y, _] = list(zip(*potential_centers))
+        [x, y] = list(zip(*potential_centers))
 
         axis_object.scatter(x, y, marker=marker)
         return fig_object, axis_object

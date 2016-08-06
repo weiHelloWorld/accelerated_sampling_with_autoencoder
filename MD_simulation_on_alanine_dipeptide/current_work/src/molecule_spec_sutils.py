@@ -425,8 +425,8 @@ class Trp_cage(Sutils):
         list_of_files.sort()   # to make the order consistent
         distances_list = []
         index = 0
+        num_of_residues = 20
         for item in list_of_files:
-            num_of_residues = 20
             p = PDB.PDBParser()
             structure = p.get_structure('X', item)
             atom_list = [item for item in structure.get_atoms()]
@@ -437,9 +437,10 @@ class Trp_cage(Sutils):
                 if index % step_interval == 0:
                     assert (len(model) == num_of_residues)
                     p_distances = np.zeros((num_of_residues, num_of_residues))
-                    for _1, atom_1 in enumerate(model):
-                        for _2, atom_2 in enumerate(model):
-                            p_distances[_1][_2] += [atom_1 - atom_2]
+                    for _1 in range(num_of_residues):
+                        for _2 in range(_1 + 1, num_of_residues):
+                            p_distances[_2][_1] = p_distances[_1][_2] = model[_1] - model[_2]
+
                     distances_list += [p_distances]
                 index += 1
 
@@ -470,8 +471,24 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_get_residue_9_16_distance(list_of_files, step_interval = 1):
-        dis_matrix_list = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
-        distance_9_16 = [_2[8][15] for _2 in dis_matrix_list]
+        list_of_files.sort()  # to make the order consistent
+        distance_9_16 = []
+        index = 0
+        num_of_residues = 20
+        for item in list_of_files:
+            p = PDB.PDBParser()
+            structure = p.get_structure('X', item)
+            atom_list = [item for item in structure.get_atoms()]
+            atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
+            atom_list = list(zip(*[iter(atom_list)] * num_of_residues))  # reshape the list
+
+            for model in atom_list:
+                if index % step_interval == 0:
+                    assert (len(model) == num_of_residues)
+                    distance_9_16 += [model[8] - model[15]]
+
+                index += 1
+
         return distance_9_16
 
     @staticmethod
