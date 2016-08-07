@@ -29,19 +29,19 @@ class Sutils(object):
         return pickle.load(open(file_path, 'rb'))
 
     @staticmethod
-    def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, new_pdb_file_name=None):  # start_index included, end_index not included
-        print ('writing frames of %s from frame %d to frame %d...' % (pdb_file_name, start_index, end_index))
+    def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
+        print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
-            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_to_%d.pdb' % (start_index, end_index)
+            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
         with open(pdb_file_name, 'r') as f_in:
             content = [item for item in f_in.readlines() if not 'REMARK' in item]
             content = ''.join(content)
             content = content.split('MODEL')[1:]  # remove header
             if end_index == 0:
-                content_to_write = content[start_index:]     # for selecting last few frames
+                content_to_write = content[start_index::step_interval]     # for selecting last few frames
             else:
-                content_to_write = content[start_index:end_index]
+                content_to_write = content[start_index:end_index:step_interval]
 
         with open(new_pdb_file_name, 'w') as f_out:
             for item in content_to_write:
@@ -51,7 +51,7 @@ class Sutils(object):
         return
 
     @staticmethod
-    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12):
+    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
         filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
         output_file_list = []
 
@@ -69,6 +69,10 @@ class Sutils(object):
                             f_out.write('\t')
                             if fields[1] == index_of_backbone_atoms[-1]:
                                 f_out.write('\n')
+
+            if step_interval > 1:
+                data = np.loadtxt(output_file)[::step_interval]
+                np.savetxt(output_file, data, fmt="%.3f", delimiter='\t')
 
         print("Done generating coordinates files\n")
         return output_file_list
@@ -280,9 +284,9 @@ class Alanine_dipeptide(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12):
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval =1):
         index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
         return output_file_list
 
     @staticmethod
@@ -410,11 +414,12 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12):
+    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12, step_interval=1):
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         assert (len(index_of_backbone_atoms) % 3 == 0)
 
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
+                                                                       step_interval=step_interval)
 
         return output_file_list
 
