@@ -56,23 +56,26 @@ class Sutils(object):
         output_file_list = []
 
         for input_file in filenames:
-            print ('generating coordinates of ' + input_file)
             output_file = input_file.replace('.pdb', '_coordinates.txt')
             output_file_list += [output_file]
+            if os.path.exists(output_file):
+                print ("coordinate file already exists: %s (remove previous one if needed)" % output_file)
+            else:
+                print ('generating coordinates of ' + input_file)
 
-            with open(input_file) as f_in:
-                with open(output_file, 'w') as f_out:
-                    for line in f_in:
-                        fields = line.strip().split()
-                        if fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms:
-                            f_out.write(reduce(lambda x, y: x + '\t' + y, fields[6:9]))
-                            f_out.write('\t')
-                            if fields[1] == index_of_backbone_atoms[-1]:
-                                f_out.write('\n')
+                with open(input_file) as f_in:
+                    with open(output_file, 'w') as f_out:
+                        for line in f_in:
+                            fields = line.strip().split()
+                            if fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms:
+                                f_out.write(reduce(lambda x, y: x + '\t' + y, fields[6:9]))
+                                f_out.write('\t')
+                                if fields[1] == index_of_backbone_atoms[-1]:
+                                    f_out.write('\n')
 
-            if step_interval > 1:
-                data = np.loadtxt(output_file)[::step_interval]
-                np.savetxt(output_file, data, fmt="%.3f", delimiter='\t')
+                if step_interval > 1:
+                    data = np.loadtxt(output_file)[::step_interval]
+                    np.savetxt(output_file, data, fmt="%.3f", delimiter='\t')
 
         print("Done generating coordinates files\n")
         return output_file_list
