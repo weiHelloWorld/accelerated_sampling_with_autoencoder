@@ -12,6 +12,7 @@ parser.add_argument("--max_num_of_training", type=int, default=100, help="max nu
 parser.add_argument("--num_of_input_nodes", type=int, default=None, help="number of input nodes")
 parser.add_argument("--num_of_hidden_nodes", type=int, default=15, help="number of hidden nodes")
 parser.add_argument("--num_of_PCs", type=int, default=2, help="number of PCs")
+parser.add_argument("--PC_layer_type", type=str, default='TanhLayer', help='PC layer type')
 args = parser.parse_args()
 
 molecule_type = Sutils.create_subclass_instance_using_name(args.molecule_type)
@@ -25,17 +26,26 @@ if args.num_of_input_nodes is None:
 else:
     num_of_input_nodes = args.num_of_input_nodes
 
+if args.PC_layer_type == "TanhLayer":
+    PC_layer_type = TanhLayer
+    num_of_PCs = args.num_of_PCs
+elif args.PC_layer_type == "CircularLayer":
+    PC_layer_type = CircularLayer
+    num_of_PCs = 2 * args.num_of_PCs
+else:
+    raise Exception("PC_layer_type not defined")
+
 my_file_list = coordinates_data_files_list([args.data_folder])._list_of_coor_data_files
 data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list, step_interval=args.step_interval)
 
 a = neural_network_for_simulation(index=1447,
                                   training_data_interval=1,
                                   data_set_for_training=data,
-                                  node_num=[num_of_input_nodes, args.num_of_hidden_nodes, args.num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
+                                  node_num=[num_of_input_nodes, args.num_of_hidden_nodes, num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
                                   max_num_of_training=args.max_num_of_training,
                                   network_verbose=False,
                                   network_parameters=[0.002, 0.4, 0.2, 1],
-                                  hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer]
+                                  hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer]
                                   )
 
 a.train().save_into_file(args.autoencoder_file_name)
