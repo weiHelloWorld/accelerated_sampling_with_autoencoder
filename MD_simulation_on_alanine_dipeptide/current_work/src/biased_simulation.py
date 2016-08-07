@@ -102,14 +102,14 @@ def run_simulation(force_constant):
 
     pdb = PDBFile(input_pdb_file_of_molecule)
     forcefield = ForceField(force_field_file) # without water
-    system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff, \
+    system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff,
                                      constraints=AllBonds)
 
     # add biased force, could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 
     if CONFIG_28 == "CustomManyParticleForce":
         force = CustomManyParticleForce(22, energy_expression)
-        for i in range(system.getNumParticles()):
+        for _ in range(system.getNumParticles()):
             force.addParticle("",0)  # what kinds of types should we specify here for each atom?
         system.addForce(force)
 
@@ -158,7 +158,7 @@ def run_simulation(force_constant):
     return pdb_reporter_file
 
 def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
-    coor_file = Alanine_dipeptide().generate_coordinates_from_pdb_files(pdb_file)
+    coor_file = Alanine_dipeptide().generate_coordinates_from_pdb_files(pdb_file)[0]
     temp_network = pickle.load(open(args.autoencoder_file, 'rb'))
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center()

@@ -15,30 +15,70 @@ class Sutils(object):
         return
 
     @staticmethod
+    def create_subclass_instance_using_name(name):
+        assert (isinstance(name, str))
+        if name == 'Alanine_dipeptide':
+            return Alanine_dipeptide()
+        elif name == "Trp_cage":
+            return Trp_cage()
+        else:
+            raise Exception('type name not defined')
+
+    @staticmethod
     def load_object_from_pkl_file(file_path):
         return pickle.load(open(file_path, 'rb'))
 
     @staticmethod
-    def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, new_pdb_file_name=None):  # start_index included, end_index not included
-        print ('writing frames of %s from frame %d to frame %d...' % (pdb_file_name, start_index, end_index))
+    def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
+        print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
-            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_from_frame_%d_to_frame_%d.pdb' % (start_index, end_index)
+            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
-        write_flag = False
-        with open(pdb_file_name) as f_in:
-            with open(new_pdb_file_name, 'w') as f_out:
-                for line in f_in:
-                    fields = line.strip().split()
-                    if fields[0] == "MODEL":  # see if we need to change write_flag
-                        if int(fields[1]) >= start_index and int(fields[1]) < end_index:
-                            write_flag = True
-                        else:
-                            write_flag = False
+        with open(pdb_file_name, 'r') as f_in:
+            content = [item for item in f_in.readlines() if not 'REMARK' in item]
+            content = ''.join(content)
+            content = content.split('MODEL')[1:]  # remove header
+            if end_index == 0:
+                content_to_write = content[start_index::step_interval]     # for selecting last few frames
+            else:
+                content_to_write = content[start_index:end_index:step_interval]
 
-                    if write_flag:
-                        f_out.write(line)
-                f_out.write("END\n")
+        with open(new_pdb_file_name, 'w') as f_out:
+            for item in content_to_write:
+                f_out.write("MODEL")
+                f_out.write(item)
+
         return
+
+    @staticmethod
+    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
+        filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
+        output_file_list = []
+
+        for input_file in filenames:
+            output_file = input_file.replace('.pdb', '_coordinates.txt')
+            output_file_list += [output_file]
+            if os.path.exists(output_file):
+                print ("coordinate file already exists: %s (remove previous one if needed)" % output_file)
+            else:
+                print ('generating coordinates of ' + input_file)
+
+                with open(input_file) as f_in:
+                    with open(output_file, 'w') as f_out:
+                        for line in f_in:
+                            fields = line.strip().split()
+                            if fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms:
+                                f_out.write(reduce(lambda x, y: x + '\t' + y, fields[6:9]))
+                                f_out.write('\t')
+                                if fields[1] == index_of_backbone_atoms[-1]:
+                                    f_out.write('\n')
+
+                if step_interval > 1:
+                    data = np.loadtxt(output_file)[::step_interval]
+                    np.savetxt(output_file, data, fmt="%.3f", delimiter='\t')
+
+        print("Done generating coordinates files\n")
+        return output_file_list
 
     @staticmethod
     def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
@@ -73,9 +113,9 @@ class Sutils(object):
                             auto_range_for_histogram = CONFIG_39,   # set the range of histogram based on min,max values in each dimension
                             reverse_sorting_mode = CONFIG_41        # whether we reverse the order of sorting of diff_with_neighbors values
                             ):
-        '''
+        """
         :param preprocessing: if True, then more weight is not linear, this would be better based on experience
-        '''
+        """
         dimensionality = len(list_of_points[0])
         list_of_points = list(zip(*list_of_points))
         assert (len(list_of_points) == dimensionality)
@@ -182,6 +222,7 @@ class Sutils(object):
 class Alanine_dipeptide(Sutils):
     """docstring for Alanine_dipeptide"""
     def __init__(self):
+        super(Alanine_dipeptide, self).__init__()
         return
         
     @staticmethod
@@ -192,7 +233,7 @@ class Alanine_dipeptide(Sutils):
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
         normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
-        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
+        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:]
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
         cos_of_angles = list(range(len(normal_vectors_normalized_1)))
@@ -217,11 +258,12 @@ class Alanine_dipeptide(Sutils):
         result = []
         for item in list_of_files:
             coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
-            if len(coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
-                coordinates = coordinates[:, None].T
+            if coordinates.shape[0] != 0:        # remove info from empty files
+                if len(coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
+                    coordinates = coordinates[:, None].T
 
-            temp = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
-            result += temp
+                temp = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
+                result += temp
 
         return result
 
@@ -245,28 +287,10 @@ class Alanine_dipeptide(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12):
-        filenames = subprocess.check_output(['find', path_for_pdb, '-name' , '*.pdb']).split('\n')[:-1]
-
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval =1):
         index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
-
-        for input_file in filenames:
-            print ('generating coordinates of ' + input_file)
-            output_file = input_file[:-4] + '_coordinates.txt'
-
-            with open(input_file) as f_in:
-                with open(output_file, 'w') as f_out:
-                    for line in f_in:
-                        fields = line.strip().split()
-                        if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
-                            f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
-                            f_out.write('\t')
-                        elif fields[0] == "MODEL" and fields[1] != "1":
-                            f_out.write('\n')
-
-                    f_out.write('\n')  # last line
-        print("Done generating coordinates files\n")
-        return output_file
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
+        return output_file_list
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
@@ -286,6 +310,7 @@ class Alanine_dipeptide(Sutils):
 class Trp_cage(Sutils):
     """docstring for Trp_cage"""
     def __init__(self):
+        super(Trp_cage, self).__init__()
         return
         
     @staticmethod
@@ -297,13 +322,13 @@ class Trp_cage(Sutils):
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
         normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
-        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:];
+        normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:]
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
         index = 0
         cos_of_angle = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
         sin_of_angle_vec = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]));
+        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]))
 
         try:
             assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)  
@@ -352,15 +377,17 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval=1):
-        result = []
+        coordinates = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
-            if len(coordinates.shape) == 1:    # if 1D numpy array, convert it to 2D array for consistency
-                coordinates = coordinates[:,None].T
+            temp_coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            if temp_coordinates.shape[0] != 0:        # remove info from empty files
+                if len(temp_coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
+                    temp_coordinates = temp_coordinates[:, None].T
 
-            coordinates = coordinates[::step_interval]
-            temp = Trp_cage.get_many_cossin_from_coordinates(coordinates)
-            result += temp
+                coordinates += list(temp_coordinates)
+
+        coordinates = coordinates[::step_interval]
+        result = Trp_cage.get_many_cossin_from_coordinates(coordinates)
 
         return result
 
@@ -390,33 +417,14 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12):
-        filenames = subprocess.check_output(['find', path_for_pdb, '-name' , '*.pdb']).split('\n')[:-1]
-
+    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12, step_interval=1):
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         assert (len(index_of_backbone_atoms) % 3 == 0)
-        first_time_meeting_MODEL = True
 
-        for input_file in filenames:
-            print ('generating coordinates of ' + input_file)
-            output_file = input_file.replace('.pdb', '_coordinates.txt')
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
+                                                                       step_interval=step_interval)
 
-            with open(input_file) as f_in:
-                with open(output_file, 'w') as f_out:
-                    for line in f_in:
-                        fields = line.strip().split()
-                        if (fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms):
-                            f_out.write(reduce(lambda x,y: x + '\t' + y, fields[6:9]))
-                            f_out.write('\t')
-                        elif fields[0] == "MODEL":
-                            if first_time_meeting_MODEL:     # no newline for the first "MODEL"
-                                first_time_meeting_MODEL = False
-                            else:
-                                f_out.write('\n')
-
-                    f_out.write('\n')  # last line
-        print("Done generating coordinates files\n")
-        return
+        return output_file_list
 
     @staticmethod
     def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files,
@@ -425,8 +433,8 @@ class Trp_cage(Sutils):
         list_of_files.sort()   # to make the order consistent
         distances_list = []
         index = 0
+        num_of_residues = 20
         for item in list_of_files:
-            num_of_residues = 20
             p = PDB.PDBParser()
             structure = p.get_structure('X', item)
             atom_list = [item for item in structure.get_atoms()]
@@ -437,9 +445,10 @@ class Trp_cage(Sutils):
                 if index % step_interval == 0:
                     assert (len(model) == num_of_residues)
                     p_distances = np.zeros((num_of_residues, num_of_residues))
-                    for _1, atom_1 in enumerate(model):
-                        for _2, atom_2 in enumerate(model):
-                            p_distances[_1][_2] += [atom_1 - atom_2]
+                    for _1 in range(num_of_residues):
+                        for _2 in range(_1 + 1, num_of_residues):
+                            p_distances[_2][_1] = p_distances[_1][_2] = model[_1] - model[_2]
+
                     distances_list += [p_distances]
                 index += 1
 
@@ -467,6 +476,28 @@ class Trp_cage(Sutils):
         sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
         diff = map(lambda x: np.linalg.norm(ref[0] - x), sample)
         return diff
+
+    @staticmethod
+    def metric_get_residue_9_16_distance(list_of_files, step_interval = 1):
+        list_of_files.sort()  # to make the order consistent
+        distance_9_16 = []
+        index = 0
+        num_of_residues = 20
+        for item in list_of_files:
+            p = PDB.PDBParser()
+            structure = p.get_structure('X', item)
+            atom_list = [item for item in structure.get_atoms()]
+            atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
+            atom_list = list(zip(*[iter(atom_list)] * num_of_residues))  # reshape the list
+
+            for model in atom_list:
+                if index % step_interval == 0:
+                    assert (len(model) == num_of_residues)
+                    distance_9_16 += [model[8] - model[15]]
+
+                index += 1
+
+        return distance_9_16
 
     @staticmethod
     def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):

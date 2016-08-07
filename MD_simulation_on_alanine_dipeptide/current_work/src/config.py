@@ -26,7 +26,7 @@ CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all co
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
 CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
-CONFIG_5 = 50 # max number of training steps
+CONFIG_5 = 100                   # max number of training steps
 CONFIG_6 = None # filename to save this network
 CONFIG_36 = 2              #   dimensionality
 if CONFIG_17[1] == CircularLayer:
@@ -44,12 +44,14 @@ else:
     raise Exception('molecule type error')
 
 CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
+CONFIG_42 = True                             # whether to enable force constant adjustable mode
 
 '''class iteration'''
 
 '''def train_network_and_save'''
 
 CONFIG_13 = 3  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_43 = True    # whether we need to parallelize training part, not recommended for single-core computers
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
@@ -72,7 +74,7 @@ CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
-CONFIG_41 = False    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
+CONFIG_41 = True    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
 
 if CONFIG_17[1] == CircularLayer:
     CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
@@ -97,12 +99,12 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = 3000 # num of simulation steps
-CONFIG_9 = 200   # force constant for biased simulations
+CONFIG_9 = 500   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
 ##########################################################################
-############   config for biased_simulation.py  ##########################
+############   config for biased_simulation{,_Trp_cage}.py  ##############
 ##########################################################################
 
 CONFIG_21 = 300   # simulation temperature
@@ -112,7 +114,7 @@ CONFIG_23 = 'Reference'   # simulation platform
 CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
-CONFIG_32 = 10000           # maximum force constant allowed (for force constant adjustable mode)
-CONFIG_34 = 1000            # force constant step, the value by which the force constant is increased each time (for force constant adjustable mode)
-CONFIG_35 = 0.3            # distance tolerance, max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)
+CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)
+CONFIG_34 = 500            # force constant step, the value by which the force constant is increased each time (for force constant adjustable mode)
+CONFIG_35 = 0.05            # distance tolerance, max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)
 

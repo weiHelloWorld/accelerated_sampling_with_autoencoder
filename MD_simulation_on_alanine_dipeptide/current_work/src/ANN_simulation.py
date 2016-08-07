@@ -20,12 +20,7 @@ from config.py
 
 ##################    set types of molecules  ############################
 
-if CONFIG_30 == "Alanine_dipeptide":
-    molecule_type = Alanine_dipeptide()
-elif CONFIG_30 == "Trp_cage":
-    molecule_type = Trp_cage()
-else:
-    raise Exception("molecule type not found")
+molecule_type = Sutils.create_subclass_instance_using_name(CONFIG_30)
 
 ##########################################################################
 
@@ -33,13 +28,15 @@ class coordinates_data_files_list(object):
     def __init__(self,
                 list_of_dir_of_coor_data_files = CONFIG_1, # this is the directory that holds corrdinates data files
                 ):
+        assert (isinstance(list_of_dir_of_coor_data_files, list))    # to avoid passing the string in the constructor
         self._list_of_dir_of_coor_data_files = list_of_dir_of_coor_data_files
         self._list_of_coor_data_files = []
 
         for item in self._list_of_dir_of_coor_data_files:
-            self._list_of_coor_data_files += subprocess.check_output(['find', item,'-name' ,'*coordinates.txt']).strip().split('\n')
+            self._list_of_coor_data_files += subprocess.check_output('find %s -name *coordinates.txt' % item, shell=True).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
+        self._list_of_coor_data_files = filter(lambda x: os.stat(x).st_size > 0, self._list_of_coor_data_files)   # remove empty files
         self._list_of_coor_data_files.sort()                # to be consistent
         self._list_of_line_num_of_coor_data_file = map(lambda x: int(subprocess.check_output(['wc', '-l', x]).strip().split()[0]),
                                                        self._list_of_coor_data_files)
@@ -294,7 +291,7 @@ class neural_network_for_simulation(object):
         ####################### set up autoencoder begin #######################
         node_num = self._node_num
 
-        in_layer = (self._in_layer_type)(node_num[0], "IL")
+        in_layer = self._in_layer_type(node_num[0], "IL")
         num_of_hidden_layers = len(self._hidden_layers_type)
 
         if num_of_hidden_layers == 3:  # 5-layer autoencoder
@@ -305,8 +302,10 @@ class neural_network_for_simulation(object):
         elif num_of_hidden_layers == 1:
             hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1")]
             bias_layers = [BiasUnit("B1"),BiasUnit("B2")]
+        else:
+            raise Exception("this num of hidden layers is not implemented")
 
-        out_layer = (self._out_layer_type)(node_num[num_of_hidden_layers + 1], "OL")
+        out_layer = self._out_layer_type(node_num[num_of_hidden_layers + 1], "OL")
 
         self._in_layer = in_layer
         self._out_layer = out_layer
@@ -358,7 +357,7 @@ class neural_network_for_simulation(object):
         print('Done training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
               (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
         self._trainer = trainer
-        return
+        return self
 
     def get_training_error(self):
         # it turns out that this error info cannot be a good measure of the quality of the autoencoder
@@ -381,9 +380,9 @@ class neural_network_for_simulation(object):
                                                   autoencoder_info_file=None,
                                                   force_constant_for_biased = None,
                                                   ):
-        '''this function creates a list of commands for further biased simulations that should be done later,
+        """this function creates a list of commands for further biased simulations that should be done later,
         either in local machines or on the cluster
-        '''
+        """
         PCs_of_network = self.get_PCs()
         if self._hidden_layers_type[1] == CircularLayer:
             assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
@@ -404,23 +403,25 @@ class neural_network_for_simulation(object):
         for potential_center in list_of_potential_center:
             if isinstance(molecule_type, Alanine_dipeptide):
                 parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                            '../target/Alanine_dipeptide/network_%d' % (self._index),
+                            '../target/Alanine_dipeptide/network_%d' % self._index,
                                   autoencoder_info_file,
-                            'pc_' + str(potential_center).replace(' ','')[1:-1],  # need to remove white space, otherwise parsing error
-                            '../resources/Alanine_dipeptide/network_%d.pkl' % (self._index)
+                            'pc_' + str(potential_center).replace(' ','')[1:-1]  # need to remove white space, otherwise parsing error
                             )
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --fc_adjustable --autoencoder_file %s --remove_previous" \
-                          % parameter_list
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
+                if CONFIG_42:           # whether the force constant adjustable mode is enabled
+                    command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
+                        '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
+
             elif isinstance(molecule_type, Trp_cage):
-                # FIXME: this is outdated, should be fixed
                 parameter_list =  (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
-                                   '../target/Trp_cage/network_%d/' % (self._index),
+                                   '../target/Trp_cage/network_%d/' % self._index,
                                    autoencoder_info_file,
                                    'pc_' + str(potential_center).replace(' ', '')[1:-1],
                                    CONFIG_40, 'NVT')
                 command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s" % parameter_list
-                pass
-                # command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s with_water 500" % parameter_list
+                if CONFIG_42:
+                    command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                        '../resources/Trp_cage/network_%d.pkl' % self._index)
             else:
                 raise Exception("molecule type not defined")
 
@@ -551,7 +552,7 @@ class neural_network_for_simulation(object):
                     f_out.write('%f\t' % item)
                 f_out.write('\n')
 
-        start_index = end_index = 0
+        end_index = 0
         for item, count in enumerate(window_counts):
             start_index = int(end_index)
             end_index = int(start_index + count)
@@ -570,8 +571,8 @@ class neural_network_for_simulation(object):
                 y = [item[1] for item in coords[start_index:end_index]]
                 temp_hist, _, _ = np.histogram2d(y, x, bins=(binEdges[0], binEdges[1]))
                 for row in temp_hist:
-                    for item in row:
-                        f_out_3.write('%d\t' % item)
+                    for _1 in row:
+                        f_out_3.write('%d\t' % _1)
 
         return
 
@@ -619,10 +620,13 @@ class plotting(object):
             labels = ["PC1", "PC2"]
 
         elif plotting_space == "phipsi":
+            assert (isinstance(molecule_type, Alanine_dipeptide))
             temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(cossin_data)
 
             (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
             labels = ["phi", "psi"]
+        else:
+            raise Exception('plotting_space not defined!')
 
         # coloring
         if color_option == 'pure':
@@ -641,6 +645,8 @@ class plotting(object):
                 temp_coors = [list(item) for item in zip(x, y)]
                 r_neigh.fit(temp_coors, coloring)
                 coloring = r_neigh.predict(temp_coors)
+        else:
+            raise Exception('color_option not defined!')
 
         im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
@@ -738,13 +744,14 @@ class plotting(object):
 
         return fig_object, axis_object
 
-    def plotting_potential_centers(self, fig_object, axis_object,
+    @staticmethod
+    def plotting_potential_centers(fig_object, axis_object,
                                    list_of_coor_data_files, marker='x'):
         potential_centers = [single_biased_simulation_data(None, item)._potential_center for item in list_of_coor_data_files]
         [x, y] = list(zip(*potential_centers))
 
         axis_object.scatter(x, y, marker=marker)
-        return
+        return fig_object, axis_object
 
 
 class iteration(object):
@@ -755,56 +762,49 @@ class iteration(object):
         self._network = network
 
     def train_network_and_save(self, training_interval=None, num_of_trainings = CONFIG_13):
-        '''num_of_trainings is the number of trainings that we are going to run, and 
+        """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
-        '''
+        """
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
         my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
         data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
 
-        max_FVE = 0
-        current_network = None
-        
-        # start of multiprocessing
-        # from multiprocessing import Process
-        # temp_training = lambda x: neural_network_for_simulation(index=self._index,
-        #                                                  data_set_for_training= data_set,
-        #                                                  training_data_interval=training_interval,
-        #                                                 )
- 
-        # temp_list_of_trained_autoencoders = map(temp_training, range(num_of_trainings))
-        # print (temp_list_of_trained_autoencoders)
-        
-        # task_list = range(num_of_trainings)
-        # for item in range(num_of_trainings):
-        #     task_list[item] = Process(target = temp_list_of_trained_autoencoders[item].train)
-        #     task_list[item].start()
-         
-        # map(lambda x: x.join(), task_list)
-            
+        parallelize_training = CONFIG_43
+        if parallelize_training:
+            from multiprocessing import Process
+            training_and_saving_task = lambda x: neural_network_for_simulation(index=self._index,
+                                                                           data_set_for_training=data_set,
+                                                                           training_data_interval=training_interval,
+                                                                           ).train().save_into_file(x)
+            task_list = list(range(num_of_trainings))
+            temp_intermediate_result_file_list = ['/tmp/%d.pkl' % item for item in range(num_of_trainings)]
+            for item in range(num_of_trainings):
+                task_list[item] = Process(target = training_and_saving_task, args = (temp_intermediate_result_file_list[item], ))   # train and save intermediate result in /tmp folder
+                task_list[item].start()
 
-        # print ('temp_FVE_list =')
-        # print (temp_list_of_trained_autoencoders[0].get_fraction_of_variance_explained())
-        # print (map(lambda x: x.get_fraction_of_variance_explained(), temp_list_of_trained_autoencoders))
-        # current_network = max(temp_list_of_trained_autoencoders, get_fraction_of_variance_explained)  # find the network with largest FVE
-        # print("max_FVE = %f" % current_network.get_fraction_of_variance_explained())
-        # end of multiprocessing
+            map(lambda x: x.join(), task_list)
+            temp_networks = [Sutils.load_object_from_pkl_file(item) for item in temp_intermediate_result_file_list]
 
+        else:
+            temp_networks = [neural_network_for_simulation(index=self._index,
+                                                           data_set_for_training=data_set,
+                                                           training_data_interval=training_interval,
+                                                           )
+                             for _ in range(num_of_trainings)]
+            for item in temp_networks:
+                item.train()
 
-        for item in range(num_of_trainings):
-            temp_network = neural_network_for_simulation(index=self._index,
-                                                         data_set_for_training= data_set,
-                                                         training_data_interval=training_interval,
-                                                        )
+        temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_networks]
+        max_FVE = max(temp_FVE_list)
+        print("temp_FVE_list = %s, max_FVE = %s" % (str(temp_FVE_list), str(max_FVE)))
 
-            temp_network.train()
-            print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))
-            if temp_network.get_fraction_of_variance_explained() > max_FVE:
-                max_FVE = temp_network.get_fraction_of_variance_explained()
-                print("max_FVE = %f" % max_FVE)
-                assert(max_FVE > 0)
-                current_network = copy.deepcopy(temp_network)
+        select_network_manually = False
+        if select_network_manually:
+            network_index = int(raw_input('select a network:'))
+            current_network = temp_networks[network_index]
+        else:
+            current_network = temp_networks[temp_FVE_list.index(max_FVE)]
 
         current_network.save_into_file()
         self._network = current_network
@@ -876,7 +876,7 @@ class simulation_with_ANN_main(object):
         if num is None: num = self._num_of_iterations
 
         current_iter = self._initial_iteration
-        for item in range(num):
+        for _ in range(num):
             self.run_one_iteration(current_iter)
             next_index = current_iter._index + 1
             current_iter = iteration(next_index, None)
@@ -884,9 +884,8 @@ class simulation_with_ANN_main(object):
         return
 
 class single_biased_simulation_data(object):
-    '''TODO: This class is not completed'''
     def __init__(self, my_network, file_for_single_biased_simulation_coor):
-        '''my_network is the corresponding network for this biased simulation'''
+        """my_network is the corresponding network for this biased simulation"""
         self._file_for_single_biased_simulation_coor = file_for_single_biased_simulation_coor
         self._my_network = my_network
         temp_potential_center_string = file_for_single_biased_simulation_coor.split('_pc_[')[1].split(']')[0]
@@ -912,9 +911,9 @@ class single_biased_simulation_data(object):
         return center_of_data_cloud
 
     def get_offset_between_potential_center_and_data_cloud_center(self):
-        '''see if the push in this biased simulation actually works, large offset means it
+        """see if the push in this biased simulation actually works, large offset means it
         does not work well
-        '''
+        """
         PCs_average = self.get_center_of_data_cloud_in_this_biased_simulation()
         offset = [PCs_average[item] - self._potential_center[item] for item in range(self._dimension_of_PCs)]
         return offset
