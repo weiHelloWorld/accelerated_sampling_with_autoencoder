@@ -347,15 +347,21 @@ class neural_network_for_simulation(object):
         for item in data_as_input_to_network:
             data_set.addSample(item, item)
 
-        print('start training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
-              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
+        training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
+        parameter = [learning rate: %f, momentum: %f, weightdecay: %f, lrdecay: %f]\n''' %\
+                     (self._index, self._max_num_of_training, str(self._node_num),
+                      str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''), len(data_as_input_to_network),
+                      self._network_parameters[0], self._network_parameters[1], self._network_parameters[2], self._network_parameters[3],)
+
+        print("Start " + training_print_info)
+
         trainer.trainUntilConvergence(data_set, maxEpochs=self._max_num_of_training)
 
         self._connection_between_layers = connection_between_layers
         self._connection_with_bias_layers = connection_with_bias_layers
 
-        print('Done training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s\n' %
-              (self._index, self._max_num_of_training, str(self._node_num), str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", '')))
+        print('Done ' + training_print_info)
+
         self._trainer = trainer
         return self
 

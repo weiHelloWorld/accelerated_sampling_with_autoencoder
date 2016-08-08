@@ -13,6 +13,10 @@ parser.add_argument("--num_of_input_nodes", type=int, default=None, help="number
 parser.add_argument("--num_of_hidden_nodes", type=int, default=15, help="number of hidden nodes")
 parser.add_argument("--num_of_PCs", type=int, default=2, help="number of PCs")
 parser.add_argument("--PC_layer_type", type=str, default='TanhLayer', help='PC layer type')
+parser.add_argument("--learning_rate", type=float, default=0.002, help='learning rate')
+parser.add_argument("--momentum", type=float, default=0.4, help= "momentum (the ratio by which the gradient of the last timestep is used)")
+parser.add_argument("--weightdecay", type=float, default=0.1, help="weight decay")
+parser.add_argument("--verbose", help="whether to print training info", action="store_true")
 args = parser.parse_args()
 
 molecule_type = Sutils.create_subclass_instance_using_name(args.molecule_type)
@@ -43,9 +47,9 @@ a = neural_network_for_simulation(index=1447,
                                   data_set_for_training=data,
                                   node_num=[num_of_input_nodes, args.num_of_hidden_nodes, num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
                                   max_num_of_training=args.max_num_of_training,
-                                  network_verbose=False,
-                                  network_parameters=[0.002, 0.4, 0.2, 1],
-                                  hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer]
+                                  network_parameters=[args.learning_rate, args.momentum, args.weightdecay, 1],
+                                  hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer],
+                                  network_verbose = args.verbose
                                   )
 
 a.train().save_into_file(args.autoencoder_file_name)
