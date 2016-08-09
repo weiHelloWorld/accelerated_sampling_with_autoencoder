@@ -5,7 +5,6 @@ from simtk.openmm import *
 from simtk.unit import *
 from sys import stdout
 import ast
-from ANN import *
 from config import *
 
 ############################ PARAMETERS BEGIN ###############################################################
@@ -38,6 +37,9 @@ args = parser.parse_args()
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
+
+if float(force_constant) != 0:
+    from ANN import *
 
 folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = args.autoencoder_info_file
@@ -130,7 +132,7 @@ def run_simulation(force_constant):
         raise Exception("ensemble = %s not found!" % args.ensemble_type)
 
     # add custom force (only for biased simulation)
-    if force_constant != '0' and force_constant != 0:
+    if float(force_constant) != 0:
         force = ANN_Force()
 
         force.set_layer_types(layer_types)

@@ -26,7 +26,8 @@ class cluster_management(object):
             if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
                 item = item[:-1]
 
-            sge_filename = folder_to_store_sge_files + item.replace(' ', '_').replace('..', '_').replace('/','_').replace('&', '') + '.sge'
+            sge_filename = folder_to_store_sge_files + item.replace(' ', '_').replace('..', '_').replace('/','_')\
+                .replace('&', '').replace('--', '_').replace('__','_') + '.sge'
             content_for_sge_files = '''#!/bin/bash
 
 #$ -S /bin/bash           # use bash shell
