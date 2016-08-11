@@ -22,6 +22,8 @@ parser.add_argument("--temperature", type=int, default= 300, help='simulation te
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
+parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
+parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided)')
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -71,8 +73,7 @@ def run_simulation(force_constant):
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
                                                               str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
-    state_data_reporter_file = '%s/report_fc_%s_pc_%s_T_%d_%s.txt' % (folder_to_store_output_files, force_constant,
-                                                                     str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
+    state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
 
     if args.starting_pdb_file != '../resources/1l2y.pdb':
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
@@ -85,9 +86,6 @@ def run_simulation(force_constant):
 
     if os.path.isfile(state_data_reporter_file):
         os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
-
-    k1 = force_constant
-    k2 = force_constant
 
     flag_random_seed = 0 # whether we need to fix this random seed
 
@@ -163,6 +161,10 @@ def run_simulation(force_constant):
     simulation = Simulation(modeller.topology, system, integrator, platform)
     simulation.context.setPositions(modeller.positions)
 
+    if args.starting_checkpoint != '':
+        print args.starting_checkpoint
+        simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
+
     if args.minimize_energy:
         print('begin Minimizing energy...')
         simulation.minimizeEnergy()
@@ -174,6 +176,10 @@ def run_simulation(force_constant):
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
                                     step=True, potentialEnergy=True, kineticEnergy=True, temperature=True))
     simulation.step(total_number_of_steps)
+
+    if args.checkpoint:
+        checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
+        simulation.saveCheckpoint(checkpoint_file)
 
     print('Done!')
     return pdb_reporter_file
