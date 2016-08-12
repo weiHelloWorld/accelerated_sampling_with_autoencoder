@@ -424,7 +424,7 @@ class neural_network_for_simulation(object):
         if self._hierarchical:
             data_set = SupervisedDataSet(node_num[0], num_of_PCs * node_num[num_of_hidden_layers + 1])
             for item in data_as_input_to_network:
-                data_set.addSample(item, list(item) + list(item))    
+                data_set.addSample(item, list(item) * num_of_PCs)
         else:
             data_set = SupervisedDataSet(node_num[0], node_num[num_of_hidden_layers + 1])
             for item in data_as_input_to_network:
@@ -450,6 +450,7 @@ class neural_network_for_simulation(object):
         return self
 
     def get_training_error(self):
+        # FIXME: use activate function
         # it turns out that this error info cannot be a good measure of the quality of the autoencoder
         num_of_hidden_layers = len(self._hidden_layers_type)
         input_data = np.array(self._data_set)
@@ -457,6 +458,7 @@ class neural_network_for_simulation(object):
         return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
 
     def get_fraction_of_variance_explained(self):
+        # FIXME: use activate function
         input_data = np.array(self._data_set)
         num_of_hidden_layers = len(self._hidden_layers_type)
 
