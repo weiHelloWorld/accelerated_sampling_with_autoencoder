@@ -7,6 +7,8 @@ from pybrain.structure import *
 from pybrain.structure.modules.circularlayer import *
 from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets.supervised import SupervisedDataSet
+from pybrain.structure.connections.shared import MotherConnection,SharedFullConnection
+from pybrain.structure.moduleslice import ModuleSlice
 import matplotlib.pyplot as plt
 from config import * # configuration file
 from cluster_management import *
@@ -237,6 +239,7 @@ class neural_network_for_simulation(object):
         return
 
     def get_mid_result(self, input_data=None):
+        # TODO: should be fixed, since currently there are shared connections and full connections
         if input_data is None: input_data = self._data_set
         connection_between_layers = self._connection_between_layers
         connection_with_bias_layers = self._connection_with_bias_layers
@@ -253,7 +256,8 @@ class neural_network_for_simulation(object):
         hidden_and_out_layers = self._hidden_layers + [self._out_layer]
 
         for item in data_as_input_to_network:
-            for i in range(num_of_hidden_layers + 1):
+            for i in range(num_of_hidden_layers / 2 + 1):
+                # FIXME: here we only calculate the first half of the network, need to be fixed later
                 mul_coef = connection_between_layers[i].params.reshape(node_num[i + 1], node_num[i]) # fix node_num
                 bias_coef = connection_with_bias_layers[i].params
                 previous_result = item if i == 0 else temp_mid_result[i - 1]
@@ -292,6 +296,8 @@ class neural_network_for_simulation(object):
 
         ####################### set up autoencoder begin #######################
         node_num = self._node_num
+        num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
+        num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
 
         in_layer = self._in_layer_type(node_num[0], "IL")
         num_of_hidden_layers = len(self._hidden_layers_type)
@@ -305,9 +311,6 @@ class neural_network_for_simulation(object):
             else:
                 raise Exception("this num of hidden layers is not implemented")
 
-            num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
-            num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
-                
             out_layer = self._out_layer_type(node_num[num_of_hidden_layers + 1] * num_of_PCs, "OL")
             
             parts_of_PC_layer = [ModuleSlice(hidden_layers[1], outSliceFrom=item * num_of_PC_nodes_for_each_PC, 
