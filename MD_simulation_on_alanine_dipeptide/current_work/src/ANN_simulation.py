@@ -111,7 +111,8 @@ class neural_network_for_simulation(object):
                  max_num_of_training = CONFIG_5,
                  filename_to_save_network = CONFIG_6,
                  network_verbose = False,
-                 trainer = None
+                 trainer = None,
+                 hierarchical=False
                  ):
 
         self._index = index
@@ -141,6 +142,7 @@ class neural_network_for_simulation(object):
         self._network_verbose = network_verbose
 
         self._trainer = trainer  # save the trainer so that we could train this network step by step later
+        self._hierarchical = hierarchical
         return
 
     def save_into_file(self, filename = CONFIG_6):
@@ -294,41 +296,113 @@ class neural_network_for_simulation(object):
         in_layer = self._in_layer_type(node_num[0], "IL")
         num_of_hidden_layers = len(self._hidden_layers_type)
 
-        if num_of_hidden_layers == 3:  # 5-layer autoencoder
-            hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1"),
-                             (self._hidden_layers_type[1])(node_num[2], "HL2"),
-                             (self._hidden_layers_type[2])(node_num[3], "HL3")]
-            bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
-        elif num_of_hidden_layers == 1:
-            hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1")]
-            bias_layers = [BiasUnit("B1"),BiasUnit("B2")]
+        if self._hierarchical:
+            if num_of_hidden_layers == 3:  # 5-layer autoencoder
+                hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL0"),
+                                 (self._hidden_layers_type[1])(node_num[2], "PC"),
+                                 (self._hidden_layers_type[2])(node_num[3] * num_of_PCs, "HL2")]
+                bias_layers = [BiasUnit("B0"),BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3")]
+            else:
+                raise Exception("this num of hidden layers is not implemented")
+
+            num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
+            num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
+                
+            out_layer = self._out_layer_type(node_num[num_of_hidden_layers + 1] * num_of_PCs, "OL")
+            
+            parts_of_PC_layer = [ModuleSlice(hidden_layers[1], outSliceFrom=item * num_of_PC_nodes_for_each_PC, 
+                                                                outSliceTo=(item + 1) * num_of_PC_nodes_for_each_PC )
+                                 for item in range(num_of_PCs)]
+            parts_hidden_2_layer = [ModuleSlice(hidden_layers[2], 
+                                                inSliceFrom=item * node_num[3], inSliceTo= (item + 1)  * node_num[3],
+                                                outSliceFrom=item * node_num[3], outSliceTo= (item + 1)  * node_num[3])
+                                         for item in range(num_of_PCs)]
+            parts_output_layer = [ModuleSlice(out_layer, inSliceFrom=item * node_num[4], 
+                                                   inSliceTo= (item + 1)  * node_num[4])
+                                         for item in range(num_of_PCs)]
+            self._parts_of_PC_layer = parts_of_PC_layer
+            self._parts_hidden_2_layer = parts_hidden_2_layer
+            self._parts_output_layer = parts_output_layer
+
+            self._in_layer = in_layer
+            self._out_layer = out_layer
+            self._hidden_layers = hidden_layers
+
+            layers_list = [in_layer] + hidden_layers + [out_layer]
+
+            molecule_net = FeedForwardNetwork()
+
+            molecule_net.addInputModule(in_layer)
+            for item in (hidden_layers + bias_layers):
+                molecule_net.addModule(item)
+
+            molecule_net.addOutputModule(out_layer)
+            
+            connection_between_layers = list(range(num_of_hidden_layers + 1))
+            connection_with_bias_layers = list(range(num_of_hidden_layers + 1))
+
+            # set up full connections
+            for i in range(2):
+                connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])
+                connection_with_bias_layers[i] = FullConnection(bias_layers[i], layers_list[i+1])
+                molecule_net.addConnection(connection_between_layers[i])  # connect two neighbor layers
+                molecule_net.addConnection(connection_with_bias_layers[i])
+
+            connection_with_bias_layers[2] = MotherConnection(node_num[3])
+            connection_with_bias_layers[3] = MotherConnection(node_num[4])
+            connection_between_layers[3] = MotherConnection(node_num[3] * node_num[4])
+            connection_between_layers[2] = [MotherConnection(node_num[3]) for _ in range(num_of_PCs)]
+            
+            for _1 in range(num_of_PCs):
+                molecule_net.addConnection(SharedFullConnection(connection_with_bias_layers[2], 
+                                                   bias_layers[2], parts_hidden_2_layer[_1]))
+                molecule_net.addConnection(SharedFullConnection(connection_with_bias_layers[3], 
+                                                   bias_layers[3], parts_output_layer[_1]))     
+            
+            for _1 in range(num_of_PCs):
+                molecule_net.addConnection(SharedFullConnection(connection_between_layers[3], parts_hidden_2_layer[_1],
+                                                      parts_output_layer[_1]))
+                
+            for _1 in range(num_of_PCs):
+                for _2 in range(_1, num_of_PCs):
+                    molecule_net.addConnection(SharedFullConnection(connection_between_layers[2][_1], 
+                                                parts_of_PC_layer[_1], parts_hidden_2_layer[_2]))
         else:
-            raise Exception("this num of hidden layers is not implemented")
+            if num_of_hidden_layers == 3:  # 5-layer autoencoder
+                hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1"),
+                                 (self._hidden_layers_type[1])(node_num[2], "HL2"),
+                                 (self._hidden_layers_type[2])(node_num[3], "HL3")]
+                bias_layers = [BiasUnit("B1"),BiasUnit("B2"),BiasUnit("B3"),BiasUnit("B4")]
+            elif num_of_hidden_layers == 1:
+                hidden_layers = [(self._hidden_layers_type[0])(node_num[1], "HL1")]
+                bias_layers = [BiasUnit("B1"),BiasUnit("B2")]
+            else:
+                raise Exception("this num of hidden layers is not implemented")
 
-        out_layer = self._out_layer_type(node_num[num_of_hidden_layers + 1], "OL")
+            out_layer = self._out_layer_type(node_num[num_of_hidden_layers + 1], "OL")
 
-        self._in_layer = in_layer
-        self._out_layer = out_layer
-        self._hidden_layers = hidden_layers
+            self._in_layer = in_layer
+            self._out_layer = out_layer
+            self._hidden_layers = hidden_layers
 
-        layers_list = [in_layer] + hidden_layers + [out_layer]
+            layers_list = [in_layer] + hidden_layers + [out_layer]
 
-        molecule_net = FeedForwardNetwork()
+            molecule_net = FeedForwardNetwork()
 
-        molecule_net.addInputModule(in_layer)
-        for item in (hidden_layers + bias_layers):
-            molecule_net.addModule(item)
+            molecule_net.addInputModule(in_layer)
+            for item in (hidden_layers + bias_layers):
+                molecule_net.addModule(item)
 
-        molecule_net.addOutputModule(out_layer)
+            molecule_net.addOutputModule(out_layer)
 
-        connection_between_layers = list(range(num_of_hidden_layers + 1))
-        connection_with_bias_layers = list(range(num_of_hidden_layers + 1))
+            connection_between_layers = list(range(num_of_hidden_layers + 1))
+            connection_with_bias_layers = list(range(num_of_hidden_layers + 1))
 
-        for i in range(num_of_hidden_layers + 1):
-            connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])
-            connection_with_bias_layers[i] = FullConnection(bias_layers[i], layers_list[i+1])
-            molecule_net.addConnection(connection_between_layers[i])  # connect two neighbor layers
-            molecule_net.addConnection(connection_with_bias_layers[i])
+            for i in range(num_of_hidden_layers + 1):
+                connection_between_layers[i] = FullConnection(layers_list[i], layers_list[i+1])
+                connection_with_bias_layers[i] = FullConnection(bias_layers[i], layers_list[i+1])
+                molecule_net.addConnection(connection_between_layers[i])  # connect two neighbor layers
+                molecule_net.addConnection(connection_with_bias_layers[i])
 
         molecule_net.sortModules()  # this is some internal initialization process to make this module usable
 
@@ -339,13 +413,19 @@ class neural_network_for_simulation(object):
                                                 weightdecay=self._network_parameters[2],
                                                 lrdecay=self._network_parameters[3],
                                                 verbose=self._network_verbose)
-        data_set = SupervisedDataSet(node_num[0], node_num[num_of_hidden_layers + 1])
+        
 
         sincos = self._data_set[::self._training_data_interval]  # pick some of the data to train
         data_as_input_to_network = sincos
 
-        for item in data_as_input_to_network:
-            data_set.addSample(item, item)
+        if self._hierarchical:
+            data_set = SupervisedDataSet(node_num[0], num_of_PCs * node_num[num_of_hidden_layers + 1])
+            for item in data_as_input_to_network:
+                data_set.addSample(item, list(item) + list(item))    
+        else:
+            data_set = SupervisedDataSet(node_num[0], node_num[num_of_hidden_layers + 1])
+            for item in data_as_input_to_network:
+                data_set.addSample(item, item)
 
         training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
         parameter = [learning rate: %f, momentum: %f, weightdecay: %f, lrdecay: %f]\n''' %\
@@ -363,6 +443,7 @@ class neural_network_for_simulation(object):
         print('Done ' + training_print_info)
 
         self._trainer = trainer
+        self._molecule_net = molecule_net
         return self
 
     def get_training_error(self):
