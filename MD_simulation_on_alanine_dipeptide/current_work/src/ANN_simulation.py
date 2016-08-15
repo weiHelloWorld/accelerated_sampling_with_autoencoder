@@ -354,7 +354,7 @@ class neural_network_for_simulation(object):
             connection_with_bias_layers[2] = MotherConnection(node_num[3])
             connection_with_bias_layers[3] = MotherConnection(node_num[4])
             connection_between_layers[3] = MotherConnection(node_num[3] * node_num[4])
-            connection_between_layers[2] = [MotherConnection(node_num[3]) for _ in range(num_of_PCs)]
+            connection_between_layers[2] = [MotherConnection(node_num[3] * num_of_PC_nodes_for_each_PC) for _ in range(num_of_PCs)]
             
             for _1 in range(num_of_PCs):
                 molecule_net.addConnection(SharedFullConnection(connection_with_bias_layers[2], 
