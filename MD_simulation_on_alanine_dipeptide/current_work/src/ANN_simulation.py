@@ -239,7 +239,15 @@ class neural_network_for_simulation(object):
         return
 
     def get_mid_result(self, input_data=None):
-        # TODO: should be fixed, since currently there are shared connections and full connections
+        if input_data is None: input_data = self._data_set
+        mid_result = []
+        for item in input_data:
+            self._molecule_net.activate(item)
+            mid_result.append([list(layer.outputbuffer[0]) for layer in self._molecule_net.modulesSorted[5:]]) # exclude bias nodes and input layer
+        return mid_result
+
+    def get_mid_result_bak_may_be_outdated(self, input_data=None):
+        # TODO: this function only works for non-hierarchical cases, for hierarchical cases it is not implemented
         if input_data is None: input_data = self._data_set
         connection_between_layers = self._connection_between_layers
         connection_with_bias_layers = self._connection_with_bias_layers
@@ -351,6 +359,7 @@ class neural_network_for_simulation(object):
                 molecule_net.addConnection(connection_between_layers[i])  # connect two neighbor layers
                 molecule_net.addConnection(connection_with_bias_layers[i])
 
+            # set up shared connections
             connection_with_bias_layers[2] = MotherConnection(node_num[3])
             connection_with_bias_layers[3] = MotherConnection(node_num[4])
             connection_between_layers[3] = MotherConnection(node_num[3] * node_num[4])
