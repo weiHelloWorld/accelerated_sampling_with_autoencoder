@@ -114,7 +114,7 @@ class neural_network_for_simulation(object):
                  filename_to_save_network = CONFIG_6,
                  network_verbose = False,
                  trainer = None,
-                 hierarchical=False
+                 hierarchical=CONFIG_44
                  ):
 
         self._index = index
@@ -145,6 +145,8 @@ class neural_network_for_simulation(object):
 
         self._trainer = trainer  # save the trainer so that we could train this network step by step later
         self._hierarchical = hierarchical
+        num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
+        self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         return
 
     def save_into_file(self, filename = CONFIG_6):
@@ -458,20 +460,30 @@ class neural_network_for_simulation(object):
         self._molecule_net = molecule_net
         return self
 
-    def get_training_error(self):
-        # FIXME: use activate function
-        # it turns out that this error info cannot be a good measure of the quality of the autoencoder
-        num_of_hidden_layers = len(self._hidden_layers_type)
+    def get_output_data(self, num_of_PCs=None):
+        output_data = np.array([self._molecule_net.activate(item) for item in self._data_set])
+        dim_of_output = self._node_num[-1]
+        if (not self._hierarchical) or num_of_PCs is None:
+            output_data = [item[- dim_of_output:] for item in output_data]
+        else:
+            output_data = [item[(num_of_PCs - 1) * dim_of_output: num_of_PCs * dim_of_output] for item in output_data]
+        return output_data
+
+    def get_training_error(self, num_of_PCs=None):
+        """
+        :param num_of_PCs: this option only works for hierarchical case, indicate you would like to get error with
+        a specific number of PCs (instead of all PCs)
+        """
         input_data = np.array(self._data_set)
-        output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
+        output_data = self.get_output_data(num_of_PCs)
+
         return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
 
-    def get_fraction_of_variance_explained(self):
-        # FIXME: use activate function
+    def get_fraction_of_variance_explained(self, num_of_PCs=None):
+        """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
-        num_of_hidden_layers = len(self._hidden_layers_type)
+        output_data = self.get_output_data((num_of_PCs))
 
-        output_data = np.array([item[num_of_hidden_layers] for item in self.get_mid_result()])
         var_of_input = sum(np.var(input_data, axis=0))
         var_of_err = sum(np.var(output_data - input_data, axis=0))
         return 1 - var_of_err / var_of_input
