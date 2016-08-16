@@ -5,7 +5,6 @@ from simtk.openmm.app import *
 from simtk.openmm import *
 from simtk.unit import *
 from sys import stdout
-from ANN import *
 import ast, argparse
 
 import os
@@ -36,6 +35,9 @@ args = parser.parse_args()
 
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
+force_constant = args.force_constant
+if float(force_constant) != 0:
+    from ANN import *
 
 folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = args.autoencoder_info_file
