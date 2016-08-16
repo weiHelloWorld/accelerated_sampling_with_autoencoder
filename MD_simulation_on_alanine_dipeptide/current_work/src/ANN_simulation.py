@@ -767,50 +767,81 @@ class iteration(object):
         self._index = index
         self._network = network
 
-    def train_network_and_save(self, training_interval=None, num_of_trainings = CONFIG_13):
-        """num_of_trainings is the number of trainings that we are going to run, and
+    # def train_network_and_save(self, training_interval=None, num_of_trainings = CONFIG_13):
+    #     """num_of_trainings is the number of trainings that we are going to run, and
+    #     then pick one that has the largest Fraction of Variance Explained (FVE),
+    #     by doing this, we might avoid network with very poor quality
+    #     """
+    #     if training_interval is None: training_interval = self._index  # to avoid too much time on training
+    #     my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
+    #     data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
+    #
+    #     parallelize_training = CONFIG_43
+    #     if parallelize_training:
+    #         from multiprocessing import Process
+    #         training_and_saving_task = lambda x: neural_network_for_simulation(index=self._index,
+    #                                                                        data_set_for_training=data_set,
+    #                                                                        training_data_interval=training_interval,
+    #                                                                        ).train().save_into_file(x)
+    #         task_list = list(range(num_of_trainings))
+    #         temp_intermediate_result_file_list = ['/tmp/%d.pkl' % item for item in range(num_of_trainings)]
+    #         for item in range(num_of_trainings):
+    #             task_list[item] = Process(target = training_and_saving_task, args = (temp_intermediate_result_file_list[item], ))   # train and save intermediate result in /tmp folder
+    #             task_list[item].start()
+    #
+    #         map(lambda x: x.join(), task_list)
+    #         temp_networks = [Sutils.load_object_from_pkl_file(item) for item in temp_intermediate_result_file_list]
+    #
+    #     else:
+    #         temp_networks = [neural_network_for_simulation(index=self._index,
+    #                                                        data_set_for_training=data_set,
+    #                                                        training_data_interval=training_interval,
+    #                                                        )
+    #                          for _ in range(num_of_trainings)]
+    #         for item in temp_networks:
+    #             item.train()
+    #
+    #     temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_networks]
+    #     max_FVE = max(temp_FVE_list)
+    #     print("temp_FVE_list = %s, max_FVE = %s" % (str(temp_FVE_list), str(max_FVE)))
+    #
+    #     select_network_manually = False
+    #     if select_network_manually:
+    #         network_index = int(raw_input('select a network:'))
+    #         current_network = temp_networks[network_index]
+    #     else:
+    #         current_network = temp_networks[temp_FVE_list.index(max_FVE)]
+    #
+    #     current_network.save_into_file()
+    #     self._network = current_network
+    #     return
+
+    def train_network_and_save(self, training_interval=None, num_of_trainings=CONFIG_13):
+        '''num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
-        """
+        '''
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
-        my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
+        my_file_list = coordinates_data_files_list(
+            list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
         data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
 
-        parallelize_training = CONFIG_43
-        if parallelize_training:
-            from multiprocessing import Process
-            training_and_saving_task = lambda x: neural_network_for_simulation(index=self._index,
-                                                                           data_set_for_training=data_set,
-                                                                           training_data_interval=training_interval,
-                                                                           ).train().save_into_file(x)
-            task_list = list(range(num_of_trainings))
-            temp_intermediate_result_file_list = ['/tmp/%d.pkl' % item for item in range(num_of_trainings)]
-            for item in range(num_of_trainings):
-                task_list[item] = Process(target = training_and_saving_task, args = (temp_intermediate_result_file_list[item], ))   # train and save intermediate result in /tmp folder
-                task_list[item].start()
+        max_FVE = 0
+        current_network = None
 
-            map(lambda x: x.join(), task_list)
-            temp_networks = [Sutils.load_object_from_pkl_file(item) for item in temp_intermediate_result_file_list]
+        for item in range(num_of_trainings):
+            temp_network = neural_network_for_simulation(index=self._index,
+                                                         data_set_for_training=data_set,
+                                                         training_data_interval=training_interval,
+                                                         )
 
-        else:
-            temp_networks = [neural_network_for_simulation(index=self._index,
-                                                           data_set_for_training=data_set,
-                                                           training_data_interval=training_interval,
-                                                           )
-                             for _ in range(num_of_trainings)]
-            for item in temp_networks:
-                item.train()
-
-        temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_networks]
-        max_FVE = max(temp_FVE_list)
-        print("temp_FVE_list = %s, max_FVE = %s" % (str(temp_FVE_list), str(max_FVE)))
-
-        select_network_manually = False
-        if select_network_manually:
-            network_index = int(raw_input('select a network:'))
-            current_network = temp_networks[network_index]
-        else:
-            current_network = temp_networks[temp_FVE_list.index(max_FVE)]
+            temp_network.train()
+            print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))
+            if temp_network.get_fraction_of_variance_explained() > max_FVE:
+                max_FVE = temp_network.get_fraction_of_variance_explained()
+                print("max_FVE = %f" % max_FVE)
+                assert (max_FVE > 0)
+                current_network = copy.deepcopy(temp_network)
 
         current_network.save_into_file()
         self._network = current_network
