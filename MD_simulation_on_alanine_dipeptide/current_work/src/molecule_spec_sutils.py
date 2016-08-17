@@ -206,7 +206,7 @@ class Sutils(object):
 
             err_left = mean_squared_error(y_left, y_left_pred)
             err_right = mean_squared_error(y_right, y_right_pred)
-            weighted_err = (err_left * item + err_right * (len(num) - item + 1)) / len(num)
+            weighted_err = (err_left * item + err_right * (len(num) - item + 1)) / (len(num) + 1)
             if weighted_err < min_weighted_err:
                 optimal_num = num[item]
                 min_weighted_err = weighted_err

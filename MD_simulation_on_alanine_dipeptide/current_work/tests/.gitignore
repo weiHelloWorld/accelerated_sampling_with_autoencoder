@@ -1,0 +1,5 @@
+.coverage
+*.png
+*.pdf
+*.jpg
+dependency/**
