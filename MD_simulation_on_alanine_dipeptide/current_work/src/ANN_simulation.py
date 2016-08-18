@@ -363,6 +363,7 @@ class neural_network_for_simulation(object):
         print('Done ' + training_print_info)
 
         self._trainer = trainer
+        self._molecule_net = molecule_net
         return self
 
     def get_training_error(self):

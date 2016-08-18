@@ -234,7 +234,11 @@ class test_neural_network_for_simulation(object):
         a = Sutils.load_object_from_pkl_file(autoencoder_pkl_path)
         assert isinstance(a, neural_network_for_simulation)
         mid_result =  a.get_mid_result()
+        # for _1 in range(4):
+        #     np.savetxt('output_mid_result_%d.txt' % _1, [item[_1] for item in mid_result])
+
         for _1 in range(4):
-            assert_almost_equal (np.loadtxt('dependency/out_mid_result/output_mid_result_%d.txt' % _1), [item[_1] for item in mid_result])
+            assert_almost_equal (np.loadtxt('dependency/out_mid_result/output_mid_result_%d.txt' % _1),
+                                 [item[_1] for item in mid_result])
         return
 
