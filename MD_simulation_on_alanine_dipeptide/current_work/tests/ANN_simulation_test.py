@@ -20,13 +20,14 @@ class test_Sutils(object):
         input_pdb = 'dependency/temp_output_0.pdb'
         output_pdb = "dependency/temp_output_0_interval_3.pdb"
         output_coor = output_pdb.replace('.pdb', '_coordinates.txt')
-        actual_output_coor = 'dependency/temp_output_0_coor_interval_3.txt'
-        Sutils.write_some_frames_into_a_new_file(input_pdb, 0, 0, 3, output_pdb)
-        if os.path.exists(output_coor):
-            subprocess.check_output(['rm', output_coor])
-        Alanine_dipeptide.generate_coordinates_from_pdb_files(output_pdb)
-        assert_almost_equal(np.loadtxt(output_coor), np.loadtxt(actual_output_coor))
-        subprocess.check_output(['rm', output_coor, output_pdb])
+        actual_output_coor = 'dependency/temp_output_0_coor.txt'
+        for interval in range(3, 10):
+            Sutils.write_some_frames_into_a_new_file(input_pdb, 0, 0, interval, output_pdb)
+            if os.path.exists(output_coor):
+                subprocess.check_output(['rm', output_coor])
+            Alanine_dipeptide.generate_coordinates_from_pdb_files(output_pdb)
+            assert_almost_equal(np.loadtxt(output_coor), np.loadtxt(actual_output_coor)[::interval])
+            subprocess.check_output(['rm', output_coor, output_pdb])
         return
 
     @staticmethod
@@ -129,13 +130,12 @@ class test_Alanine_dipeptide(object):
     def test_generate_coordinates_from_pdb_files():
         pdb_file_name = 'dependency/temp_output_0.pdb'
         actual_output_file = pdb_file_name.replace('.pdb', '_coordinates.txt')
-        expected_output_files = ['dependency/temp_output_0_coor.txt', 'dependency/temp_output_0_coor_interval_3.txt']
-        intervals = [1, 3]
-        for _1, _2 in zip(intervals, expected_output_files):
+        expected_output_files = 'dependency/temp_output_0_coor.txt'
+        for interval in range(1, 10):
             if os.path.exists(actual_output_file):
                 subprocess.check_output(['rm', actual_output_file])
-            Alanine_dipeptide.generate_coordinates_from_pdb_files(pdb_file_name, step_interval=_1)
-            assert_equal(np.loadtxt(actual_output_file), np.loadtxt(_2)), np.loadtxt(_2) - np.loadtxt(actual_output_file)
+            Alanine_dipeptide.generate_coordinates_from_pdb_files(pdb_file_name, step_interval=interval)
+            assert_equal(np.loadtxt(actual_output_file), np.loadtxt(expected_output_files)[::interval])
             subprocess.check_output(['rm', actual_output_file])
         return
 
