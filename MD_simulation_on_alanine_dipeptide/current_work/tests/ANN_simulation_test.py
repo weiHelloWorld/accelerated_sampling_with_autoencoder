@@ -226,3 +226,15 @@ class test_coordinates_data_files_list(object):
         assert sorted(a.get_list_of_corresponding_pdb_files()) == a.get_list_of_corresponding_pdb_files()
 
 
+class test_neural_network_for_simulation(object):
+    @staticmethod
+    def test_get_mid_result():
+        autoencoder_pkl_path = 'dependency/a_network_pkl_and_coef_file/network_1.pkl'
+        coef_file = 'dependency/a_network_pkl_and_coef_file/autoencoder_info_1.txt'
+        a = Sutils.load_object_from_pkl_file(autoencoder_pkl_path)
+        assert isinstance(a, neural_network_for_simulation)
+        mid_result =  a.get_mid_result()
+        for _1 in range(4):
+            assert_almost_equal (np.loadtxt('dependency/out_mid_result/output_mid_result_%d.txt' % _1), [item[_1] for item in mid_result])
+        return
+
