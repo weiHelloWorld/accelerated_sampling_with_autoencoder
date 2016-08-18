@@ -242,3 +242,44 @@ class test_neural_network_for_simulation(object):
                                  [item[_1] for item in mid_result])
         return
 
+
+class test_others(object):
+    @staticmethod
+    def test_Keras_first_example():
+        my_file_list = coordinates_data_files_list(['dependency/noncircular_alanine_exploration_data/'])
+        data = np.array(Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(
+            my_file_list.get_list_of_coor_data_files()))
+
+        dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
+
+        # try Keras
+        from keras.models import Sequential
+        from keras.optimizers import SGD
+        from keras.layers import Dense, Activation
+
+        model = Sequential()
+
+        model.add(Dense(input_dim=8, output_dim=15, activation='tanh'))
+        model.add(Dense(input_dim=15, output_dim=2, activation='tanh'))
+        model.add(Dense(input_dim=2, output_dim=15, activation='tanh'))
+        model.add(Dense(input_dim=15, output_dim=8, activation='linear'))
+
+        model.compile(loss='mean_squared_error', optimizer=SGD(lr=0.02, momentum=0.9, nesterov=True),
+                      metrics=['accuracy'])
+
+        model.fit(data, data, nb_epoch=50, batch_size=100)
+
+        # used to get mid results
+        model_2 = Sequential()
+
+        model_2.add(Dense(input_dim=8, output_dim=15, activation='tanh', weights=model.layers[0].get_weights()))
+        model_2.add(Dense(input_dim=15, output_dim=2, activation='tanh', weights=model.layers[1].get_weights()))
+
+        [x, y] = model_2.predict(data).T
+
+        phi = [item[2] for item in dihedrals]
+        fig, ax = plt.subplots()
+        ax.scatter(x, y, c=phi, cmap='gist_rainbow')
+
+        fig.savefig('try_keras.png')
+        return
