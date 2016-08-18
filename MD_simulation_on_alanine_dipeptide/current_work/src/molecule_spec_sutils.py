@@ -206,7 +206,7 @@ class Sutils(object):
 
             err_left = mean_squared_error(y_left, y_left_pred)
             err_right = mean_squared_error(y_right, y_right_pred)
-            weighted_err = (err_left * item + err_right * (len(num) - item + 1)) / len(num)
+            weighted_err = (err_left * item + err_right * (len(num) - item + 1)) / (len(num) + 1)
             if weighted_err < min_weighted_err:
                 optimal_num = num[item]
                 min_weighted_err = weighted_err
@@ -582,17 +582,20 @@ class Trp_cage(Sutils):
             content = content.split('MODEL')[1:]  # remove header
             assert (len(content) == len(class_labels))
 
-        index_of_most_common_class = np.where(class_labels == most_common_class_labels[0])[0]
-        if write_most_common_class_into_file:
-            if output_file_name is None:
-                output_file_name = sample_file.replace('.pdb', '_most_common.pdb')
+        if most_common_class_labels[0] == -1:
+            raise Exception("too many outliers, check if there is actually a cluster, or adjust parameters")
+        else:
+            index_of_most_common_class = np.where(class_labels == most_common_class_labels[0])[0]
+            if write_most_common_class_into_file:
+                if output_file_name is None:
+                    output_file_name = sample_file.replace('.pdb', '_most_common.pdb')
 
-            frames_to_use = [content[ii] for ii in index_of_most_common_class]
-            with open(output_file_name, 'w') as out_file:
-                for frame in frames_to_use:
-                    out_file.write("MODEL" + frame)
+                frames_to_use = [content[ii] for ii in index_of_most_common_class]
+                with open(output_file_name, 'w') as out_file:
+                    for frame in frames_to_use:
+                        out_file.write("MODEL" + frame)
 
-        return num_in_each_class, index_of_most_common_class
+        return num_in_each_class, index_of_most_common_class, most_common_class_labels[0]
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():

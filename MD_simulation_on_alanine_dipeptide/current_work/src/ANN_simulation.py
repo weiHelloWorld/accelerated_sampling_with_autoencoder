@@ -587,10 +587,9 @@ class plotting(object):
     """this class implements different plottings
     """
 
-    def __init__(self, network, related_coor_list_obj = None):
+    def __init__(self, network):
         assert isinstance(network, neural_network_for_simulation)
         self._network = network
-        self._related_coor_list_obj = related_coor_list_obj
         pass
 
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
@@ -607,11 +606,16 @@ class plotting(object):
                                             smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
                                             smoothing_radius = 0.1,
                                             enable_mousing_clicking_event = False,
+                                            related_coor_list_obj = None,
                                             saving_snapshot_mode = 'single_point'
                                       ):
         """
         by default, we are using training data, and we also allow external data input
+        :param related_coor_list_obj,  this must be specified when enable_mousing_clicking_event == True
         """
+        if enable_mousing_clicking_event and related_coor_list_obj is None:
+            raise Exception('related_coor_list_obj not defined!')
+
         if network is None: network = self._network
         if title is None: title = "plotting in %s, coloring with %s" % (plotting_space, color_option)  # default title
         if cossin_data_for_plotting is None:
@@ -669,10 +673,12 @@ class plotting(object):
 
         # mouse clicking event
         if enable_mousing_clicking_event:
-            if self._related_coor_list_obj is None:
-                raise Exception('related_coor_list_obj not defined!')
+            folder_to_store_these_frames = 'temp_pdb'
+            if not os.path.exists(folder_to_store_these_frames):
+                subprocess.check_output(['mkdir', folder_to_store_these_frames])
+
             # should calculate step_interval
-            total_num_of_lines_in_coor_files = sum(self._related_coor_list_obj.get_list_of_line_num_of_coor_data_file())
+            total_num_of_lines_in_coor_files = sum(related_coor_list_obj.get_list_of_line_num_of_coor_data_file())
             step_interval = int(total_num_of_lines_in_coor_files / len(cossin_data))
 
             if saving_snapshot_mode == 'multiple_points':
@@ -685,8 +691,8 @@ class plotting(object):
                     if isinstance(event.artist, matplotlib.text.Text):
                         if event.artist.get_text() == 'save_frames':
                             print temp_list_of_coor_index
-                            self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
-                                                                            'temp_pdb/temp_frames.pdb')  # TODO: better naming
+                            related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
+                                                                            folder_to_store_these_frames + '/temp_frames.pdb')  # TODO: better naming
 
                             temp_list_of_coor_index = []  # output pdb file and clean up
                             print ('done saving frames!')
@@ -709,9 +715,9 @@ class plotting(object):
                         temp_ind_list = [item * step_interval for item in ind_list]  # should include step_interval
                         average_x = sum([x[item] for item in ind_list]) / len(ind_list)
                         average_y = sum([y[item] for item in ind_list]) / len(ind_list)
-                        out_file_name = 'temp_pdb/temp_frames_[%f,%f].pdb' % (average_x, average_y)
+                        out_file_name = folder_to_store_these_frames + '/temp_frames_[%f,%f].pdb' % (average_x, average_y)
 
-                        self._related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_ind_list,
+                        related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_ind_list,
                             out_file_name=out_file_name)
                         # need to verify PCs generated from this output pdb file are consistent from those in the list selected
                         molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
@@ -719,7 +725,6 @@ class plotting(object):
                             list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
                         PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
                         assert (PCs_of_points_selected == [[x[item], y[item]] for item in ind_list])
-
 
                     return
             else:
