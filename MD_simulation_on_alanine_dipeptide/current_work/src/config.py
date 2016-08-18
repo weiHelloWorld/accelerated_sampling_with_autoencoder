@@ -16,7 +16,7 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 
 '''class coordinates_data_files_list:'''
 
@@ -45,6 +45,7 @@ else:
 
 CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
+CONFIG_44 = True                             # whether to use hierarchical autoencoder
 
 '''class iteration'''
 
