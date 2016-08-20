@@ -129,10 +129,6 @@ class neural_network_for_simulation(object):
         if not hidden_layers_types is None: self._hidden_layers_type = hidden_layers_types
         if not out_layer_type is None: self._out_layer_type = out_layer_type
 
-        self._in_layer = None
-        self._out_layer = None
-        self._hidden_layers = None
-
         self._node_num = node_num
         self._network_parameters = network_parameters
         self._max_num_of_training = max_num_of_training
@@ -147,6 +143,9 @@ class neural_network_for_simulation(object):
         self._hierarchical = hierarchical
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
+        self._molecule_net = None
+        self._connection_between_layers = None
+        self._connection_with_bias_layers = None
         return
 
     def save_into_file(self, filename = CONFIG_6):
@@ -248,37 +247,6 @@ class neural_network_for_simulation(object):
             mid_result.append([list(layer.outputbuffer[0]) for layer in self._molecule_net.modulesSorted[5:]]) # exclude bias nodes and input layer
         return mid_result
 
-    def get_mid_result_bak_may_be_outdated(self, input_data=None):
-        # TODO: this function only works for non-hierarchical cases, for hierarchical cases it is not implemented
-        if input_data is None: input_data = self._data_set
-        connection_between_layers = self._connection_between_layers
-        connection_with_bias_layers = self._connection_with_bias_layers
-
-        node_num = self._node_num
-        num_of_hidden_layers = len(self._hidden_layers_type)
-
-        temp_mid_result = list(range(num_of_hidden_layers + 1))
-        temp_mid_result_in = list(range(num_of_hidden_layers + 1))
-        mid_result = []
-
-        data_as_input_to_network = input_data
-
-        hidden_and_out_layers = self._hidden_layers + [self._out_layer]
-
-        for item in data_as_input_to_network:
-            for i in range(num_of_hidden_layers / 2 + 1):
-                # FIXME: here we only calculate the first half of the network, need to be fixed later
-                mul_coef = connection_between_layers[i].params.reshape(node_num[i + 1], node_num[i]) # fix node_num
-                bias_coef = connection_with_bias_layers[i].params
-                previous_result = item if i == 0 else temp_mid_result[i - 1]
-                temp_mid_result_in[i] = np.dot(mul_coef, previous_result) + bias_coef
-                output_of_this_hidden_layer = list(range(len(temp_mid_result_in[i])))  # initialization
-                hidden_and_out_layers[i]._forwardImplementation(temp_mid_result_in[i], output_of_this_hidden_layer)
-                temp_mid_result[i] = output_of_this_hidden_layer
-
-            mid_result.append(copy.deepcopy(temp_mid_result)) # note that should use deepcopy
-        return mid_result
-
     def get_PCs(self, input_data = None):
         """
         write an independent function for getting PCs, since it is different for TanhLayer, and CircularLayer
@@ -337,10 +305,6 @@ class neural_network_for_simulation(object):
             self._parts_hidden_2_layer = parts_hidden_2_layer
             self._parts_output_layer = parts_output_layer
 
-            self._in_layer = in_layer
-            self._out_layer = out_layer
-            self._hidden_layers = hidden_layers
-
             layers_list = [in_layer] + hidden_layers + [out_layer]
 
             molecule_net = FeedForwardNetwork()
@@ -394,10 +358,6 @@ class neural_network_for_simulation(object):
                 raise Exception("this num of hidden layers is not implemented")
 
             out_layer = self._out_layer_type(node_num[num_of_hidden_layers + 1], "OL")
-
-            self._in_layer = in_layer
-            self._out_layer = out_layer
-            self._hidden_layers = hidden_layers
 
             layers_list = [in_layer] + hidden_layers + [out_layer]
 
@@ -482,7 +442,7 @@ class neural_network_for_simulation(object):
     def get_fraction_of_variance_explained(self, num_of_PCs=None):
         """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
-        output_data = self.get_output_data((num_of_PCs))
+        output_data = self.get_output_data(num_of_PCs)
 
         var_of_input = sum(np.var(input_data, axis=0))
         var_of_err = sum(np.var(output_data - input_data, axis=0))
@@ -929,10 +889,10 @@ class iteration(object):
     #     return
 
     def train_network_and_save(self, training_interval=None, num_of_trainings=CONFIG_13):
-        '''num_of_trainings is the number of trainings that we are going to run, and
+        """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
-        '''
+        """
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
         my_file_list = coordinates_data_files_list(
             list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
@@ -941,7 +901,7 @@ class iteration(object):
         max_FVE = 0
         current_network = None
 
-        for item in range(num_of_trainings):
+        for _ in range(num_of_trainings):
             temp_network = neural_network_for_simulation(index=self._index,
                                                          data_set_for_training=data_set,
                                                          training_data_interval=training_interval,
