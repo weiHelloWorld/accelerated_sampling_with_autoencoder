@@ -144,8 +144,8 @@ class neural_network_for_simulation(object):
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._molecule_net = None
-        self._connection_between_layers = None
-        self._connection_with_bias_layers = None
+        self._connection_between_layers_coeffs = None
+        self._connection_with_bias_layers_coeffs = None
         return
 
     def save_into_file(self, filename = CONFIG_6):
@@ -168,17 +168,14 @@ class neural_network_for_simulation(object):
         # which is consistent with ANN_Force, instead of [cos, cos, cos, cos, sin, sin, sin, sin]
         type_of_middle_hidden_layer = self._hidden_layers_type[1]
 
-        connection_between_layers = self._connection_between_layers
-        connection_with_bias_layers = self._connection_with_bias_layers
-
         node_num = self._node_num
         expression = ""
 
         # 1st part: network
         for i in range(2):
             expression = '\n' + expression
-            mul_coef = connection_between_layers[i].params.reshape(node_num[i + 1], node_num[i])
-            bias_coef = connection_with_bias_layers[i].params
+            mul_coef = self._connection_between_layers_coeffs[i].reshape(node_num[i + 1], node_num[i])
+            bias_coef = self._connection_with_bias_layers_coeffs[i]
 
             for j in range(np.size(mul_coef, 0)):                
                 temp_expression = 'in_layer_%d_unit_%d = ' % (i + 1, j)
@@ -231,11 +228,11 @@ class neural_network_for_simulation(object):
 
         with open(out_file, 'w') as f_out:
             for item in [0, 1]:
-                f_out.write(str(list(self._connection_between_layers[item].params)))
+                f_out.write(str(list(self._connection_between_layers_coeffs[item])))
                 f_out.write(',\n')
 
             for item in [0, 1]:
-                f_out.write(str(list(self._connection_with_bias_layers[item].params)))
+                f_out.write(str(list(self._connection_with_bias_layers_coeffs[item])))
                 f_out.write(',\n')
         return
 
@@ -411,8 +408,8 @@ class neural_network_for_simulation(object):
 
         trainer.trainUntilConvergence(data_set, maxEpochs=self._max_num_of_training)
 
-        self._connection_between_layers = connection_between_layers
-        self._connection_with_bias_layers = connection_with_bias_layers
+        self._connection_between_layers_coeffs = [item.params for item in connection_between_layers]
+        self._connection_with_bias_layers_coeffs = [item.params for item in connection_with_bias_layers]
 
         print('Done ' + training_print_info)
 
