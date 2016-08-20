@@ -1,17 +1,10 @@
 from config import * # configuration file
 from cluster_management import *
-from molecule_spec_sutils import *  # import molecule specific unitity code
 from autoencoders import *
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py
 """
-
-##################    set types of molecules  ############################
-
-molecule_type = Sutils.create_subclass_instance_using_name(CONFIG_30)
-
-##########################################################################
 
 class coordinates_data_files_list(object):
     def __init__(self,

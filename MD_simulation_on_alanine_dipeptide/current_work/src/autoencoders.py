@@ -1,4 +1,11 @@
 from config import *
+from molecule_spec_sutils import *  # import molecule specific unitity code
+
+##################    set types of molecules  ############################
+
+molecule_type = Sutils.create_subclass_instance_using_name(CONFIG_30)
+
+##########################################################################
 
 class neural_network_for_simulation(object):
     """the neural network for simulation"""
@@ -17,7 +24,8 @@ class neural_network_for_simulation(object):
                  filename_to_save_network=CONFIG_6,
                  network_verbose=False,
                  trainer=None,
-                 hierarchical=CONFIG_44
+                 hierarchical=CONFIG_44,
+                 training_backend = CONFIG_45
                  ):
 
         self._index = index
@@ -50,6 +58,7 @@ class neural_network_for_simulation(object):
         self._molecule_net = None
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
+        self._training_backend = training_backend
         return
 
     def save_into_file(self, filename=CONFIG_6):

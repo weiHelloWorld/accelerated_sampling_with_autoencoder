@@ -63,6 +63,7 @@ else:
 CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
+CONFIG_45 = 'pybrain'                         # training backend
 
 '''class iteration'''
 

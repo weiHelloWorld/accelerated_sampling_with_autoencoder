@@ -230,12 +230,13 @@ class test_coordinates_data_files_list(object):
 
 
 class test_neural_network_for_simulation(object):
-    @staticmethod
-    def test_get_mid_result():
+    def __init__(self):
         autoencoder_pkl_path = 'dependency/a_network_pkl_and_coef_file/network_1.pkl'
-        a = Sutils.load_object_from_pkl_file(autoencoder_pkl_path)
-        assert isinstance(a, neural_network_for_simulation)
-        mid_result =  a.get_mid_result()
+        self._network = Sutils.load_object_from_pkl_file(autoencoder_pkl_path)
+
+    def test_get_mid_result(self):
+        assert isinstance(self._network, neural_network_for_simulation)
+        mid_result =  self._network.get_mid_result()
         # for _1 in range(4):
         #     np.savetxt('output_mid_result_%d.txt' % _1, [item[_1] for item in mid_result])
 
@@ -243,6 +244,59 @@ class test_neural_network_for_simulation(object):
             assert_almost_equal (np.loadtxt('dependency/out_mid_result/output_mid_result_%d.txt' % _1),
                                  [item[_1] for item in mid_result])
         return
+
+    def test_write_coefficients_of_connections_into_file(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.write_coefficients_of_connections_into_file('test_coeff.txt')
+        return
+
+    def test_write_expression_into_file(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.write_expression_into_file('test_expression.txt')
+        return
+
+    def test_get_output_data(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        np.savetxt('test_get_output_data.txt', self._network.get_output_data())
+        return
+
+    def test_get_training_error(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.get_training_error()
+        return
+
+    def test_get_fraction_of_variance_explained(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.get_fraction_of_variance_explained()
+        return
+
+    def test_get_commands_for_further_biased_simulations(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        commands = self._network.get_commands_for_further_biased_simulations()
+        with open("test_get_commands_for_further_biased_simulations.txt", 'w') as my_f:
+            for item in commands:
+                my_f.write(str(item) + '\n')
+        return
+
+    def test_get_proper_potential_centers_for_WHAM(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        list_of_points = []
+        for xx in np.linspace(-1, 1, 11):
+            for yy in np.linspace(-1, 1, 11):
+                list_of_points += [[xx, yy]]
+
+        res = np.array(self._network.get_proper_potential_centers_for_WHAM(list_of_points, 0.1, 2))
+
+        fig, ax = plt.subplots()
+        ax.scatter(res.T[0], res.T[1])
+        fig.savefig('test_get_proper_potential_centers_for_WHAM.png')
 
 
 class test_others(object):

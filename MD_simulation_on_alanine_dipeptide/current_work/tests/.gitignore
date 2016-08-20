@@ -3,3 +3,4 @@
 *.pdf
 *.jpg
 dependency/**
+*.txt
