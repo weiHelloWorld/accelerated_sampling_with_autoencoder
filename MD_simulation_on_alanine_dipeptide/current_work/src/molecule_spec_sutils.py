@@ -1,14 +1,7 @@
 """Sutils: simulation unilities, some of them are molecule-specific (implemented as methods in subclasses)
 """
 
-import copy, pickle, re, os, time, subprocess, datetime, itertools
 from config import *
-from Bio import PDB
-from sklearn.metrics import mean_squared_error
-from sklearn import linear_model
-from MDAnalysis import Universe
-from MDAnalysis.analysis.align import *
-from MDAnalysis.analysis.rms import rmsd
 
 class Sutils(object):
     def __init__(self):

@@ -233,7 +233,6 @@ class test_neural_network_for_simulation(object):
     @staticmethod
     def test_get_mid_result():
         autoencoder_pkl_path = 'dependency/a_network_pkl_and_coef_file/network_1.pkl'
-        coef_file = 'dependency/a_network_pkl_and_coef_file/autoencoder_info_1.txt'
         a = Sutils.load_object_from_pkl_file(autoencoder_pkl_path)
         assert isinstance(a, neural_network_for_simulation)
         mid_result =  a.get_mid_result()

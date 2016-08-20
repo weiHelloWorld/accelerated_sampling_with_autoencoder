@@ -40,7 +40,12 @@ else:
     raise Exception("PC_layer_type not defined")
 
 my_file_list = coordinates_data_files_list([args.data_folder])._list_of_coor_data_files
-data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list, step_interval=args.step_interval)
+if isinstance(molecule_type, Alanine_dipeptide):
+    data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
+elif isinstance(molecule_type, Trp_cage):
+    data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list,step_interval=args.step_interval)
+else:
+    raise Exception("molecule type not defined")
 
 a = neural_network_for_simulation(index=1447,
                                   training_data_interval=1,

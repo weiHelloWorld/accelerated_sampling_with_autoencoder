@@ -1,6 +1,23 @@
+import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc
+from scipy import io as sciio
+import numpy as np, pandas as pd, seaborn as sns
+from numpy.testing import assert_almost_equal
+from math import *
 from pybrain.structure import *
 from pybrain.structure.modules.circularlayer import *
-import numpy as np
+from pybrain.supervised.trainers import BackpropTrainer
+from pybrain.datasets.supervised import SupervisedDataSet
+from pybrain.structure.connections.shared import MotherConnection,SharedFullConnection
+from pybrain.structure.moduleslice import ModuleSlice
+import matplotlib.pyplot as plt
+from sklearn.neighbors import RadiusNeighborsRegressor
+import matplotlib
+from Bio import PDB
+from sklearn.metrics import mean_squared_error
+from sklearn import linear_model
+from MDAnalysis import Universe
+from MDAnalysis.analysis.align import *
+from MDAnalysis.analysis.rms import rmsd
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
