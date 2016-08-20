@@ -2,6 +2,9 @@
 '''
 
 import sys, os, math, subprocess, matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.optimizers import SGD
+from keras.layers import Dense, Activation, Lambda, Reshape
 
 sys.path.append('../src/')  # add the source file folder
 
@@ -245,17 +248,12 @@ class test_neural_network_for_simulation(object):
 
 class test_others(object):
     @staticmethod
-    def test_Keras_first_example():
+    def test_Keras_example_1():
         my_file_list = coordinates_data_files_list(['dependency/noncircular_alanine_exploration_data/'])
         data = np.array(Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(
             my_file_list.get_list_of_coor_data_files()))
 
         dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
-
-        # try Keras
-        from keras.models import Sequential
-        from keras.optimizers import SGD
-        from keras.layers import Dense, Activation
 
         model = Sequential()
 
@@ -281,5 +279,48 @@ class test_others(object):
         fig, ax = plt.subplots()
         ax.scatter(x, y, c=phi, cmap='gist_rainbow')
 
-        fig.savefig('try_keras.png')
+        fig.savefig('try_keras_noncircular.png')
         return
+
+    @staticmethod
+    def test_Keras_example_2():
+        my_file_list = coordinates_data_files_list(['dependency/noncircular_alanine_exploration_data/'])
+        data = np.array(Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(
+            my_file_list.get_list_of_coor_data_files()))
+
+        dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
+
+        model = Sequential()
+
+        model.add(Dense(input_dim=8, output_dim=15, activation='tanh'))
+        model.add(Dense(input_dim=15, output_dim=4, activation='linear'))
+        model.add(Reshape((2, 2), input_shape=(4,)))
+        model.add(Lambda(lambda x: (x / ((x ** 2).sum(axis=2, keepdims=True).sqrt()))))   # circular layer
+        model.add(Reshape((4,)))
+        model.add(Dense(input_dim=4, output_dim=15, activation='tanh'))
+        model.add(Dense(input_dim=15, output_dim=8, activation='linear'))
+
+        model.compile(loss='mean_squared_error', optimizer=SGD(lr=0.1, momentum=0.4, nesterov=True),
+                      metrics=['accuracy'])
+
+        model.fit(data, data, nb_epoch=50, batch_size=50)
+
+        # used to get mid results
+        model_2 = Sequential()
+
+        model_2.add(Dense(input_dim=8, output_dim=15, activation='tanh', weights=model.layers[0].get_weights()))
+        model_2.add(Dense(input_dim=15, output_dim=4, activation='linear', weights=model.layers[1].get_weights()))
+
+        model_2.add(Reshape((2, 2), input_shape=(4,)))
+        model_2.add(Lambda(lambda x: (x / ((x ** 2).sum(axis=2, keepdims=True).sqrt()))))
+        model_2.add(Reshape((4,)))
+
+        PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in model_2.predict(data)]
+
+        [x, y] = zip(*PCs)
+
+        psi = [item[2] for item in dihedrals]
+        fig, ax = plt.subplots()
+        ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+
+        fig.savefig('try_keras_circular.png')
