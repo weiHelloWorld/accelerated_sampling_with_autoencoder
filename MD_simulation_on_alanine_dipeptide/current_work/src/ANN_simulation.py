@@ -82,7 +82,7 @@ class plotting(object):
     """
 
     def __init__(self, network):
-        assert isinstance(network, neural_network_for_simulation)
+        assert isinstance(network, autoencoder)
         self._network = network
         pass
 

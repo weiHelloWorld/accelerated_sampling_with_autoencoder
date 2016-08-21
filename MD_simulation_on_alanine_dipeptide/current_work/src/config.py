@@ -18,6 +18,9 @@ from sklearn import linear_model
 from MDAnalysis import Universe
 from MDAnalysis.analysis.align import *
 from MDAnalysis.analysis.rms import rmsd
+from keras.models import Sequential
+from keras.optimizers import SGD
+from keras.layers import Dense, Activation, Lambda, Reshape
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions

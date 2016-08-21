@@ -606,7 +606,7 @@ class neural_network_for_simulation(autoencoder):
 
 class autoencoder_Keras(autoencoder):
     def _init_extra(self,
-                    network_parameters = [0.02, 0.9, True],
+                    network_parameters = [0.2, 0.8, True],
                     batch_size = 100
                     ):
         self._network_parameters = network_parameters
@@ -619,6 +619,7 @@ class autoencoder_Keras(autoencoder):
 
     def get_PCs(self, input_data=None):
         temp_model = Sequential()
+        data = self._data_set
         for item in self._molecule_net.layers[:-2]:
             temp_model.add(item)
         if self._hidden_layers_type[1] == CircularLayer:
@@ -682,8 +683,8 @@ class autoencoder_Keras(autoencoder):
             # print("Start " + training_print_info)
 
             # TODO: update _connection_between_layers_coeffs
-            # self._connection_between_layers_coeffs = [item.params for item in connection_between_layers]
-            # self._connection_with_bias_layers_coeffs = [item.params for item in connection_with_bias_layers]
+            self._connection_between_layers_coeffs = [item.get_weights()[0].flatten() for item in molecule_net.layers if isinstance(item, Dense)]
+            self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if isinstance(item, Dense)]
 
             # print('Done ' + training_print_info)
 
