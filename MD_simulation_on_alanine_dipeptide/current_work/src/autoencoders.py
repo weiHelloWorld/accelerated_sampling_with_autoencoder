@@ -49,7 +49,6 @@ class autoencoder(object):
         self._hierarchical = hierarchical
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
-        self._molecule_net = None
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
         self._init_extra(*args, **kwargs)
@@ -150,34 +149,9 @@ class autoencoder(object):
         return
 
     @abc.abstractmethod
-    def get_mid_result(self, input_data=None):
+    def get_PCs(self, input_data=None):
         """must be implemented by subclasses"""
         pass
-
-    def get_PCs(self, input_data=None):
-        """
-        write an independent function for getting PCs, since it is different for TanhLayer, and CircularLayer
-        """
-        if input_data is None: input_data = self._data_set
-        num_of_hidden_layers = len(self._hidden_layers_type)
-        index_of_bottleneck_hidden_layer = (
-                                           num_of_hidden_layers - 1) / 2  # it works for both 3-layer and 5-layer structure
-        type_of_middle_hidden_layer = self._hidden_layers_type[index_of_bottleneck_hidden_layer]
-        temp_mid_result = self.get_mid_result(input_data=input_data)
-        mid_result_1 = [item[index_of_bottleneck_hidden_layer] for item in temp_mid_result]
-
-        if type_of_middle_hidden_layer == CircularLayer:
-            PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(self._node_num[2] / 2)] for item in
-                   mid_result_1]
-        else:
-            PCs = mid_result_1
-
-        if self._hidden_layers_type[1] == CircularLayer:
-            assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
-        else:
-            assert (len(PCs[0]) == self._node_num[2])
-
-        return PCs
 
     @abc.abstractmethod
     def train(self):
@@ -435,6 +409,7 @@ class neural_network_for_simulation(autoencoder):
         self._network_verbose = network_verbose
         self._network_parameters = network_parameters
         self._trainer = trainer  # save the trainer so that we could train this network step by step later
+        self._molecule_net = None
         return
 
     def get_mid_result(self, input_data=None):
@@ -445,6 +420,28 @@ class neural_network_for_simulation(autoencoder):
             mid_result.append([list(layer.outputbuffer[0]) for layer in
                                self._molecule_net.modulesSorted[5:]])  # exclude bias nodes and input layer
         return mid_result
+
+    def get_PCs(self, input_data=None):
+        """
+        write an independent function for getting PCs, since it is different for TanhLayer, and CircularLayer
+        """
+        if input_data is None: input_data = self._data_set
+        num_of_hidden_layers = len(self._hidden_layers_type)
+        index_of_bottleneck_hidden_layer = (
+                                           num_of_hidden_layers - 1) / 2  # it works for both 3-layer and 5-layer structure
+        type_of_middle_hidden_layer = self._hidden_layers_type[index_of_bottleneck_hidden_layer]
+        temp_mid_result = self.get_mid_result(input_data=input_data)
+        mid_result_1 = [item[index_of_bottleneck_hidden_layer] for item in temp_mid_result]
+
+        if type_of_middle_hidden_layer == CircularLayer:
+            PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(self._node_num[2] / 2)] for item in
+                   mid_result_1]
+            assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
+        else:
+            PCs = mid_result_1
+            assert (len(PCs[0]) == self._node_num[2])
+
+        return PCs
 
     def get_output_data(self, num_of_PCs=None):
         output_data = np.array([self._molecule_net.activate(item) for item in self._data_set])
@@ -608,6 +605,34 @@ class neural_network_for_simulation(autoencoder):
 
 
 class autoencoder_Keras(autoencoder):
+    def _init_extra(self,
+                    network_parameters = [0.02, 0.9, True],
+                    batch_size = 100
+                    ):
+        self._network_parameters = network_parameters
+        self._batch_size = batch_size
+        self._molecule_net = None
+        return
+
+    def get_output_data(self, num_of_PCs=None):
+        return self._molecule_net.predict(self._data_set)
+
+    def get_PCs(self, input_data=None):
+        temp_model = Sequential()
+        for item in self._molecule_net.layers[:-2]:
+            temp_model.add(item)
+        if self._hidden_layers_type[1] == CircularLayer:
+            PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in
+                   temp_model.predict(data)]
+            assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
+        elif self._hidden_layers_type[1] == TanhLayer:
+            PCs = temp_model.predict(data)
+            assert (len(PCs[0]) == self._node_num[2])
+        else:
+            raise Exception("PC layer type error")
+
+        return PCs
+
     def train(self):
         node_num = self._node_num
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
@@ -620,22 +645,49 @@ class autoencoder_Keras(autoencoder):
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
         else:
+            molecule_net = Sequential()
+            molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh'))   # input layer
             if self._hidden_layers_type[1] == CircularLayer:
-                pass
+                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear'))
+                molecule_net.add(Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],)))
+                molecule_net.add(Lambda(lambda x: (x / ((x ** 2).sum(axis=2, keepdims=True).sqrt()))))  # circular layer
+                molecule_net.add(Reshape((node_num[2],)))
+                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh'))
+                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear'))
+
             elif self._hidden_layers_type[1] == TanhLayer:
-                model = Sequential()
-                model.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh'))
-                model.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh'))
-                model.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh'))
-                model.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear'))
-
-                model.compile(loss='mean_squared_error', optimizer=SGD(lr=0.02, momentum=0.9, nesterov=True),
-                              metrics=['accuracy'])
-
-                model.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=100)
-                pass
+                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh'))
+                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh'))
+                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear'))
             else:
                 raise Exception ('this type of hidden layer not implemented')
+
+            molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
+                                 optimizer=SGD(lr=self._network_parameters[0],
+                                               momentum=self._network_parameters[1],
+                                               nesterov=self._network_parameters[2])
+                                 )
+
+            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size)
+
+            # training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
+            #                 parameter = [learning rate: %f, momentum: %f, weightdecay: %f, lrdecay: %f]\n''' % \
+            #                       (self._index, self._max_num_of_training, str(self._node_num),
+            #                        str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
+            #                        len(data_as_input_to_network),
+            #                        self._network_parameters[0], self._network_parameters[1],
+            #                        self._network_parameters[2],
+            #                        self._network_parameters[3],)
+
+            # print("Start " + training_print_info)
+
+            # TODO: update _connection_between_layers_coeffs
+            # self._connection_between_layers_coeffs = [item.params for item in connection_between_layers]
+            # self._connection_with_bias_layers_coeffs = [item.params for item in connection_with_bias_layers]
+
+            # print('Done ' + training_print_info)
+
+            self._molecule_net = molecule_net
 
         return self
 
