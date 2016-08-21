@@ -329,10 +329,18 @@ class iteration(object):
         current_network = None
 
         for _ in range(num_of_trainings):
-            temp_network = neural_network_for_simulation(index=self._index,
-                                                         data_set_for_training=data_set,
-                                                         training_data_interval=training_interval,
-                                                         )
+            if CONFIG_45 == 'pybrain':
+                temp_network = neural_network_for_simulation(index=self._index,
+                                                             data_set_for_training=data_set,
+                                                             training_data_interval=training_interval,
+                                                             )
+            elif CONFIG_45 == 'keras':
+                temp_network = autoencoder_Keras(index=self._index,
+                                                 data_set_for_training=data_set,
+                                                 training_data_interval=training_interval,
+                                                 )
+            else:
+                raise Exception ('this training backend not implemented')
 
             temp_network.train()
             print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))

@@ -344,3 +344,12 @@ class test_autoencoder_Keras(object):
         fig.savefig('try_keras_circular.png')
         return
 
+    def test_save_into_file(self):
+        data = self._data
+        model = autoencoder_Keras(1447, data,
+                                  node_num=[8, 15, 2, 15, 8],
+                                  hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
+                                  network_parameters=[0.02, 0.9, True],
+                                  batch_size=50
+                                  )
+        model.train().save_into_file('test_save_into_file.pkl')

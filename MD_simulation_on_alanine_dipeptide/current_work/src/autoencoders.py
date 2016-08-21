@@ -611,16 +611,22 @@ class autoencoder_Keras(autoencoder):
                     ):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
-        self._molecule_net = None
+        self._molecule_net_layers = None              # why don't I save molecule_net (Keras model) instead? since it it not picklable:
+                                                      # https://github.com/luispedro/jug/issues/30
+                                                      # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
         return
 
     def get_output_data(self, num_of_PCs=None):
-        return self._molecule_net.predict(self._data_set)
+        temp_model = Sequential()
+        for item in self._molecule_net_layers:
+            temp_model.add(item)
+
+        return temp_model.predict(self._data_set)
 
     def get_PCs(self, input_data=None):
         temp_model = Sequential()
         data = self._data_set
-        for item in self._molecule_net.layers[:-2]:
+        for item in self._molecule_net_layers[:-2]:
             temp_model.add(item)
         if self._hidden_layers_type[1] == CircularLayer:
             PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in
@@ -688,7 +694,6 @@ class autoencoder_Keras(autoencoder):
 
             # print('Done ' + training_print_info)
 
-            self._molecule_net = molecule_net
+            self._molecule_net_layers = molecule_net.layers
 
         return self
-
