@@ -37,6 +37,7 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 #######################################################################
 
 CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 
 '''class coordinates_data_files_list:'''
 
@@ -45,7 +46,13 @@ CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all co
 '''class neural_network_for_simulation:'''
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
-CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
+if CONFIG_45 == 'pybrain':
+    CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
+elif CONFIG_45 == 'keras':
+    CONFIG_4 = [0.2, 0.8, True]      # [learning rates, momentum, nesterov]
+else:
+    raise Exception('training backend not implemented')
+
 CONFIG_5 = 100                   # max number of training steps
 CONFIG_6 = None # filename to save this network
 CONFIG_36 = 2              #   dimensionality
@@ -66,7 +73,7 @@ else:
 CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
-CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
+
 
 '''class iteration'''
 

@@ -606,7 +606,7 @@ class neural_network_for_simulation(autoencoder):
 
 class autoencoder_Keras(autoencoder):
     def _init_extra(self,
-                    network_parameters = [0.2, 0.8, True],
+                    network_parameters = CONFIG_4,
                     batch_size = 100
                     ):
         self._network_parameters = network_parameters
@@ -624,16 +624,16 @@ class autoencoder_Keras(autoencoder):
         return temp_model.predict(self._data_set)
 
     def get_PCs(self, input_data=None):
+        if input_data is None: input_data = self._data_set
         temp_model = Sequential()
-        data = self._data_set
         for item in self._molecule_net_layers[:-2]:
             temp_model.add(item)
         if self._hidden_layers_type[1] == CircularLayer:
             PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in
-                   temp_model.predict(data)]
+                   temp_model.predict(input_data)]
             assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
         elif self._hidden_layers_type[1] == TanhLayer:
-            PCs = temp_model.predict(data)
+            PCs = temp_model.predict(input_data)
             assert (len(PCs[0]) == self._node_num[2])
         else:
             raise Exception("PC layer type error")
