@@ -138,11 +138,13 @@ class plotting(object):
         elif color_option == 'step':
             coloring = list(range(len(x)))
         elif color_option == 'phi':
+            assert (isinstance(molecule_type, Alanine_dipeptide))
             coloring = [item[1] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'psi':
+            assert (isinstance(molecule_type, Alanine_dipeptide))
             coloring = [item[2] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'other':
-            assert (len(other_coloring) == len(x))
+            assert (len(other_coloring) == len(x)), (len(other_coloring), len(x))
             coloring = other_coloring
             if smoothing_using_RNR:    # smooth coloring using RNR
                 r_neigh = RadiusNeighborsRegressor(radius=smoothing_radius, weights='uniform')

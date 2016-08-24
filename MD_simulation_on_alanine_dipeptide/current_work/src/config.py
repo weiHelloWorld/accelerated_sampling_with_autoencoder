@@ -44,7 +44,7 @@ CONFIG_45 = 'keras'                         # training backend: "pybrain", "kera
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class neural_network_for_simulation:'''
-CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]

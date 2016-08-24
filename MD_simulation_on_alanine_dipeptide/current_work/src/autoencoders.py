@@ -640,7 +640,7 @@ class autoencoder_Keras(autoencoder):
 
         return PCs
 
-    def train(self):
+    def train(self):    
         node_num = self._node_num
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
         num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
@@ -657,7 +657,7 @@ class autoencoder_Keras(autoencoder):
             if self._hidden_layers_type[1] == CircularLayer:
                 molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear'))
                 molecule_net.add(Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],)))
-                molecule_net.add(Lambda(lambda x: (x / ((x ** 2).sum(axis=2, keepdims=True).sqrt()))))  # circular layer
+                molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
                 molecule_net.add(Reshape((node_num[2],)))
                 molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh'))
                 molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear'))
@@ -697,3 +697,8 @@ class autoencoder_Keras(autoencoder):
             self._molecule_net_layers = molecule_net.layers
 
         return self
+
+def temp_lambda_func_for_circular_for_Keras(x):
+    """This has to be defined at the module level here, otherwise the pickle will not work
+    """
+    return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
