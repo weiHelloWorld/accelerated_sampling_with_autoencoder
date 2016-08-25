@@ -672,21 +672,21 @@ class autoencoder_Keras(autoencoder):
             molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
                                  optimizer=SGD(lr=self._network_parameters[0],
                                                momentum=self._network_parameters[1],
-                                               nesterov=self._network_parameters[2])
+                                               decay= self._network_parameters[2],
+                                               nesterov=self._network_parameters[3])
                                  )
 
-            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size)
+            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size, verbose=0)
 
-            # training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-            #                 parameter = [learning rate: %f, momentum: %f, weightdecay: %f, lrdecay: %f]\n''' % \
-            #                       (self._index, self._max_num_of_training, str(self._node_num),
-            #                        str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
-            #                        len(data_as_input_to_network),
-            #                        self._network_parameters[0], self._network_parameters[1],
-            #                        self._network_parameters[2],
-            #                        self._network_parameters[3],)
+            training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
+                            parameter = [learning rate: %f, momentum: %f, lrdecay: %f]\n''' % \
+                                  (self._index, self._max_num_of_training, str(self._node_num),
+                                   str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
+                                   len(data),
+                                   self._network_parameters[0], self._network_parameters[1],
+                                   self._network_parameters[2])
 
-            # print("Start " + training_print_info)
+            print("Start " + training_print_info)
 
             # TODO: update _connection_between_layers_coeffs
             dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
@@ -696,7 +696,7 @@ class autoencoder_Keras(autoencoder):
             self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in molecule_net.layers if isinstance(item, Dense)]  # transpose the weights for consistency
             self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if isinstance(item, Dense)]
 
-            # print('Done ' + training_print_info)
+            print('Done ' + training_print_info)
 
             self._molecule_net_layers = molecule_net.layers
 

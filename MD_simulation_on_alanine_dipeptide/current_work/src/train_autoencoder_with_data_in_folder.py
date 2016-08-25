@@ -7,15 +7,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("molecule_type", type=str, help="molecule type")
 parser.add_argument("data_folder", type=str, help="folder that contains coordinates data")
 parser.add_argument("autoencoder_file_name", type=str, help="name of autoencoder file")
+parser.add_argument("--training_backend", type=str, default='keras', help="training backend, either pybrain or keras (default=keras)")
 parser.add_argument("--step_interval", type=int, default=1, help="step interval of data for training (default = 1)")
 parser.add_argument("--max_num_of_training", type=int, default=100, help="max num of training")
 parser.add_argument("--num_of_input_nodes", type=int, default=None, help="number of input nodes")
 parser.add_argument("--num_of_hidden_nodes", type=int, default=15, help="number of hidden nodes")
 parser.add_argument("--num_of_PCs", type=int, default=2, help="number of PCs")
 parser.add_argument("--PC_layer_type", type=str, default='TanhLayer', help='PC layer type')
-parser.add_argument("--learning_rate", type=float, default=0.002, help='learning rate')
-parser.add_argument("--momentum", type=float, default=0.4, help= "momentum (the ratio by which the gradient of the last timestep is used)")
-parser.add_argument("--weightdecay", type=float, default=0.1, help="weight decay")
+parser.add_argument("--learning_rate", type=float, default=0.3, help='learning rate')
+parser.add_argument("--momentum", type=float, default=0.9, help= "momentum (the ratio by which the gradient of the last timestep is used)")
 parser.add_argument("--verbose", help="whether to print training info", action="store_true")
 args = parser.parse_args()
 
@@ -47,15 +47,27 @@ elif isinstance(molecule_type, Trp_cage):
 else:
     raise Exception("molecule type not defined")
 
-a = neural_network_for_simulation(index=1447,
+if args.training_backend == 'pybrain':
+    a = neural_network_for_simulation(index=1447,
+                                       training_data_interval=1,
+                                       data_set_for_training=data,
+                                       node_num=[num_of_input_nodes, args.num_of_hidden_nodes, num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
+                                       max_num_of_training=args.max_num_of_training,
+                                      network_parameters=[args.learning_rate, args.momentum, args.weightdecay, 1],
+                                       hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer],
+                                       network_verbose = args.verbose
+                                       )
+elif args.training_backend == 'keras':
+    a = autoencoder_Keras(index=1447,
                                   training_data_interval=1,
                                   data_set_for_training=data,
                                   node_num=[num_of_input_nodes, args.num_of_hidden_nodes, num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
                                   max_num_of_training=args.max_num_of_training,
-                                  network_parameters=[args.learning_rate, args.momentum, args.weightdecay, 1],
-                                  hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer],
-                                  network_verbose = args.verbose
+                                  network_parameters=[args.learning_rate, args.momentum, 0, True],
+                                  hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer]
                                   )
+else:
+    raise Exception('this training backend not defined')
 
 a.train().save_into_file(args.autoencoder_file_name)
 print a.get_fraction_of_variance_explained()
