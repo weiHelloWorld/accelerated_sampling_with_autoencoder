@@ -49,7 +49,7 @@ CONFIG_2 = 2     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.2, 0.8, True]      # [learning rates, momentum, nesterov]
+    CONFIG_4 = [0.3, 0.9, True]      # [learning rates, momentum, nesterov]
 else:
     raise Exception('training backend not implemented')
 
@@ -128,7 +128,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 50   # force constant for biased simulations
+CONFIG_9 = 200   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 

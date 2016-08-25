@@ -358,17 +358,16 @@ class test_autoencoder_Keras(object):
 
 class test_biased_simulation(object):
     @staticmethod
-    def test_biased_simulation_alanine_dipeptide():
+    def helper_biased_simulation_alanine_dipeptide(potential_center):
         autoencoder_coeff_file = 'dependency/test_biased_simulation/autoencoder_info_4.txt'
         autoencoder_pkl_file = 'dependency/test_biased_simulation/network_4.pkl'
         output_folder = 'temp_output_test_biased_simulation'
-        potential_center = '-1.57,-1.57'
 
         if os.path.exists(output_folder):
             subprocess.check_output(['rm', '-rf', output_folder])
 
         subprocess.check_output(
-            'python ../src/biased_simulation.py 50 5000 50 %s %s pc_%s' % (output_folder, autoencoder_coeff_file, potential_center),
+            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s' % (output_folder, autoencoder_coeff_file, potential_center),
             shell=True)
 
         Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
@@ -381,5 +380,11 @@ class test_biased_simulation(object):
         x, y = zip(*PCs)
         ax.scatter(x, y)
         fig.savefig('test_biased_simulation_%s.png' % potential_center)
+        subprocess.check_output(['rm', '-rf', output_folder])
         return
 
+    @staticmethod
+    def test_biased_simulation_alanine_dipeptide():
+        for item in ['-1.57,-1.57', '0,0', '-0.9,0.9', '-2,2', '-2,1', '-2,-2']:
+            test_biased_simulation.helper_biased_simulation_alanine_dipeptide(item.replace(' ',''))
+        return
