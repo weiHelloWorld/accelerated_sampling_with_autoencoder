@@ -5,3 +5,4 @@
 *.pkl
 dependency/**
 *.txt
+*.pdb

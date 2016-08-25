@@ -353,3 +353,33 @@ class test_autoencoder_Keras(object):
                                   batch_size=50
                                   )
         model.train().save_into_file('test_save_into_file.pkl')
+        return
+
+
+class test_biased_simulation(object):
+    @staticmethod
+    def test_biased_simulation_alanine_dipeptide():
+        autoencoder_coeff_file = 'dependency/test_biased_simulation/autoencoder_info_4.txt'
+        autoencoder_pkl_file = 'dependency/test_biased_simulation/network_4.pkl'
+        output_folder = 'temp_output_test_biased_simulation'
+        potential_center = '-1.57,-1.57'
+
+        if os.path.exists(output_folder):
+            subprocess.check_output(['rm', '-rf', output_folder])
+
+        subprocess.check_output(
+            'python ../src/biased_simulation.py 50 5000 50 %s %s pc_%s' % (output_folder, autoencoder_coeff_file, potential_center),
+            shell=True)
+
+        Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
+        fig, ax = plt.subplots()
+        my_files = coordinates_data_files_list([output_folder]).get_list_of_coor_data_files()
+        cosssin_data = Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(my_files)
+        my_network = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
+        assert (isinstance(my_network, autoencoder))
+        PCs = my_network.get_PCs(cosssin_data)
+        x, y = zip(*PCs)
+        ax.scatter(x, y)
+        fig.savefig('test_biased_simulation_%s.png' % potential_center)
+        return
+
