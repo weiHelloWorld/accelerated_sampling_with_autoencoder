@@ -653,19 +653,19 @@ class autoencoder_Keras(autoencoder):
             raise Exception('not implemented for this case')
         else:
             molecule_net = Sequential()
-            molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh'))   # input layer
+            molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh',W_regularizer=l2(self._network_parameters[4])))   # input layer
             if self._hidden_layers_type[1] == CircularLayer:
-                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear'))
+                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear',W_regularizer=l2(self._network_parameters[4])))
                 molecule_net.add(Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],)))
                 molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
                 molecule_net.add(Reshape((node_num[2],)))
-                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh'))
-                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear'))
+                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4])))
+                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4])))
 
             elif self._hidden_layers_type[1] == TanhLayer:
-                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh'))
-                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh'))
-                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear'))
+                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh',W_regularizer=l2(self._network_parameters[4])))
+                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4])))
+                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4])))
             else:
                 raise Exception ('this type of hidden layer not implemented')
 

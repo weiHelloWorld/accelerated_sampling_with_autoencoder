@@ -21,6 +21,7 @@ from MDAnalysis.analysis.rms import rmsd
 from keras.models import Sequential
 from keras.optimizers import SGD
 from keras.layers import Dense, Activation, Lambda, Reshape
+from keras.regularizers import l2
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
@@ -49,7 +50,7 @@ CONFIG_2 = 2     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True]      # [learning rates, momentum, nesterov]
+    CONFIG_4 = [0.3, 0.9, 0, True, 0.002]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
 else:
     raise Exception('training backend not implemented')
 

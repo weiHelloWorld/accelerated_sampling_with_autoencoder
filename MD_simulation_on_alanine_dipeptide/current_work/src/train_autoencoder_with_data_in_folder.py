@@ -63,7 +63,7 @@ elif args.training_backend == 'keras':
                                   data_set_for_training=data,
                                   node_num=[num_of_input_nodes, args.num_of_hidden_nodes, num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
                                   max_num_of_training=args.max_num_of_training,
-                                  network_parameters=[args.learning_rate, args.momentum, 0, True],
+                                  network_parameters=[args.learning_rate, args.momentum, 0, True, 0.002],
                                   hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer]
                                   )
 else:
