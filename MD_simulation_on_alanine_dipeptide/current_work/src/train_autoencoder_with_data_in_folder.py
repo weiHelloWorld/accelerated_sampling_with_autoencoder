@@ -45,8 +45,8 @@ info_coor_file = data_folder + '/info_coor.txt'
 
 if os.path.exists(info_coor_file):
     data = np.loadtxt(info_coor_file)[::args.step_interval]
-    print ("training data loaded")
 else:
+    print ("training data are not available, need to be computed")
     my_file_list = coordinates_data_files_list([args.data_folder])._list_of_coor_data_files
     if isinstance(molecule_type, Alanine_dipeptide):
         data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
@@ -55,7 +55,9 @@ else:
     else:
         raise Exception("molecule type not defined")
 
-    print ("training data loaded")
+    np.savetxt(info_coor_file, data)
+
+print ("training data loaded")
 
 if args.training_backend == 'pybrain':
     a = neural_network_for_simulation(index=1447,

@@ -18,6 +18,7 @@ from sklearn import linear_model
 from MDAnalysis import Universe
 from MDAnalysis.analysis.align import *
 from MDAnalysis.analysis.rms import rmsd
+from MDAnalysis.analysis.distances import distance_array
 from keras.models import Sequential
 from keras.optimizers import SGD
 from keras.layers import Dense, Activation, Lambda, Reshape
@@ -44,13 +45,13 @@ CONFIG_45 = 'keras'                         # training backend: "pybrain", "kera
 
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
-'''class neural_network_for_simulation:'''
+'''class autoencoder:'''
 CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, 0.002]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
+    CONFIG_4 = [0.3, 0.9, 0, True, 0.002]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
@@ -74,6 +75,7 @@ else:
 CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
+CONFIG_46 = False                             # whether to enable verbose mode (print training status)
 
 
 '''class iteration'''

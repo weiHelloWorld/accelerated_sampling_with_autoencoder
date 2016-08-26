@@ -23,6 +23,7 @@ class autoencoder(object):
                  max_num_of_training=CONFIG_5,
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
+                 network_verbose=CONFIG_46,
                  *args, **kwargs           # for extra init functions for subclasses
                  ):
 
@@ -47,6 +48,7 @@ class autoencoder(object):
             self._filename_to_save_network = filename_to_save_network
 
         self._hierarchical = hierarchical
+        self._network_verbose = network_verbose
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
@@ -403,10 +405,8 @@ class neural_network_for_simulation(autoencoder):
     """
     def _init_extra(self,
                     trainer=None,
-                    network_verbose=False,
                     network_parameters=CONFIG_4,  # includes [learningrate,momentum, weightdecay, lrdecay]
                     ):
-        self._network_verbose = network_verbose
         self._network_parameters = network_parameters
         self._trainer = trainer  # save the trainer so that we could train this network step by step later
         self._molecule_net = None
@@ -583,7 +583,7 @@ class neural_network_for_simulation(autoencoder):
                 data_set.addSample(item, item)
 
         training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-                parameter = [learning rate: %f, momentum: %f, weightdecay: %f, lrdecay: %f]\n''' % \
+parameter = [learning rate: %f, momentum: %f, weightdecay: %f, lrdecay: %f]\n''' % \
                               (self._index, self._max_num_of_training, str(self._node_num),
                                str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
                                len(data_as_input_to_network),
@@ -676,15 +676,15 @@ class autoencoder_Keras(autoencoder):
                                                nesterov=self._network_parameters[3])
                                  )
 
-            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size, verbose=0)
+            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size, verbose=int(self._network_verbose))
 
             training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-                            parameter = [learning rate: %f, momentum: %f, lrdecay: %f]\n''' % \
+parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %f]\n''' % \
                                   (self._index, self._max_num_of_training, str(self._node_num),
                                    str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
                                    len(data),
                                    self._network_parameters[0], self._network_parameters[1],
-                                   self._network_parameters[2])
+                                   self._network_parameters[2], self._network_parameters[4])
 
             print("Start " + training_print_info)
 

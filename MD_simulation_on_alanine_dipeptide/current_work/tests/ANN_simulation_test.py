@@ -94,6 +94,19 @@ class test_Sutils(object):
         fig.savefig('diagram_of_finding_boundary.pdf', format='pdf', bbox_inches='tight')
         return
 
+    @staticmethod
+    def test_L_method():
+        evaluation_values = [0, 0.1, 0.5, 0.85, 0.9, 0.93]
+        nums = list(range(len(evaluation_values)))
+        opt_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, nums)
+        fig, ax = plt.subplots()
+        ax.plot(x_data, y_data_left)
+        ax.plot(x_data, y_data_right)
+        ax.scatter(nums, evaluation_values)
+        fig.savefig("L_method.png")
+        assert (opt_num == 4), opt_num
+        return
+
 
 class test_Alanine_dipeptide(object):
     @staticmethod
@@ -175,17 +188,12 @@ class test_Trp_cage(object):
         return
 
     @staticmethod
-    def test_L_method():
-        evaluation_values = [0, 0.1, 0.5, 0.85, 0.9, 0.93]
-        nums = list(range(len(evaluation_values)))
-        opt_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, nums)
-        fig, ax = plt.subplots()
-        ax.plot(x_data, y_data_left)
-        ax.plot(x_data, y_data_right)
-        ax.scatter(nums, evaluation_values)
-        fig.savefig("L_method.png")
-        assert (opt_num == 4), opt_num
+    def test_get_pairwise_distance_matrices_of_alpha_carbon():
+        actual = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(['dependency/1l2y.pdb'])[0]
+        expected = np.loadtxt("dependency/test_get_pairwise_distance_matrices_of_alpha_carbon.txt")
+        assert_almost_equal(actual, expected)
         return
+
 
 class test_cluster_management(object):
     @staticmethod
