@@ -1,7 +1,8 @@
 '''This is a test for functionality of ANN_simulation.py
 '''
 
-import sys, os, math, subprocess, matplotlib.pyplot as plt
+import sys, os, math, subprocess, matplotlib
+matplotlib.use('agg')
 
 sys.path.append('../src/')  # add the source file folder
 
@@ -309,7 +310,7 @@ class test_autoencoder_Keras(object):
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 2, 15, 8],
                                   hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
-                                  network_parameters = [0.02, 0.9, True],
+                                  network_parameters = [0.02, 0.9,0, True, 0.001],
                                   batch_size=100
                                   )
         model.train()
@@ -330,7 +331,7 @@ class test_autoencoder_Keras(object):
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 4, 15, 8],
                                   hidden_layers_types=[TanhLayer, CircularLayer, TanhLayer],
-                                  network_parameters = [0.1, 0.4, True]
+                                  network_parameters = [0.1, 0.4,0, True, 0.001]
                                   )
         model.train()
 
@@ -349,7 +350,7 @@ class test_autoencoder_Keras(object):
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 2, 15, 8],
                                   hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
-                                  network_parameters=[0.02, 0.9, True],
+                                  network_parameters=[0.02, 0.9,0, True, 0.001],
                                   batch_size=50
                                   )
         model.train().save_into_file('test_save_into_file.pkl')
