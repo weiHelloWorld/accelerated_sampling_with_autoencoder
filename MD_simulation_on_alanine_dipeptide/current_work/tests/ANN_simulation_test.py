@@ -1,7 +1,8 @@
 '''This is a test for functionality of ANN_simulation.py
 '''
 
-import sys, os, math, subprocess, matplotlib.pyplot as plt
+import sys, os, math, subprocess, matplotlib
+matplotlib.use('agg')
 
 sys.path.append('../src/')  # add the source file folder
 
@@ -93,6 +94,19 @@ class test_Sutils(object):
         fig.savefig('diagram_of_finding_boundary.pdf', format='pdf', bbox_inches='tight')
         return
 
+    @staticmethod
+    def test_L_method():
+        evaluation_values = [0, 0.1, 0.5, 0.85, 0.9, 0.93]
+        nums = list(range(len(evaluation_values)))
+        opt_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, nums)
+        fig, ax = plt.subplots()
+        ax.plot(x_data, y_data_left)
+        ax.plot(x_data, y_data_right)
+        ax.scatter(nums, evaluation_values)
+        fig.savefig("L_method.png")
+        assert (opt_num == 4), opt_num
+        return
+
 
 class test_Alanine_dipeptide(object):
     @staticmethod
@@ -174,17 +188,12 @@ class test_Trp_cage(object):
         return
 
     @staticmethod
-    def test_L_method():
-        evaluation_values = [0, 0.1, 0.5, 0.85, 0.9, 0.93]
-        nums = list(range(len(evaluation_values)))
-        opt_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, nums)
-        fig, ax = plt.subplots()
-        ax.plot(x_data, y_data_left)
-        ax.plot(x_data, y_data_right)
-        ax.scatter(nums, evaluation_values)
-        fig.savefig("L_method.png")
-        assert (opt_num == 4), opt_num
+    def test_get_pairwise_distance_matrices_of_alpha_carbon():
+        actual = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(['dependency/1l2y.pdb'])[0]
+        expected = np.loadtxt("dependency/test_get_pairwise_distance_matrices_of_alpha_carbon.txt")
+        assert_almost_equal(actual, expected)
         return
+
 
 class test_cluster_management(object):
     @staticmethod
@@ -227,14 +236,164 @@ class test_coordinates_data_files_list(object):
 
 
 class test_neural_network_for_simulation(object):
-    @staticmethod
-    def test_get_mid_result():
+    def __init__(self):
         autoencoder_pkl_path = 'dependency/a_network_pkl_and_coef_file/network_1.pkl'
-        coef_file = 'dependency/a_network_pkl_and_coef_file/autoencoder_info_1.txt'
-        a = Sutils.load_object_from_pkl_file(autoencoder_pkl_path)
-        assert isinstance(a, neural_network_for_simulation)
-        mid_result =  a.get_mid_result()
+        self._network = Sutils.load_object_from_pkl_file(autoencoder_pkl_path)
+
+    def test_get_mid_result(self):
+        assert isinstance(self._network, neural_network_for_simulation)
+        mid_result =  self._network.get_mid_result()
+        # for _1 in range(4):
+        #     np.savetxt('output_mid_result_%d.txt' % _1, [item[_1] for item in mid_result])
+
         for _1 in range(4):
-            assert_almost_equal (np.loadtxt('dependency/out_mid_result/output_mid_result_%d.txt' % _1), [item[_1] for item in mid_result])
+            assert_almost_equal (np.loadtxt('dependency/out_mid_result/output_mid_result_%d.txt' % _1),
+                                 [item[_1] for item in mid_result])
         return
 
+    def test_write_coefficients_of_connections_into_file(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.write_coefficients_of_connections_into_file('test_coeff.txt')
+        return
+
+    def test_write_expression_into_file(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.write_expression_into_file('test_expression.txt')
+        return
+
+    def test_get_output_data(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        np.savetxt('test_get_output_data.txt', self._network.get_output_data())
+        return
+
+    def test_get_training_error(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.get_training_error()
+        return
+
+    def test_get_fraction_of_variance_explained(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        self._network.get_fraction_of_variance_explained()
+        return
+
+    def test_get_commands_for_further_biased_simulations(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        commands = self._network.get_commands_for_further_biased_simulations()
+        with open("test_get_commands_for_further_biased_simulations.txt", 'w') as my_f:
+            for item in commands:
+                my_f.write(str(item) + '\n')
+        return
+
+    def test_get_proper_potential_centers_for_WHAM(self):
+        # TODO: add testing for values, currently only tests basic functionality
+        assert isinstance(self._network, neural_network_for_simulation)
+        list_of_points = []
+        for xx in np.linspace(-1, 1, 11):
+            for yy in np.linspace(-1, 1, 11):
+                list_of_points += [[xx, yy]]
+
+        res = np.array(self._network.get_proper_potential_centers_for_WHAM(list_of_points, 0.1, 2))
+
+        fig, ax = plt.subplots()
+        ax.scatter(res.T[0], res.T[1])
+        fig.savefig('test_get_proper_potential_centers_for_WHAM.png')
+
+
+class test_autoencoder_Keras(object):
+    def __init__(self):
+        my_file_list = coordinates_data_files_list(['dependency/noncircular_alanine_exploration_data/'])
+        self._data = np.array(Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(
+            my_file_list.get_list_of_coor_data_files()))
+
+    def test_train(self):
+        data = self._data
+        dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
+
+        model = autoencoder_Keras(1447, data,
+                                  node_num=[8, 15, 2, 15, 8],
+                                  hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
+                                  network_parameters = [0.02, 0.9,0, True, 0.001],
+                                  batch_size=100
+                                  )
+        model.train()
+
+        PCs = model.get_PCs()
+        [x, y] = zip(*PCs)
+
+        psi = [item[2] for item in dihedrals]
+        fig, ax = plt.subplots()
+        ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+
+        fig.savefig('try_keras_noncircular.png')
+        return
+
+    def test_train_2(self):
+        data = self._data
+        dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
+        model = autoencoder_Keras(1447, data,
+                                  node_num=[8, 15, 4, 15, 8],
+                                  hidden_layers_types=[TanhLayer, CircularLayer, TanhLayer],
+                                  network_parameters = [0.1, 0.4,0, True, 0.001]
+                                  )
+        model.train()
+
+        PCs = model.get_PCs()
+        [x, y] = zip(*PCs)
+
+        psi = [item[2] for item in dihedrals]
+        fig, ax = plt.subplots()
+        ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+
+        fig.savefig('try_keras_circular.png')
+        return
+
+    def test_save_into_file(self):
+        data = self._data
+        model = autoencoder_Keras(1447, data,
+                                  node_num=[8, 15, 2, 15, 8],
+                                  hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
+                                  network_parameters=[0.02, 0.9,0, True, 0.001],
+                                  batch_size=50
+                                  )
+        model.train().save_into_file('test_save_into_file.pkl')
+        return
+
+
+class test_biased_simulation(object):
+    @staticmethod
+    def helper_biased_simulation_alanine_dipeptide(potential_center):
+        autoencoder_coeff_file = 'dependency/test_biased_simulation/autoencoder_info_4.txt'
+        autoencoder_pkl_file = 'dependency/test_biased_simulation/network_4.pkl'
+        output_folder = 'temp_output_test_biased_simulation'
+
+        if os.path.exists(output_folder):
+            subprocess.check_output(['rm', '-rf', output_folder])
+
+        subprocess.check_output(
+            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s' % (output_folder, autoencoder_coeff_file, potential_center),
+            shell=True)
+
+        Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
+        fig, ax = plt.subplots()
+        my_files = coordinates_data_files_list([output_folder]).get_list_of_coor_data_files()
+        cosssin_data = Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(my_files)
+        my_network = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
+        assert (isinstance(my_network, autoencoder))
+        PCs = my_network.get_PCs(cosssin_data)
+        x, y = zip(*PCs)
+        ax.scatter(x, y)
+        fig.savefig('test_biased_simulation_%s.png' % potential_center)
+        subprocess.check_output(['rm', '-rf', output_folder])
+        return
+
+    @staticmethod
+    def test_biased_simulation_alanine_dipeptide():
+        for item in ['-1.57,-1.57', '0,0', '-0.9,0.9', '-2,2', '-2,1', '-2,-2']:
+            test_biased_simulation.helper_biased_simulation_alanine_dipeptide(item.replace(' ',''))
+        return

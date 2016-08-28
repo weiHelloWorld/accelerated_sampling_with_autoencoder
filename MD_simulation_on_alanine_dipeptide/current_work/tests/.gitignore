@@ -2,4 +2,7 @@
 *.png
 *.pdf
 *.jpg
+*.pkl
 dependency/**
+*.txt
+*.pdb

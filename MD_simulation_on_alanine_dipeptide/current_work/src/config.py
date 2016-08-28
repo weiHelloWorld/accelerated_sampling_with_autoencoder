@@ -1,6 +1,28 @@
+import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse
+from scipy import io as sciio
+import numpy as np, pandas as pd, seaborn as sns
+from numpy.testing import assert_almost_equal
+from math import *
 from pybrain.structure import *
 from pybrain.structure.modules.circularlayer import *
-import numpy as np
+from pybrain.supervised.trainers import BackpropTrainer
+from pybrain.datasets.supervised import SupervisedDataSet
+from pybrain.structure.connections.shared import MotherConnection,SharedFullConnection
+from pybrain.structure.moduleslice import ModuleSlice
+import matplotlib.pyplot as plt
+from sklearn.neighbors import RadiusNeighborsRegressor
+import matplotlib
+from Bio import PDB
+from sklearn.metrics import mean_squared_error
+from sklearn import linear_model
+from MDAnalysis import Universe
+from MDAnalysis.analysis.align import *
+from MDAnalysis.analysis.rms import rmsd
+from MDAnalysis.analysis.distances import distance_array
+from keras.models import Sequential
+from keras.optimizers import SGD
+from keras.layers import Dense, Activation, Lambda, Reshape
+from keras.regularizers import l2
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
@@ -16,16 +38,23 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 
 '''class coordinates_data_files_list:'''
 
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
-'''class neural_network_for_simulation:'''
+'''class autoencoder:'''
 CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
-CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
+if CONFIG_45 == 'pybrain':
+    CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
+elif CONFIG_45 == 'keras':
+    CONFIG_4 = [0.3, 0.9, 0, True, 0.002]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+else:
+    raise Exception('training backend not implemented')
+
 CONFIG_5 = 100                   # max number of training steps
 CONFIG_6 = None # filename to save this network
 CONFIG_36 = 2              #   dimensionality
@@ -45,6 +74,9 @@ else:
 
 CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
+CONFIG_44 = False                             # whether to use hierarchical autoencoder
+CONFIG_46 = False                             # whether to enable verbose mode (print training status)
+
 
 '''class iteration'''
 
@@ -99,7 +131,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 50   # force constant for biased simulations
+CONFIG_9 = 200   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 

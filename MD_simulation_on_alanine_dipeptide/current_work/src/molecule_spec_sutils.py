@@ -1,14 +1,7 @@
 """Sutils: simulation unilities, some of them are molecule-specific (implemented as methods in subclasses)
 """
 
-import copy, pickle, re, os, time, subprocess, datetime, itertools
 from config import *
-from Bio import PDB
-from sklearn.metrics import mean_squared_error
-from sklearn import linear_model
-from MDAnalysis import Universe
-from MDAnalysis.analysis.align import *
-from MDAnalysis.analysis.rms import rmsd
 
 class Sutils(object):
     def __init__(self):
@@ -404,7 +397,7 @@ class Trp_cage(Sutils):
         for item in cossin:
             temp_angle = []
             len_of_cos_sin = CONFIG_33
-            assert (len(item) == len_of_cos_sin)
+            assert (len(item) == len_of_cos_sin), (len(item), len_of_cos_sin)
             for idx_of_angle in range(len_of_cos_sin / 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
 
@@ -427,7 +420,7 @@ class Trp_cage(Sutils):
         return output_file_list
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files,
+    def get_pairwise_distance_matrices_of_alpha_carbon_bak(list_of_files,
                                                        step_interval = 1 # get_matrices every "step_interval" snapshots
                                                        ):
         list_of_files.sort()   # to make the order consistent
@@ -450,6 +443,22 @@ class Trp_cage(Sutils):
                             p_distances[_2][_1] = p_distances[_1][_2] = model[_1] - model[_2]
 
                     distances_list += [p_distances]
+                index += 1
+
+        return np.array(distances_list)
+
+    @staticmethod
+    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
+        list_of_files.sort()
+        distances_list = []
+        index = 0
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms("name CA")
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    distances_list.append(distance_array(sample_atom_selection.positions, sample_atom_selection.positions))
+
                 index += 1
 
         return np.array(distances_list)
@@ -479,25 +488,8 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_get_residue_9_16_distance(list_of_files, step_interval = 1):
-        list_of_files.sort()  # to make the order consistent
-        distance_9_16 = []
-        index = 0
-        num_of_residues = 20
-        for item in list_of_files:
-            p = PDB.PDBParser()
-            structure = p.get_structure('X', item)
-            atom_list = [item for item in structure.get_atoms()]
-            atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
-            atom_list = list(zip(*[iter(atom_list)] * num_of_residues))  # reshape the list
-
-            for model in atom_list:
-                if index % step_interval == 0:
-                    assert (len(model) == num_of_residues)
-                    distance_9_16 += [model[8] - model[15]]
-
-                index += 1
-
-        return distance_9_16
+        distances_list = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        return np.array([item[8][15] for item in distances_list])
 
     @staticmethod
     def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
