@@ -629,8 +629,8 @@ class autoencoder_Keras(autoencoder):
         for item in self._molecule_net_layers[:-2]:
             temp_model.add(item)
         if self._hidden_layers_type[1] == CircularLayer:
-            PCs = [[acos(item[0]) * np.sign(item[1]), acos(item[2]) * np.sign(item[3])] for item in
-                   temp_model.predict(input_data)]
+            PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
+                   for item in temp_model.predict(input_data)]
             assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
         elif self._hidden_layers_type[1] == TanhLayer:
             PCs = temp_model.predict(input_data)
