@@ -318,7 +318,7 @@ class test_autoencoder_Keras(object):
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 2, 15, 8],
                                   hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
-                                  network_parameters = [0.02, 0.9,0, True, 0.001],
+                                  network_parameters = [0.02, 0.9,0, True, [0.001]* 4],
                                   batch_size=100
                                   )
         model.train()
@@ -339,7 +339,7 @@ class test_autoencoder_Keras(object):
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 4, 15, 8],
                                   hidden_layers_types=[TanhLayer, CircularLayer, TanhLayer],
-                                  network_parameters = [0.1, 0.4,0, True, 0.001]
+                                  network_parameters = [0.1, 0.4,0, True, [0.001]* 4]
                                   )
         model.train()
 
@@ -358,7 +358,7 @@ class test_autoencoder_Keras(object):
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 2, 15, 8],
                                   hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
-                                  network_parameters=[0.02, 0.9,0, True, 0.001],
+                                  network_parameters=[0.02, 0.9,0, True, [0.001]* 4],
                                   batch_size=50
                                   )
         model.train().save_into_file('test_save_into_file.pkl')

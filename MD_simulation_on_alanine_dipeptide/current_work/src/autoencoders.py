@@ -653,19 +653,19 @@ class autoencoder_Keras(autoencoder):
             raise Exception('not implemented for this case')
         else:
             molecule_net = Sequential()
-            molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh',W_regularizer=l2(self._network_parameters[4])))   # input layer
+            molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh',W_regularizer=l2(self._network_parameters[4][0])))   # input layer
             if self._hidden_layers_type[1] == CircularLayer:
-                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear',W_regularizer=l2(self._network_parameters[4])))
+                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear',W_regularizer=l2(self._network_parameters[4][1])))
                 molecule_net.add(Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],)))
                 molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
                 molecule_net.add(Reshape((node_num[2],)))
-                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4])))
-                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4])))
+                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
+                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
 
             elif self._hidden_layers_type[1] == TanhLayer:
-                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh',W_regularizer=l2(self._network_parameters[4])))
-                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4])))
-                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4])))
+                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh',W_regularizer=l2(self._network_parameters[4][1])))
+                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
+                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
             else:
                 raise Exception ('this type of hidden layer not implemented')
 
@@ -679,12 +679,12 @@ class autoencoder_Keras(autoencoder):
             molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size, verbose=int(self._network_verbose))
 
             training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %f]\n''' % \
+parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s]\n''' % \
                                   (self._index, self._max_num_of_training, str(self._node_num),
                                    str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
                                    len(data),
                                    self._network_parameters[0], self._network_parameters[1],
-                                   self._network_parameters[2], self._network_parameters[4])
+                                   self._network_parameters[2], str(self._network_parameters[4]))
 
             print("Start " + training_print_info)
 
