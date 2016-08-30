@@ -17,7 +17,7 @@ parser.add_argument("--PC_layer_type", type=str, default='TanhLayer', help='PC l
 parser.add_argument("--learning_rate", type=float, default=0.3, help='learning rate')
 parser.add_argument("--momentum", type=float, default=0.9, help= "momentum (the ratio by which the gradient of the last timestep is used)")
 parser.add_argument("--verbose", help="whether to print training info", action="store_true")
-parser.add_argument("--regularization", default=0.0, type=float, help="regularization coefficient")
+parser.add_argument("--regularization", default="0,0,0,0", type=str, help="regularization coefficient")
 args = parser.parse_args()
 
 molecule_type = Sutils.create_subclass_instance_using_name(args.molecule_type)
@@ -70,12 +70,13 @@ if args.training_backend == 'pybrain':
                                        network_verbose = args.verbose
                                        )
 elif args.training_backend == 'keras':
+    regularization_list = [float(item) for item in args.regularization.replace('[', '').replace(']','').split(',')]
     a = autoencoder_Keras(index=1447,
                                   training_data_interval=1,
                                   data_set_for_training=data,
                                   node_num=[num_of_input_nodes, args.num_of_hidden_nodes, num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
                                   max_num_of_training=args.max_num_of_training,
-                                  network_parameters=[args.learning_rate, args.momentum, 0, True, args.regularization],
+                                  network_parameters=[args.learning_rate, args.momentum, 0, True, regularization_list],
                                   hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer]
                                   )
 else:
