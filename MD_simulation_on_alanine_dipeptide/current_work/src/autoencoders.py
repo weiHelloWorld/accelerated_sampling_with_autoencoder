@@ -1,11 +1,13 @@
 from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
+from coordinates_data_files_list import *
 
 ##################    set types of molecules  ############################
 
 molecule_type = Sutils.create_subclass_instance_using_name(CONFIG_30)
 
 ##########################################################################
+
 
 class autoencoder(object):
     """the neural network for simulation
