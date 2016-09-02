@@ -290,7 +290,7 @@ class autoencoder(object):
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
-            coords += temp_coor
+            coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
                 temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
                 temp_umbOP = [a[1:3] for a in temp_angles]
@@ -344,7 +344,7 @@ class autoencoder(object):
             window_counts += [temp_window_count]
             temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
-            coords += temp_coor
+            coords += list(temp_coor)
             temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
             temp_umbOP = [a[1:3] for a in temp_angles]
             assert (temp_window_count == len(temp_umbOP))
@@ -678,8 +678,6 @@ class autoencoder_Keras(autoencoder):
                                                nesterov=self._network_parameters[3])
                                  )
 
-            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size, verbose=int(self._network_verbose))
-
             training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
 parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s]\n''' % \
                                   (self._index, self._max_num_of_training, str(self._node_num),
@@ -690,7 +688,8 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
 
             print("Start " + training_print_info)
 
-            # TODO: update _connection_between_layers_coeffs
+            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size, verbose=int(self._network_verbose))
+
             dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
             for _1 in range(len(dense_layers)):
                 assert(dense_layers[_1].get_weights()[0].shape[0] == node_num[_1]), (dense_layers[_1].get_weights()[0].shape[1], node_num[_1])   # check shapes of weights

@@ -15,13 +15,13 @@ my_coor = coordinates_data_files_list([data_folder])
 my_coor_file_list = my_coor.get_list_of_coor_data_files()
 my_pdb_file_list = my_coor.get_list_of_corresponding_pdb_files()
 
-info_coor_file = data_folder + '/info_coor.txt'
+info_cossin_file = data_folder + '/info_cossin.txt'
 info_CA_RMSD_file = data_folder + '/info_CA_RMSD.txt'
 info_radius_of_gyration_file = data_folder + '/info_radius_of_gyration.txt'
 info_residue_9_16_distance_file = data_folder + '/info_residue_9_16_distance.txt'
 
 if args.save_coor:
-    np.savetxt(info_coor_file, Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(my_coor_file_list))
+    np.savetxt(info_cossin_file, Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(my_coor_file_list))
 
 if args.save_CA_RMSD:
     np.savetxt(info_CA_RMSD_file, Trp_cage.metric_RMSD_of_atoms(my_pdb_file_list))

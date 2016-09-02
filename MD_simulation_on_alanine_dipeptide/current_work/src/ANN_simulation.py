@@ -149,7 +149,7 @@ class plotting(object):
                         cossin_data_selected = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(
                             list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
                         PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
-                        assert (PCs_of_points_selected == [[x[item], y[item]] for item in ind_list])
+                        assert_almost_equal(PCs_of_points_selected, np.array([[x[item], y[item]] for item in ind_list]))
 
                     return
             else:
