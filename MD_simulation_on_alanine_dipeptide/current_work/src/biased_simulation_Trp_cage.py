@@ -168,8 +168,10 @@ def run_simulation(force_constant):
 
     if args.minimize_energy:
         print('begin Minimizing energy...')
+        print datetime.datetime.now()
         simulation.minimizeEnergy()
         print('Done minimizing energy.')
+        print datetime.datetime.now()
     else:
         print('energy minimization not required')
 
@@ -183,6 +185,7 @@ def run_simulation(force_constant):
         simulation.saveCheckpoint(checkpoint_file)
 
     print('Done!')
+    print datetime.datetime.now()
     return pdb_reporter_file
 
 def get_distance_between_data_cloud_center_and_potential_center(pdb_file):

@@ -38,7 +38,7 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 
 '''class coordinates_data_files_list:'''
@@ -46,12 +46,12 @@ CONFIG_45 = 'keras'                         # training backend: "pybrain", "kera
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class autoencoder:'''
-CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, 0.002]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = [0.3, 0.9, 0, True, [0, 0.1, 0, 0]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
@@ -130,8 +130,8 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 200   # force constant for biased simulations
+CONFIG_8 = 100000 # num of simulation steps
+CONFIG_9 = 500   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
