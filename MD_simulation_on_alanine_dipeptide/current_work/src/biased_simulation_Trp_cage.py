@@ -166,6 +166,7 @@ def run_simulation(force_constant):
         # FIXME: there is seg fault when loading checkpoint?
         simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
 
+    print datetime.datetime.now()
     if args.minimize_energy:
         print('begin Minimizing energy...')
         print datetime.datetime.now()
