@@ -38,7 +38,7 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 
 '''class coordinates_data_files_list:'''
@@ -46,7 +46,7 @@ CONFIG_45 = 'keras'                         # training backend: "pybrain", "kera
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class autoencoder:'''
-CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 2     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
@@ -143,7 +143,7 @@ CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
 CONFIG_23 = 'Reference'   # simulation platform
-CONFIG_25 = '/usr/local/openmm/lib/plugins'  # this is the directory where the plugin is installed
+CONFIG_25 = '/home/fisiksnju/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)

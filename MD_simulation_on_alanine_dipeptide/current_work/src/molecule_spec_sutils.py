@@ -60,7 +60,7 @@ class Sutils(object):
                     with open(output_file, 'w') as f_out:
                         for line in f_in:
                             fields = line.strip().split()
-                            if fields[0] == 'ATOM' and fields[1] in index_of_backbone_atoms:
+                            if (fields[0] == 'ATOM' or fields[0] == 'HETATM') and fields[1] in index_of_backbone_atoms:
                                 f_out.write(reduce(lambda x, y: x + '\t' + y, fields[6:9]))
                                 f_out.write('\t')
                                 if fields[1] == index_of_backbone_atoms[-1]:
