@@ -20,6 +20,7 @@ parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether we n
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
@@ -101,8 +102,11 @@ def run_simulation(force_constant):
 
     layer_types = CONFIG_27
 
+    index_of_starting_frame_of_pdb_file = args.starting_frame
+    print index_of_starting_frame_of_pdb_file
     pdb = PDBFile(input_pdb_file_of_molecule)
-    modeller = Modeller(pdb.topology, pdb.positions)
+    modeller = Modeller(pdb.topology, pdb.getPositions(frame=index_of_starting_frame_of_pdb_file))
+    print pdb.getPositions(frame=index_of_starting_frame_of_pdb_file)
 
     if whether_to_add_water_mol:    # if we need to add water molecules in the simulation
         forcefield = ForceField(force_field_file, water_field_file)
@@ -159,6 +163,8 @@ def run_simulation(force_constant):
         integrator.setRandomNumberSeed(1)  # set random seed
 
     simulation = Simulation(modeller.topology, system, integrator, platform)
+    # print "positions = "
+    # print (modeller.positions)
     simulation.context.setPositions(modeller.positions)
 
     if args.starting_checkpoint != '':
