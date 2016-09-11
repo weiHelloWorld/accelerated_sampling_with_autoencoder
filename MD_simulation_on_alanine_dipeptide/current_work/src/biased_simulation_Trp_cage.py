@@ -82,6 +82,10 @@ def run_simulation(force_constant):
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_sf_%s.txt' % \
                                 args.starting_pdb_file.split('.pdb')[0].split('/')[-1]
 
+    if args.starting_frame != 0:
+        pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
+        state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_ff_%d.txt' % args.starting_frame
+
     if os.path.isfile(pdb_reporter_file):
         os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
@@ -102,11 +106,8 @@ def run_simulation(force_constant):
 
     layer_types = CONFIG_27
 
-    index_of_starting_frame_of_pdb_file = args.starting_frame
-    print index_of_starting_frame_of_pdb_file
     pdb = PDBFile(input_pdb_file_of_molecule)
-    modeller = Modeller(pdb.topology, pdb.getPositions(frame=index_of_starting_frame_of_pdb_file))
-    print pdb.getPositions(frame=index_of_starting_frame_of_pdb_file)
+    modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
 
     if whether_to_add_water_mol:    # if we need to add water molecules in the simulation
         forcefield = ForceField(force_field_file, water_field_file)
