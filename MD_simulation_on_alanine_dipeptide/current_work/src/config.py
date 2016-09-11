@@ -23,6 +23,7 @@ from keras.models import Sequential
 from keras.optimizers import SGD
 from keras.layers import Dense, Activation, Lambda, Reshape
 from keras.regularizers import l2
+from keras.callbacks import EarlyStopping
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
@@ -46,8 +47,8 @@ CONFIG_45 = 'keras'                         # training backend: "pybrain", "kera
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class autoencoder:'''
-CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
-CONFIG_2 = 2     # training data interval
+CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
@@ -130,8 +131,8 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = 100000 # num of simulation steps
-CONFIG_9 = 500   # force constant for biased simulations
+CONFIG_8 = 5000 # num of simulation steps
+CONFIG_9 = 1200   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
