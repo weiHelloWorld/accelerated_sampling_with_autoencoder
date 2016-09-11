@@ -27,8 +27,16 @@ class cluster_management(object):
             if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
                 item = item[:-1]
 
+            if folder_to_store_sge_files[-1] != '/':
+                folder_to_store_sge_files += '/'
+
+            if not os.path.exists(folder_to_store_sge_files):
+                subprocess.check_output(['mkdir', folder_to_store_sge_files])
+
             sge_filename = folder_to_store_sge_files + item.replace(' ', '_').replace('..', '_').replace('/','_')\
-                .replace('&', '').replace('--', '_').replace('__','_') + '.sge'
+                .replace('&', '').replace('--', '_') + '.sge'
+            sge_filename = re.sub('_+', '_', sge_filename)
+
             content_for_sge_files = '''#!/bin/bash
 
 #$ -S /bin/bash           # use bash shell
