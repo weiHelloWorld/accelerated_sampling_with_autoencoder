@@ -38,8 +38,8 @@ args = parser.parse_args()
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
-layer_types = args.layer_types.replace('[','').replace(']','').split(',')
-num_of_nodes = args.num_of_nodes.replace('[','').replace(']','').split(',')
+layer_types = re.sub("\[|\]|\"|\'| ",'', args.layer_types).split(',')
+num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
 num_of_nodes = [int(item) for item in num_of_nodes]
 
 if float(force_constant) != 0:
