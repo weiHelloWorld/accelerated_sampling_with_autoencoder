@@ -376,16 +376,17 @@ class test_biased_simulation(object):
             subprocess.check_output(['rm', '-rf', output_folder])
 
         subprocess.check_output(
-            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s' % (output_folder, autoencoder_coeff_file, potential_center),
+            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s'
+            % (output_folder, autoencoder_coeff_file, potential_center, "8,15,4", "Tanh,Circular"),
             shell=True)
 
         Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
         fig, ax = plt.subplots()
         my_files = coordinates_data_files_list([output_folder]).get_list_of_coor_data_files()
-        cosssin_data = Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(my_files)
+        cossin_data = Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(my_files)
         my_network = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
         assert (isinstance(my_network, autoencoder))
-        PCs = my_network.get_PCs(cosssin_data)
+        PCs = my_network.get_PCs(cossin_data)
         x, y = zip(*PCs)
         ax.scatter(x, y)
         fig.savefig('test_biased_simulation_%s.png' % potential_center)

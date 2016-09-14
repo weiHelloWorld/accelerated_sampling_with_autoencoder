@@ -20,6 +20,7 @@ parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether we n
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
@@ -81,6 +82,10 @@ def run_simulation(force_constant):
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_sf_%s.txt' % \
                                 args.starting_pdb_file.split('.pdb')[0].split('/')[-1]
 
+    if args.starting_frame != 0:
+        pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
+        state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_ff_%d.txt' % args.starting_frame
+
     if os.path.isfile(pdb_reporter_file):
         os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
@@ -102,7 +107,7 @@ def run_simulation(force_constant):
     layer_types = CONFIG_27
 
     pdb = PDBFile(input_pdb_file_of_molecule)
-    modeller = Modeller(pdb.topology, pdb.positions)
+    modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
 
     if whether_to_add_water_mol:    # if we need to add water molecules in the simulation
         forcefield = ForceField(force_field_file, water_field_file)
@@ -159,6 +164,8 @@ def run_simulation(force_constant):
         integrator.setRandomNumberSeed(1)  # set random seed
 
     simulation = Simulation(modeller.topology, system, integrator, platform)
+    # print "positions = "
+    # print (modeller.positions)
     simulation.context.setPositions(modeller.positions)
 
     if args.starting_checkpoint != '':
@@ -166,6 +173,7 @@ def run_simulation(force_constant):
         # FIXME: there is seg fault when loading checkpoint?
         simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
 
+    print datetime.datetime.now()
     if args.minimize_energy:
         print('begin Minimizing energy...')
         print datetime.datetime.now()

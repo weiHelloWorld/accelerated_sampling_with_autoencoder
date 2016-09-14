@@ -58,6 +58,12 @@ class plotting(object):
 
             (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
             labels = ["phi", "psi"]
+        elif plotting_space == "1st_4th_dihedrals":
+            assert (isinstance(molecule_type, Alanine_dipeptide))
+            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(cossin_data)
+
+            (x,y) = ([item[0] for item in temp_dihedrals], [item[3] for item in temp_dihedrals])
+            labels = ["dihedral_1", "dihedral_4"]
         else:
             raise Exception('plotting_space not defined!')
 
@@ -72,6 +78,12 @@ class plotting(object):
         elif color_option == 'psi':
             assert (isinstance(molecule_type, Alanine_dipeptide))
             coloring = [item[2] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
+        elif color_option == '1st_dihedral':
+            assert (isinstance(molecule_type, Alanine_dipeptide))
+            coloring = [item[0] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
+        elif color_option == '4th_dihedral':
+            assert (isinstance(molecule_type, Alanine_dipeptide))
+            coloring = [item[3] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
         elif color_option == 'other':
             assert (len(other_coloring) == len(x)), (len(other_coloring), len(x))
             coloring = other_coloring

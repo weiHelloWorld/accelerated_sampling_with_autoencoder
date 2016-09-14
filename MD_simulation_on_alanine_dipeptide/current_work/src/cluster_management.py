@@ -1,5 +1,5 @@
 from config import *
-import copy, pickle, re, os, time, subprocess, datetime, itertools
+import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib
 
 class cluster_management(object):
     def __init__(self):
@@ -27,8 +27,23 @@ class cluster_management(object):
             if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
                 item = item[:-1]
 
-            sge_filename = folder_to_store_sge_files + item.replace(' ', '_').replace('..', '_').replace('/','_')\
-                .replace('&', '').replace('--', '_').replace('__','_') + '.sge'
+            if folder_to_store_sge_files[-1] != '/':
+                folder_to_store_sge_files += '/'
+
+            if not os.path.exists(folder_to_store_sge_files):
+                subprocess.check_output(['mkdir', folder_to_store_sge_files])
+
+            sge_filename = item.replace(' ', '_').replace('..', '_').replace('/','_')\
+                .replace('&', '').replace('--', '_').replace('\\','') + '.sge'
+            sge_filename = re.sub('_+', '_', sge_filename)
+
+            if len(sge_filename) > 255:    # max length of file names in Linux
+                temp = hashlib.md5()
+                temp.update(sge_filename)
+                sge_filename = "h_" + temp.hexdigest() + sge_filename[-200:]
+
+            sge_filename = folder_to_store_sge_files + sge_filename
+
             content_for_sge_files = '''#!/bin/bash
 
 #$ -S /bin/bash           # use bash shell

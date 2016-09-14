@@ -4,7 +4,7 @@ generate corresponding sge file, and qsub it.
 """
 
 
-import argparse, subprocess
+import argparse, subprocess, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("command", type=str, help="command to run")
@@ -32,7 +32,7 @@ content_for_sge_file = '''#!/bin/bash
 #$ -M wei.herbert.chen@gmail.com         # email address
 
 #$ -q all.q               # queue name
-#$ -l h_rt=24:00:00       # run time (hh:mm:ss)
+#$ -l h_rt=240:00:00       # run time (hh:mm:ss)
 
 %s
 
@@ -45,7 +45,14 @@ echo "This job is DONE!"
 exit 0
 ''' % (gpu_option_string, command_in_sge_file)
 
-sge_filename = '../sge_files/' + command_in_sge_file.replace(' ', '_').replace('..', '_').replace('/','_').replace('&', '') + '.sge'
+folder_to_store_sge_files = '../sge_files/'
+
+if not os.path.exists(folder_to_store_sge_files):
+    subprocess.check_output(['mkdir', folder_to_store_sge_files])
+
+assert (os.path.exists(folder_to_store_sge_files))
+
+sge_filename = folder_to_store_sge_files + command_in_sge_file.replace(' ', '_').replace('..', '_').replace('/','_').replace('&', '') + '.sge'
 
 with open(sge_filename, 'w') as sge_file:
     sge_file.write(content_for_sge_file)

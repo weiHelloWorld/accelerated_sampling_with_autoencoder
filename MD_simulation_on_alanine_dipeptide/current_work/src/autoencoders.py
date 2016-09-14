@@ -687,8 +687,10 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                                    self._network_parameters[2], str(self._network_parameters[4]))
 
             print("Start " + training_print_info)
+            earlyStopping = EarlyStopping(monitor='val_loss', patience=20, verbose=0, mode='min')
 
-            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size, verbose=int(self._network_verbose))
+            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
+                             verbose=int(self._network_verbose), validation_split=0.2, callbacks=[earlyStopping])
 
             dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
             for _1 in range(len(dense_layers)):

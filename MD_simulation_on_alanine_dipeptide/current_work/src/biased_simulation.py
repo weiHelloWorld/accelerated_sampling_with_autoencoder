@@ -19,6 +19,8 @@ parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
+parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
+parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
 # note on "force_constant_adjustable" mode:
@@ -36,6 +38,10 @@ args = parser.parse_args()
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
+layer_types = re.sub("\[|\]|\"|\'| ",'', args.layer_types).split(',')
+num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
+num_of_nodes = [int(item) for item in num_of_nodes]
+
 if float(force_constant) != 0:
     from ANN import *
 
@@ -76,7 +82,6 @@ def run_simulation(force_constant):
                                                 [7,9,15,17],
                                                 [9,15,17,19]]
 
-    layer_types = CONFIG_27
 
     with open(autoencoder_info_file, 'r') as f_in:
         energy_expression = f_in.read()
@@ -120,7 +125,8 @@ def run_simulation(force_constant):
             force = ANN_Force()
             force.set_layer_types(layer_types)
             force.set_list_of_index_of_atoms_forming_dihedrals(list_of_index_of_atoms_forming_dihedrals)
-            force.set_num_of_nodes(CONFIG_3[:3])
+
+            force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(
                 potential_center
                 )
@@ -164,7 +170,7 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     temp_network = pickle.load(open(args.autoencoder_file, 'rb'))
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center()
-    if CONFIG_17[1] == CircularLayer:
+    if layer_types[1] == "Circular":
         offset = [min(abs(item), abs(item + 2 * np.pi), abs(item - 2 * np.pi)) for item in offset]
         print "circular offset"
     print 'offset = %s' % str(offset)
