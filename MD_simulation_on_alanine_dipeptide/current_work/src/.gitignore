@@ -10,3 +10,5 @@ temp_*.py
 temp_*.sh
 *.pdb
 *_coordinates.txt
+temp*.txt
+temp/**

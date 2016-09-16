@@ -18,6 +18,7 @@ parser.add_argument("--learning_rate", type=float, default=0.3, help='learning r
 parser.add_argument("--momentum", type=float, default=0.9, help= "momentum (the ratio by which the gradient of the last timestep is used)")
 parser.add_argument("--verbose", help="whether to print training info", action="store_true")
 parser.add_argument("--regularization", default="0,0,0,0", type=str, help="regularization coefficient")
+parser.add_argument("--enable_early_stopping", type=int, default=1, help="whether to enable early stopping")
 args = parser.parse_args()
 
 molecule_type = Sutils.create_subclass_instance_using_name(args.molecule_type)
@@ -41,10 +42,10 @@ else:
     raise Exception("PC_layer_type not defined")
 
 data_folder = args.data_folder[:-1] if args.data_folder[-1] == '/' else args.data_folder
-info_coor_file = data_folder + '/info_coor.txt'
+info_cossin_file = data_folder + '/info_cossin.txt'
 
-if os.path.exists(info_coor_file):
-    data = np.loadtxt(info_coor_file)[::args.step_interval]
+if os.path.exists(info_cossin_file):
+    data = np.loadtxt(info_cossin_file)[::args.step_interval]
 else:
     print ("training data are not available, need to be computed")
     my_file_list = coordinates_data_files_list([args.data_folder])._list_of_coor_data_files
@@ -55,7 +56,7 @@ else:
     else:
         raise Exception("molecule type not defined")
 
-    np.savetxt(info_coor_file, data)
+    np.savetxt(info_cossin_file, data)
 
 print ("training data loaded")
 
@@ -77,7 +78,9 @@ elif args.training_backend == 'keras':
                                   node_num=[num_of_input_nodes, args.num_of_hidden_nodes, num_of_PCs, args.num_of_hidden_nodes, num_of_input_nodes],
                                   max_num_of_training=args.max_num_of_training,
                                   network_parameters=[args.learning_rate, args.momentum, 0, True, regularization_list],
-                                  hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer]
+                                  hidden_layers_types=[TanhLayer, PC_layer_type, TanhLayer],
+                                  network_verbose=args.verbose,
+                                  enable_early_stopping=args.enable_early_stopping
                                   )
 else:
     raise Exception('this training backend not defined')

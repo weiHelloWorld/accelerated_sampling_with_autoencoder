@@ -47,12 +47,12 @@ CONFIG_45 = 'keras'                         # training backend: "pybrain", "kera
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class autoencoder:'''
-CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_17 = [TanhLayer, CircularLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, [0, 0.1, 0, 0]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.00, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
@@ -107,7 +107,7 @@ CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
-CONFIG_41 = True    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
+CONFIG_41 = False    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
 
 if CONFIG_17[1] == CircularLayer:
     CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
@@ -132,7 +132,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 1000   # force constant for biased simulations
+CONFIG_9 = 30   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
