@@ -41,8 +41,11 @@ record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
 
+platform = Platform.getPlatformByName(args.platform)
+
 if float(force_constant) != 0:
     from ANN import *
+    platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
 folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = args.autoencoder_info_file
@@ -122,9 +125,6 @@ def run_simulation(force_constant):
         modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, nonbondedCutoff=1.0 * nanometers,
                                          constraints=AllBonds)
-
-    platform = Platform.getPlatformByName(args.platform)
-    platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
     system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
     if args.ensemble_type == "NPT":
