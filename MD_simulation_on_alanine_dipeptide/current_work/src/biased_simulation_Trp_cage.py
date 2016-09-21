@@ -16,7 +16,7 @@ parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
-parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether we need to add water molecules in the simulation')
+parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
@@ -42,6 +42,7 @@ total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
 
 platform = Platform.getPlatformByName(args.platform)
+temperature = args.temperature
 
 if float(force_constant) != 0:
     from ANN import *
@@ -54,15 +55,6 @@ potential_center = list(map(lambda x: float(x), args.pc_potential_center.replace
                                 .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
 
 def run_simulation(force_constant):
-    if args.whether_to_add_water_mol_opt == 'with_water':
-        whether_to_add_water_mol = True
-    elif args.whether_to_add_water_mol_opt == 'without_water' or args.whether_to_add_water_mol_opt == 'water_already_added':
-        whether_to_add_water_mol = False
-    else:
-        raise Exception('parameter error')
-
-    temperature = args.temperature
-
     if not os.path.exists(folder_to_store_output_files):
         try:
             os.makedirs(folder_to_store_output_files)
@@ -96,10 +88,7 @@ def run_simulation(force_constant):
         os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
 
     flag_random_seed = 0 # whether we need to fix this random seed
-
     box_size = 4.5    # in nm
-    neg_ion = "Cl-"
-
     time_step = CONFIG_22       # simulation time step, in ps
 
     index_of_backbone_atoms = [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95,
@@ -108,23 +97,31 @@ def run_simulation(force_constant):
             253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
 
     layer_types = CONFIG_27
+    simulation_constraints = HBonds
 
     pdb = PDBFile(input_pdb_file_of_molecule)
     modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
 
-    if whether_to_add_water_mol:    # if we need to add water molecules in the simulation
+    if args.whether_to_add_water_mol_opt == 'explicit':    # if we need to add water molecules in the simulation
         forcefield = ForceField(force_field_file, water_field_file)
 
-        modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = neg_ion)   # By default, addSolvent() creates TIP3P water molecules
+        modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = 'Cl-')   # By default, addSolvent() creates TIP3P water molecules
         modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=Ewald, nonbondedCutoff=1.0 * nanometers,
-                                         constraints = AllBonds, ewaldErrorTolerance = 0.0005)
+                                         constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
+    elif args.whether_to_add_water_mol_opt == 'implicit':
+        forcefield = ForceField('amber03.xml', 'amber03_obc.xml')
+        system = forcefield.createSystem(pdb.topology,nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=1.0 * nanometers,
+                                         constraints=simulation_constraints, rigidWater=True)
 
-    else:
+    elif args.whether_to_add_water_mol_opt == 'no_water' or args.whether_to_add_water_mol_opt == 'water_already_included':
         forcefield = ForceField(force_field_file, water_field_file)
+
         modeller.addExtraParticles(forcefield)
-        system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, nonbondedCutoff=1.0 * nanometers,
-                                         constraints=AllBonds)
+        system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff,nonbondedCutoff=1.0 * nanometers,
+                                         constraints = simulation_constraints)
+    else:
+        raise Exception("parameter error")
 
     system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
     if args.ensemble_type == "NPT":
@@ -185,7 +182,10 @@ def run_simulation(force_constant):
 
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
-                                    step=True, potentialEnergy=True, kineticEnergy=True, temperature=True))
+                                    step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
+                                                  temperature=True, progress=True, remainingTime=True,
+                                                  totalSteps=total_number_of_steps,
+                                                  ))
     simulation.step(total_number_of_steps)
 
     if args.checkpoint:
