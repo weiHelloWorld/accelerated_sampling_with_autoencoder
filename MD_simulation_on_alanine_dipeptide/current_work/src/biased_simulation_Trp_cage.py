@@ -111,8 +111,8 @@ def run_simulation(force_constant):
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
         forcefield = ForceField('amber03.xml', 'amber03_obc.xml')
-        system = forcefield.createSystem(pdb.topology,nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=1.0 * nanometers,
-                                         constraints=simulation_constraints, rigidWater=True)
+        system = forcefield.createSystem(pdb.topology,nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=5 * nanometers,
+                                         constraints=simulation_constraints, rigidWater=True, removeCMMotion=True)
 
     elif args.whether_to_add_water_mol_opt == 'no_water' or args.whether_to_add_water_mol_opt == 'water_already_included':
         forcefield = ForceField(force_field_file, water_field_file)
