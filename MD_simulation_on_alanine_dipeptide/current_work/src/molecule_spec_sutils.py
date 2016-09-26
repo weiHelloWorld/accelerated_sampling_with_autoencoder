@@ -441,7 +441,6 @@ class Trp_cage(Sutils):
     def get_pairwise_distance_matrices_of_alpha_carbon_bak(list_of_files,
                                                        step_interval = 1 # get_matrices every "step_interval" snapshots
                                                        ):
-        list_of_files.sort()   # to make the order consistent
         distances_list = []
         index = 0
         num_of_residues = 20
@@ -467,7 +466,6 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
-        list_of_files.sort()
         distances_list = []
         index = 0
         for sample_file in list_of_files:
@@ -531,7 +529,6 @@ class Trp_cage(Sutils):
          - "backbone" for backbone atoms
          - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
         """
-        list_of_files.sort()
         ref = Universe(ref_file)
         ref_atom_selection = ref.select_atoms(atom_selection_statement)
         result_rmsd_of_atoms = []
@@ -552,7 +549,6 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_radius_of_gyration(list_of_files, step_interval = 1):
-        list_of_files.sort()
         result = []
         index = 0
         for item_file in list_of_files:
