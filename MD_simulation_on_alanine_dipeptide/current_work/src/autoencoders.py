@@ -609,10 +609,12 @@ parameter = [learning rate: %f, momentum: %f, weightdecay: %f, lrdecay: %f]\n'''
 class autoencoder_Keras(autoencoder):
     def _init_extra(self,
                     network_parameters = CONFIG_4,
-                    batch_size = 100
+                    batch_size = 100,
+                    enable_early_stopping=True
                     ):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
+        self._enable_early_stopping = enable_early_stopping
         self._molecule_net_layers = None              # why don't I save molecule_net (Keras model) instead? since it it not picklable:
                                                       # https://github.com/luispedro/jug/issues/30
                                                       # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
@@ -687,10 +689,13 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                                    self._network_parameters[2], str(self._network_parameters[4]))
 
             print("Start " + training_print_info)
-            earlyStopping = EarlyStopping(monitor='val_loss', patience=20, verbose=0, mode='min')
+            call_back_list = []
+            earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
+            if self._enable_early_stopping:
+                call_back_list += [earlyStopping]
 
             molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
-                             verbose=int(self._network_verbose), validation_split=0.2, callbacks=[earlyStopping])
+                             verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
             dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
             for _1 in range(len(dense_layers)):

@@ -22,6 +22,24 @@ class Sutils(object):
         return pickle.load(open(file_path, 'rb'))
 
     @staticmethod
+    def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None):
+        if new_pdb_file_name is None:
+            new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_someframes.pdb'
+
+        with open(pdb_file_name, 'r') as f_in:
+            content = [item for item in f_in.readlines() if not 'REMARK' in item]
+            content = ''.join(content)
+            content = content.split('MODEL')[1:]  # remove header
+            content_to_write = [content[_2] for _2 in index_list]
+
+        with open(new_pdb_file_name, 'w') as f_out:
+            for item in content_to_write:
+                f_out.write("MODEL")
+                f_out.write(item)
+
+        return
+
+    @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
         print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
@@ -423,7 +441,6 @@ class Trp_cage(Sutils):
     def get_pairwise_distance_matrices_of_alpha_carbon_bak(list_of_files,
                                                        step_interval = 1 # get_matrices every "step_interval" snapshots
                                                        ):
-        list_of_files.sort()   # to make the order consistent
         distances_list = []
         index = 0
         num_of_residues = 20
@@ -449,7 +466,6 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
-        list_of_files.sort()
         distances_list = []
         index = 0
         for sample_file in list_of_files:
@@ -513,7 +529,6 @@ class Trp_cage(Sutils):
          - "backbone" for backbone atoms
          - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
         """
-        list_of_files.sort()
         ref = Universe(ref_file)
         ref_atom_selection = ref.select_atoms(atom_selection_statement)
         result_rmsd_of_atoms = []
@@ -534,7 +549,6 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_radius_of_gyration(list_of_files, step_interval = 1):
-        list_of_files.sort()
         result = []
         index = 0
         for item_file in list_of_files:
