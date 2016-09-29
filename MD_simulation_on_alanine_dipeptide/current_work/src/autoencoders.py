@@ -288,7 +288,7 @@ class autoencoder(object):
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
+            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
@@ -342,7 +342,7 @@ class autoencoder(object):
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
+            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += list(temp_coor)
             temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])

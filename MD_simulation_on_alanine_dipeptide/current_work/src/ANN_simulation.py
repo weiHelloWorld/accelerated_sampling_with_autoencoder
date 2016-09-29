@@ -158,7 +158,7 @@ class plotting(object):
                             out_file_name=out_file_name)
                         # need to verify PCs generated from this output pdb file are consistent from those in the list selected
                         molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
-                        cossin_data_selected = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(
+                        cossin_data_selected = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
                             list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
                         PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
                         assert_almost_equal(PCs_of_points_selected, np.array([[x[item], y[item]] for item in ind_list]))
@@ -266,7 +266,7 @@ class iteration(object):
         if training_interval is None: training_interval = self._index  # to avoid too much time on training
         my_file_list = coordinates_data_files_list(
             list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
-        data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
+        data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list)
 
         max_FVE = 0
         current_network = None
@@ -389,7 +389,7 @@ class single_biased_simulation_data(object):
         return
 
     def get_center_of_data_cloud_in_this_biased_simulation(self):
-        cossin = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
+        cossin = molecule_type.get_many_cossin_from_coordinates_in_list_of_files([self._file_for_single_biased_simulation_coor])
         PCs = self._my_network.get_PCs(cossin)
         assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)

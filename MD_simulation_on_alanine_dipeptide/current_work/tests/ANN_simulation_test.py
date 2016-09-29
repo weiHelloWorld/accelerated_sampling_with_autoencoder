@@ -112,7 +112,7 @@ class test_Alanine_dipeptide(object):
     @staticmethod
     def test_get_many_cossin_from_coordiantes_in_list_of_files():
         list_of_files = ['dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
-        actual = Alanine_dipeptide().get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
+        actual = Alanine_dipeptide().get_many_cossin_from_coordinates_in_list_of_files(list_of_files)
         assert_equal(100, len(actual))
         assert_equal(8, len(actual[0]))
         expected = np.loadtxt('dependency/output_cossin.txt')
@@ -308,7 +308,7 @@ class test_neural_network_for_simulation(object):
 class test_autoencoder_Keras(object):
     def __init__(self):
         my_file_list = coordinates_data_files_list(['dependency/noncircular_alanine_exploration_data/'])
-        self._data = np.array(Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(
+        self._data = np.array(Alanine_dipeptide.get_many_cossin_from_coordinates_in_list_of_files(
             my_file_list.get_list_of_coor_data_files()))
 
     def test_train(self):
@@ -383,7 +383,7 @@ class test_biased_simulation(object):
         Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
         fig, ax = plt.subplots()
         my_files = coordinates_data_files_list([output_folder]).get_list_of_coor_data_files()
-        cossin_data = Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(my_files)
+        cossin_data = Alanine_dipeptide.get_many_cossin_from_coordinates_in_list_of_files(my_files)
         my_network = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
         assert (isinstance(my_network, autoencoder))
         PCs = my_network.get_PCs(cossin_data)

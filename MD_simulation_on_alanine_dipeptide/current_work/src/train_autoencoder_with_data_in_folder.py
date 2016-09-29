@@ -52,9 +52,9 @@ else:
     print ("training data are not available, need to be computed")
     my_file_list = coordinates_data_files_list([args.data_folder])._list_of_coor_data_files
     if isinstance(molecule_type, Alanine_dipeptide):
-        data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
+        data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list)
     elif isinstance(molecule_type, Trp_cage):
-        data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list,step_interval=args.step_interval)
+        data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=args.step_interval)
     else:
         raise Exception("molecule type not defined")
 

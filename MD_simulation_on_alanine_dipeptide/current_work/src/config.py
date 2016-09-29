@@ -39,7 +39,7 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 
 '''class coordinates_data_files_list:'''
@@ -73,7 +73,7 @@ elif CONFIG_30 == "Trp_cage":
 else:
     raise Exception('molecule type error')
 
-CONFIG_40 = 'without_water'                  # whether to include water molecules, option: "with_water" or "without_water"
+CONFIG_40 = 'implicit'                  # whether to include water molecules, option: "with_water" or "without_water"
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)

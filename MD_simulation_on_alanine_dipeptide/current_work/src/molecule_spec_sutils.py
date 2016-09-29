@@ -265,7 +265,7 @@ class Alanine_dipeptide(Sutils):
         return map(Alanine_dipeptide.get_cossin_from_a_coordinate, coordinates)
 
     @staticmethod
-    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
+    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
         result = []
         for item in list_of_files:
             coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
@@ -282,7 +282,7 @@ class Alanine_dipeptide(Sutils):
     def get_many_dihedrals_from_coordinates_in_file (list_of_files):
         # why we need to get dihedrals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
+        temp = Alanine_dipeptide.get_many_cossin_from_coordinates_in_list_of_files(list_of_files)
         return Alanine_dipeptide.get_many_dihedrals_from_cossin(temp)
 
     @staticmethod
@@ -387,7 +387,7 @@ class Trp_cage(Sutils):
         return map(Trp_cage.get_cossin_from_a_coordinate, coordinates)
 
     @staticmethod
-    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval=1):
+    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
         coordinates = []
         for item in list_of_files:
             temp_coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
@@ -406,7 +406,7 @@ class Trp_cage(Sutils):
     def get_many_dihedrals_from_coordinates_in_file (list_of_files, step_interval=1):
         # why we need to get dihedrals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval)
+        temp = Trp_cage.get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval)
         return Trp_cage.get_many_dihedrals_from_cossin(temp)
 
     @staticmethod
