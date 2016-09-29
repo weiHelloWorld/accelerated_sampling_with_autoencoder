@@ -68,6 +68,9 @@ class Sutils(object):
 
         for input_file in filenames:
             output_file = input_file.replace('.pdb', '_coordinates.txt')
+            if step_interval != 1:
+                output_file = output_file.replace('_coordinates.txt', '_int_%d_coordinates.txt' % step_interval)
+
             output_file_list += [output_file]
             if os.path.exists(output_file):
                 print ("coordinate file already exists: %s (remove previous one if needed)" % output_file)

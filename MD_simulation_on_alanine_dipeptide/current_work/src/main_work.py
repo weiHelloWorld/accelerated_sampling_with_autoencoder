@@ -5,7 +5,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--starting_index", type=int, default=1, help="index of starting iteration")
 parser.add_argument("--num_of_iterations", type=int, default=10, help="number of iterations to run")
 parser.add_argument("--starting_network_file", type=str, default=None, help="the network to start with")
-parser.add_argument("--training_interval", type=int, default=2, help="training interval")
+parser.add_argument("--training_interval", type=int, default=1, help="training interval")
 args = parser.parse_args()
 
 if args.starting_network_file is None:

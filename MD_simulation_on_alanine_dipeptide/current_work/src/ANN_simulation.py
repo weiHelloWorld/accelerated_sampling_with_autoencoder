@@ -258,12 +258,11 @@ class iteration(object):
     #     self._network = current_network
     #     return
 
-    def train_network_and_save(self, training_interval=None, num_of_trainings=CONFIG_13):
+    def train_network_and_save(self, training_interval=1, num_of_trainings=CONFIG_13):
         """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        if training_interval is None: training_interval = self._index  # to avoid too much time on training
         my_file_list = coordinates_data_files_list(
             list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
         data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
