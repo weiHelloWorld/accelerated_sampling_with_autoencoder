@@ -266,15 +266,17 @@ class Alanine_dipeptide(Sutils):
 
     @staticmethod
     def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
-        result = []
+        coordinates = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
-            if coordinates.shape[0] != 0:        # remove info from empty files
-                if len(coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
-                    coordinates = coordinates[:, None].T
+            temp_coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            if temp_coordinates.shape[0] != 0:  # remove info from empty files
+                if len(temp_coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
+                    temp_coordinates = temp_coordinates[:, None].T
 
-                temp = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
-                result += temp
+                coordinates += list(temp_coordinates)
+
+        coordinates = coordinates[::step_interval]
+        result = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
 
         return result
 
