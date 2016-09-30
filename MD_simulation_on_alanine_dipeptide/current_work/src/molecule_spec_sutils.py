@@ -72,7 +72,7 @@ class Sutils(object):
                 output_file = output_file.replace('_coordinates.txt', '_int_%d_coordinates.txt' % step_interval)
 
             output_file_list += [output_file]
-            if os.path.exists(output_file):
+            if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
                 print ("coordinate file already exists: %s (remove previous one if needed)" % output_file)
             else:
                 print ('generating coordinates of ' + input_file)
