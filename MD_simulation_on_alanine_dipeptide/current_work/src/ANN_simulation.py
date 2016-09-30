@@ -27,6 +27,7 @@ class plotting(object):
                                             axis_ranges=None,
                                             contain_colorbar=True,
                                             smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
+                                            variance_using_RNR = False,    # get variance of coloring values over space using RNR
                                             smoothing_radius = 0.1,
                                             enable_mousing_clicking_event = False,
                                             related_coor_list_obj = None,
@@ -92,6 +93,14 @@ class plotting(object):
                 temp_coors = [list(item) for item in zip(x, y)]
                 r_neigh.fit(temp_coors, coloring)
                 coloring = r_neigh.predict(temp_coors)
+            elif variance_using_RNR:  # get variance of the coloring values over space, using RNR
+                r_neigh = RadiusNeighborsRegressor(radius=smoothing_radius, weights='uniform')
+                temp_coors = [list(item) for item in zip(x, y)]
+                r_neigh.fit(temp_coors, coloring)
+                coloring_mean = r_neigh.predict(temp_coors)
+                r_neigh.fit(temp_coors, np.multiply(np.array(coloring), np.array(coloring)))
+                coloring_square_mean = r_neigh.predict(temp_coors)
+                coloring = coloring_square_mean - np.multiply(coloring_mean, coloring_mean)
         else:
             raise Exception('color_option not defined!')
 
