@@ -26,7 +26,7 @@ class Sutils(object):
         previous_remaining_index_list = index_list
         for _1 in list_of_files:
             with open(_1, 'r') as f_in:
-                content = [item for item in f_in.readlines() if not 'REMARK' in item]
+                content = [item for item in f_in.readlines() if (not 'REMARK' in item) and (not 'END\n' in item)]
                 content = ''.join(content)
                 content = content.split('MODEL')[1:]  # remove header
                 num_of_frames_in_current_file = len(content)
@@ -49,7 +49,7 @@ class Sutils(object):
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_someframes.pdb'
 
         with open(pdb_file_name, 'r') as f_in:
-            content = [item for item in f_in.readlines() if not 'REMARK' in item]
+            content = [item for item in f_in.readlines() if (not 'REMARK' in item) and (not 'END\n' in item)]
             content = ''.join(content)
             content = content.split('MODEL')[1:]  # remove header
             content_to_write = [content[_2] for _2 in index_list]
@@ -68,7 +68,7 @@ class Sutils(object):
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
         with open(pdb_file_name, 'r') as f_in:
-            content = [item for item in f_in.readlines() if not 'REMARK' in item]
+            content = [item for item in f_in.readlines() if (not 'REMARK' in item) and (not 'END\n' in item)]
             content = ''.join(content)
             content = content.split('MODEL')[1:]  # remove header
             if end_index == 0:
