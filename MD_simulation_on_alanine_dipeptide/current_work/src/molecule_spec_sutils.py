@@ -22,6 +22,28 @@ class Sutils(object):
         return pickle.load(open(file_path, 'rb'))
 
     @staticmethod
+    def write_some_frames_into_a_new_file_based_on_index_list_for_pdb_file_list(list_of_files, index_list, new_pdb_file_name):
+        previous_remaining_index_list = index_list
+        for _1 in list_of_files:
+            with open(_1, 'r') as f_in:
+                content = [item for item in f_in.readlines() if not 'REMARK' in item]
+                content = ''.join(content)
+                content = content.split('MODEL')[1:]  # remove header
+                num_of_frames_in_current_file = len(content)
+                index_for_this_file = [_2 for _2 in previous_remaining_index_list if _2 < num_of_frames_in_current_file]
+                remaining_index_list = [_2 - num_of_frames_in_current_file for _2 in previous_remaining_index_list if _2 >= num_of_frames_in_current_file]
+                assert (len(index_for_this_file) + len(remaining_index_list) == len(previous_remaining_index_list))
+                previous_remaining_index_list = remaining_index_list
+                Sutils.write_some_frames_into_a_new_file_based_on_index_list(_1, index_for_this_file, new_pdb_file_name)
+
+        # check number of frames to be correct
+        with open(new_pdb_file_name, 'r') as f_in:
+            content = f_in.read().strip().split('MODEL')[1:]
+            assert (len(content) == len(index_list)), (len(content), len(index_list))
+
+        return
+
+    @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None):
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_someframes.pdb'
@@ -32,7 +54,7 @@ class Sutils(object):
             content = content.split('MODEL')[1:]  # remove header
             content_to_write = [content[_2] for _2 in index_list]
 
-        with open(new_pdb_file_name, 'w') as f_out:
+        with open(new_pdb_file_name, 'a') as f_out:
             for item in content_to_write:
                 f_out.write("MODEL")
                 f_out.write(item)
