@@ -43,16 +43,18 @@ else:
 
 data_folder = args.data_folder[:-1] if args.data_folder[-1] == '/' else args.data_folder
 info_cossin_file = data_folder + '/info_cossin.txt'
+my_file_list = coordinates_data_files_list([args.data_folder])
+total_num_of_lines = sum(my_file_list.get_list_of_line_num_of_coor_data_file())
 
-if os.path.exists(info_cossin_file):
+if os.path.exists(info_cossin_file) and np.loadtxt(info_cossin_file).shape[0] == total_num_of_lines:
     data = np.loadtxt(info_cossin_file)[::args.step_interval]
 else:
     print ("training data are not available, need to be computed")
     my_file_list = coordinates_data_files_list([args.data_folder])._list_of_coor_data_files
     if isinstance(molecule_type, Alanine_dipeptide):
-        data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
+        data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list)
     elif isinstance(molecule_type, Trp_cage):
-        data = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list,step_interval=args.step_interval)
+        data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=args.step_interval)
     else:
         raise Exception("molecule type not defined")
 

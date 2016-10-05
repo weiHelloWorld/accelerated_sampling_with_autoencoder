@@ -27,6 +27,7 @@ class plotting(object):
                                             axis_ranges=None,
                                             contain_colorbar=True,
                                             smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
+                                            variance_using_RNR = False,    # get variance of coloring values over space using RNR
                                             smoothing_radius = 0.1,
                                             enable_mousing_clicking_event = False,
                                             related_coor_list_obj = None,
@@ -92,6 +93,14 @@ class plotting(object):
                 temp_coors = [list(item) for item in zip(x, y)]
                 r_neigh.fit(temp_coors, coloring)
                 coloring = r_neigh.predict(temp_coors)
+            elif variance_using_RNR:  # get variance of the coloring values over space, using RNR
+                r_neigh = RadiusNeighborsRegressor(radius=smoothing_radius, weights='uniform')
+                temp_coors = [list(item) for item in zip(x, y)]
+                r_neigh.fit(temp_coors, coloring)
+                coloring_mean = r_neigh.predict(temp_coors)
+                r_neigh.fit(temp_coors, np.multiply(np.array(coloring), np.array(coloring)))
+                coloring_square_mean = r_neigh.predict(temp_coors)
+                coloring = coloring_square_mean - np.multiply(coloring_mean, coloring_mean)
         else:
             raise Exception('color_option not defined!')
 
@@ -158,7 +167,7 @@ class plotting(object):
                             out_file_name=out_file_name)
                         # need to verify PCs generated from this output pdb file are consistent from those in the list selected
                         molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
-                        cossin_data_selected = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(
+                        cossin_data_selected = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
                             list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
                         PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
                         assert_almost_equal(PCs_of_points_selected, np.array([[x[item], y[item]] for item in ind_list]))
@@ -258,15 +267,14 @@ class iteration(object):
     #     self._network = current_network
     #     return
 
-    def train_network_and_save(self, training_interval=None, num_of_trainings=CONFIG_13):
+    def train_network_and_save(self, training_interval=1, num_of_trainings=CONFIG_13):
         """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        if training_interval is None: training_interval = self._index  # to avoid too much time on training
         my_file_list = coordinates_data_files_list(
             list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
-        data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
+        data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
 
         max_FVE = 0
         current_network = None
@@ -275,12 +283,12 @@ class iteration(object):
             if CONFIG_45 == 'pybrain':
                 temp_network = neural_network_for_simulation(index=self._index,
                                                              data_set_for_training=data_set,
-                                                             training_data_interval=training_interval,
+                                                             training_data_interval=1,
                                                              )
             elif CONFIG_45 == 'keras':
                 temp_network = autoencoder_Keras(index=self._index,
                                                  data_set_for_training=data_set,
-                                                 training_data_interval=training_interval,
+                                                 training_data_interval=1,
                                                  )
             else:
                 raise Exception ('this training backend not implemented')
@@ -389,7 +397,7 @@ class single_biased_simulation_data(object):
         return
 
     def get_center_of_data_cloud_in_this_biased_simulation(self):
-        cossin = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([self._file_for_single_biased_simulation_coor])
+        cossin = molecule_type.get_many_cossin_from_coordinates_in_list_of_files([self._file_for_single_biased_simulation_coor])
         PCs = self._my_network.get_PCs(cossin)
         assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)

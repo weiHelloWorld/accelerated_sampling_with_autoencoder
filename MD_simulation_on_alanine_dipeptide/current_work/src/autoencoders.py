@@ -167,6 +167,11 @@ class autoencoder(object):
         """must be implemented by subclasses"""
         pass
 
+    @abc.abstractmethod
+    def get_mid_result(self, input_data=None):
+        """must be implemented by subclasses"""
+        pass
+
     def get_training_error(self, num_of_PCs=None):
         """
         :param num_of_PCs: this option only works for hierarchical case, indicate you would like to get error with
@@ -288,7 +293,7 @@ class autoencoder(object):
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
+            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
@@ -342,7 +347,7 @@ class autoencoder(object):
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordiantes_in_list_of_files([item]))
+            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += list(temp_coor)
             temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
@@ -626,6 +631,20 @@ class autoencoder_Keras(autoencoder):
             temp_model.add(item)
 
         return temp_model.predict(self._data_set)
+
+    def get_mid_result(self, input_data=None):
+        """The out format of this function is different from that in Pybrain implementation"""
+        if input_data is None: input_data = self._data_set
+        temp_model = Sequential()
+        temp_model_bak = temp_model
+        result = []
+        for item in self._molecule_net_layers[:-2]:
+            temp_model = temp_model_bak
+            temp_model.add(item)
+            temp_model_bak = copy.deepcopy(temp_model)   # this backup is required to get the correct results, no idea why
+            result.append(temp_model.predict(input_data))
+
+        return result
 
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set

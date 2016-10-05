@@ -22,22 +22,39 @@ class Sutils(object):
         return pickle.load(open(file_path, 'rb'))
 
     @staticmethod
+    def write_some_frames_into_a_new_file_based_on_index_list_for_pdb_file_list(list_of_files, index_list, new_pdb_file_name):
+        remaining_index_list = index_list
+        for _1 in list_of_files:
+            remaining_index_list = Sutils.write_some_frames_into_a_new_file_based_on_index_list(_1, remaining_index_list, new_pdb_file_name)
+
+        # check number of frames to be correct
+        with open(new_pdb_file_name, 'r') as f_in:
+            content = f_in.read().strip().split('MODEL')[1:]
+            assert (len(content) == len(index_list)), (len(content), len(index_list))
+
+        return
+
+    @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None):
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_someframes.pdb'
 
         with open(pdb_file_name, 'r') as f_in:
-            content = [item for item in f_in.readlines() if not 'REMARK' in item]
+            content = [item for item in f_in.readlines() if (not 'REMARK' in item) and (not 'END\n' in item)]
             content = ''.join(content)
             content = content.split('MODEL')[1:]  # remove header
-            content_to_write = [content[_2] for _2 in index_list]
+            num_of_frames_in_current_file = len(content)
+            index_for_this_file = [_2 for _2 in index_list if _2 < num_of_frames_in_current_file]
+            remaining_index_list = [_2 - num_of_frames_in_current_file for _2 in index_list if
+                                    _2 >= num_of_frames_in_current_file]
+            content_to_write = [content[_2] for _2 in index_for_this_file]
 
-        with open(new_pdb_file_name, 'w') as f_out:
+        with open(new_pdb_file_name, 'a') as f_out:
             for item in content_to_write:
                 f_out.write("MODEL")
                 f_out.write(item)
 
-        return
+        return remaining_index_list
 
     @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
@@ -46,7 +63,7 @@ class Sutils(object):
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
         with open(pdb_file_name, 'r') as f_in:
-            content = [item for item in f_in.readlines() if not 'REMARK' in item]
+            content = [item for item in f_in.readlines() if (not 'REMARK' in item) and (not 'END\n' in item)]
             content = ''.join(content)
             content = content.split('MODEL')[1:]  # remove header
             if end_index == 0:
@@ -68,8 +85,11 @@ class Sutils(object):
 
         for input_file in filenames:
             output_file = input_file.replace('.pdb', '_coordinates.txt')
+            if step_interval != 1:
+                output_file = output_file.replace('_coordinates.txt', '_int_%d_coordinates.txt' % step_interval)
+
             output_file_list += [output_file]
-            if os.path.exists(output_file):
+            if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
                 print ("coordinate file already exists: %s (remove previous one if needed)" % output_file)
             else:
                 print ('generating coordinates of ' + input_file)
@@ -265,16 +285,18 @@ class Alanine_dipeptide(Sutils):
         return map(Alanine_dipeptide.get_cossin_from_a_coordinate, coordinates)
 
     @staticmethod
-    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files):
-        result = []
+    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
+        coordinates = []
         for item in list_of_files:
-            coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
-            if coordinates.shape[0] != 0:        # remove info from empty files
-                if len(coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
-                    coordinates = coordinates[:, None].T
+            temp_coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            if temp_coordinates.shape[0] != 0:  # remove info from empty files
+                if len(temp_coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
+                    temp_coordinates = temp_coordinates[:, None].T
 
-                temp = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
-                result += temp
+                coordinates += list(temp_coordinates)
+
+        coordinates = coordinates[::step_interval]
+        result = Alanine_dipeptide.get_many_cossin_from_coordinates(coordinates)
 
         return result
 
@@ -282,7 +304,7 @@ class Alanine_dipeptide(Sutils):
     def get_many_dihedrals_from_coordinates_in_file (list_of_files):
         # why we need to get dihedrals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = Alanine_dipeptide.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files)
+        temp = Alanine_dipeptide.get_many_cossin_from_coordinates_in_list_of_files(list_of_files)
         return Alanine_dipeptide.get_many_dihedrals_from_cossin(temp)
 
     @staticmethod
@@ -387,7 +409,7 @@ class Trp_cage(Sutils):
         return map(Trp_cage.get_cossin_from_a_coordinate, coordinates)
 
     @staticmethod
-    def get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval=1):
+    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
         coordinates = []
         for item in list_of_files:
             temp_coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
@@ -406,7 +428,7 @@ class Trp_cage(Sutils):
     def get_many_dihedrals_from_coordinates_in_file (list_of_files, step_interval=1):
         # why we need to get dihedrals from a list of coordinate files?
         # because we will probably need to plot other files outside self._list_of_coor_data_files
-        temp = Trp_cage.get_many_cossin_from_coordiantes_in_list_of_files(list_of_files, step_interval)
+        temp = Trp_cage.get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval)
         return Trp_cage.get_many_dihedrals_from_cossin(temp)
 
     @staticmethod
