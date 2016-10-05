@@ -146,6 +146,8 @@ class test_Alanine_dipeptide(object):
         actual_output_file = pdb_file_name.replace('.pdb', '_coordinates.txt')
         expected_output_files = 'dependency/temp_output_0_coor.txt'
         for interval in range(1, 10):
+            if interval != 1:
+                actual_output_file = pdb_file_name.replace('.pdb', '_int_%d_coordinates.txt' % interval)
             if os.path.exists(actual_output_file):
                 subprocess.check_output(['rm', actual_output_file])
             Alanine_dipeptide.generate_coordinates_from_pdb_files(pdb_file_name, step_interval=interval)
