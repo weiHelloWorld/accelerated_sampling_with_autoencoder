@@ -179,7 +179,7 @@ class test_Trp_cage(object):
 
     @staticmethod
     def test_get_non_repeated_pairwise_distance_as_list_of_alpha_carbon():
-        pdb_file_list = ['dependency/1l2y.pdb']
+        pdb_file_list = ['dependency/temp_Trp_cage_data/1l2y.pdb']
         a = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(pdb_file_list)
         a = [item.reshape(400, 1) for item in a]
         b = Trp_cage.get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(pdb_file_list)
@@ -191,7 +191,7 @@ class test_Trp_cage(object):
 
     @staticmethod
     def test_get_pairwise_distance_matrices_of_alpha_carbon():
-        actual = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(['dependency/1l2y.pdb'])[0]
+        actual = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(['dependency/temp_Trp_cage_data/1l2y.pdb'])[0]
         expected = np.loadtxt("dependency/test_get_pairwise_distance_matrices_of_alpha_carbon.txt")
         assert_almost_equal(actual, expected)
         return
@@ -399,4 +399,14 @@ class test_biased_simulation(object):
     def test_biased_simulation_alanine_dipeptide():
         for item in ['-1.57,-1.57', '0,0', '-0.9,0.9', '-2,2', '-2,1', '-2,-2']:
             test_biased_simulation.helper_biased_simulation_alanine_dipeptide(item.replace(' ',''))
+        return
+
+class test_get_and_save_cossin_and_metrics_from_a_data_folder():
+    @staticmethod
+    def test_get_and_save_cossin_and_metrics_from_a_data_folder():
+        # TODO: add testing for values, currently only tests basic functionality
+        subprocess.check_output(['python', '../src/get_and_save_cossin_and_metrics_from_a_data_folder.py', 'dependency/temp_Trp_cage_data'])
+        for item in subprocess.check_output(['find', 'dependency/temp_Trp_cage_data', '-name', 'info*']).strip().split():
+            temp = np.loadtxt(item)
+            assert temp.shape[0] == 38
         return
