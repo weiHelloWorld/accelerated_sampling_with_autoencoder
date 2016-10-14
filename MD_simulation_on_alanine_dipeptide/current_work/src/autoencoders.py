@@ -272,7 +272,7 @@ class autoencoder(object):
         return proper_potential_centers
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
-                                               folder_to_store_files='./standard_WHAM/'):
+                                               folder_to_store_files='./standard_WHAM/', dimensionality=2):
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -288,8 +288,9 @@ class autoencoder(object):
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
             temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
-            force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']')[0])]]
+            force_constants += [[temp_force_constant] * dimensionality  ]
+            temp_harmonic_center_string = item.split('_pc_[')[1].split(']')[0]
+            harmonic_centers += [[float(item_1) for item_1 in temp_harmonic_center_string.split(',')]]
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
@@ -311,15 +312,13 @@ class autoencoder(object):
         sciio.savemat(folder_to_store_files + 'WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
                                                                             'force_constants': force_constants,
                                                                             'harmonic_centers': harmonic_centers,
-                                                                            'coords': coords, 'dim': 2.0,
+                                                                            'coords': coords, 'dim': dimensionality,
                                                                             'temperature': 300.0,
-                                                                            'periodicity': [[1.0], [1.0]],
+                                                                            'periodicity': [[1.0] * dimensionality],
                                                                             'dF_tol': 0.0001,
                                                                             'min_gap_max_ORIG': [
-                                                                                [min_of_coor[0], interval,
-                                                                                 max_of_coor[0]],
-                                                                                [min_of_coor[1], interval,
-                                                                                 max_of_coor[1]]]
+                                                                                [min_of_coor[item_2], interval,
+                                                                                 max_of_coor[item_2]] for item_2 in range(dimensionality)]
                                                                             })
         sciio.savemat(folder_to_store_files + 'umbrella_OP.mat',
                       {'umbOP': umbOP
@@ -343,7 +342,8 @@ class autoencoder(object):
             # print('processing %s' %item)
             temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant, temp_force_constant]]
-            harmonic_centers += [[float(item.split('_pc_[')[1].split(',')[0]), float(item.split(',')[1].split(']')[0])]]
+            temp_harmonic_center_string = item.split('_pc_[')[1].split(']')[0]
+            harmonic_centers += [[float(item_1) for item_1 in temp_harmonic_center_string.split(',')]]
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
