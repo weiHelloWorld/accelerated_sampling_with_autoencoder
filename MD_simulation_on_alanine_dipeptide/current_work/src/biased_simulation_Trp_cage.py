@@ -25,6 +25,7 @@ parser.add_argument("--minimize_energy", type=int, default=1, help='whether to m
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
 parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided)')
+parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -179,6 +180,12 @@ def run_simulation(force_constant):
         print datetime.datetime.now()
     else:
         print('energy minimization not required')
+
+    print("begin equilibrating...")
+    print datetime.datetime.now()
+    simulation.step(args.equilibration_steps)
+    print("Done equilibration")
+    print datetime.datetime.now()
 
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
