@@ -163,7 +163,7 @@ class autoencoder(object):
         pass
 
     @abc.abstractmethod
-    def get_output_data(self, num_of_PCs=None):
+    def get_output_data(self, input_data=None, num_of_PCs=None):
         """must be implemented by subclasses"""
         pass
 
@@ -450,8 +450,9 @@ class neural_network_for_simulation(autoencoder):
 
         return PCs
 
-    def get_output_data(self, num_of_PCs=None):
-        output_data = np.array([self._molecule_net.activate(item) for item in self._data_set])
+    def get_output_data(self, input_data=None, num_of_PCs=None):
+        if input_data is None: input_data = self._data_set
+        output_data = np.array([self._molecule_net.activate(item) for item in input_data])
         dim_of_output = self._node_num[-1]
         if (not self._hierarchical) or num_of_PCs is None:
             output_data = [item[- dim_of_output:] for item in output_data]
@@ -625,12 +626,13 @@ class autoencoder_Keras(autoencoder):
                                                       # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
         return
 
-    def get_output_data(self, num_of_PCs=None):
+    def get_output_data(self, input_data=None, num_of_PCs = None):
+        if input_data is None: input_data = self._data_set
         temp_model = Sequential()
         for item in self._molecule_net_layers:
             temp_model.add(item)
 
-        return temp_model.predict(self._data_set)
+        return temp_model.predict(input_data)
 
     def get_mid_result(self, input_data=None):
         """The out format of this function is different from that in Pybrain implementation"""
