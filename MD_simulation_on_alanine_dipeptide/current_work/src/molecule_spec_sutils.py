@@ -79,6 +79,34 @@ class Sutils(object):
         return
 
     @staticmethod
+    def rotating_group_of_atoms(coords, indices_atoms, fixed_atom_index, axis_vector, angle):
+        """
+        :param coords: coordinates of all atoms
+        :param indices_atoms: indices of atoms to rotate
+        :param fixed_atom_index: index of fixed atom
+        :param axis_vector: rotation axis
+        :param angle: rotation angle
+        :return: coordinates of all atoms after rotation
+        """
+        result = copy.deepcopy(coords)  # avoid modifying original input
+        temp_coords = coords[indices_atoms] - coords[fixed_atom_index]  # coordinates for rotation
+        temp_coords = np.array(temp_coords)
+        cos_value = np.cos(angle); sin_value = np.sin(angle)
+        axis_vector_length = np.sqrt(np.sum(np.array(axis_vector) ** 2))
+        ux = axis_vector[0] / axis_vector_length; uy = axis_vector[1] / axis_vector_length; uz = axis_vector[2] / axis_vector_length
+        rotation_matrix = np.array([[cos_value + ux ** 2 * (1 - cos_value),
+                                     ux * uy * (1 - cos_value) - uz * sin_value,
+                                     ux * uz * (1 - cos_value) + uy * sin_value],
+                                    [ux * uy * (1 - cos_value) + uz * sin_value,
+                                     cos_value + uy ** 2 * (1 - cos_value),
+                                     uy * uz * (1 - cos_value) - ux * sin_value],
+                                    [ux * uz * (1 - cos_value) - uy * sin_value,
+                                     uy * uz * (1 - cos_value) + ux * sin_value,
+                                     cos_value + uz ** 2 * (1 - cos_value)]])
+        result[indices_atoms] = np.dot(temp_coords, rotation_matrix) + coords[fixed_atom_index]
+        return result
+
+    @staticmethod
     def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
         filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
         output_file_list = []
