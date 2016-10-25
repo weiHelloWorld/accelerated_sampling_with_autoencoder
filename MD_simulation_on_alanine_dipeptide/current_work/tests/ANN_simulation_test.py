@@ -196,6 +196,20 @@ class test_Trp_cage(object):
         assert_almost_equal(actual, expected)
         return
 
+    @staticmethod
+    def test_rotating_dihedral_angles_and_save_to_pdb():
+        pdb_file = 'dependency/temp_Trp_cage_data/1l2y.pdb'
+        output = 'temp_rotating_out.pdb'
+        target_dihedrals_list = [np.ones((38, 38)), np.zeros((38, 38))]
+        for target_dihedrals in target_dihedrals_list:
+            Trp_cage.rotating_dihedral_angles_and_save_to_pdb(pdb_file, target_dihedrals, output)
+            out_coor_file_list = Trp_cage.generate_coordinates_from_pdb_files(output)
+            actual_dihedrals = Trp_cage.get_many_dihedrals_from_coordinates_in_file(out_coor_file_list)
+            # print np.max(np.abs(actual_dihedrals - target_dihedrals))
+            assert_almost_equal(actual_dihedrals, target_dihedrals, decimal=2)
+
+        return
+
 
 class test_cluster_management(object):
     @staticmethod
