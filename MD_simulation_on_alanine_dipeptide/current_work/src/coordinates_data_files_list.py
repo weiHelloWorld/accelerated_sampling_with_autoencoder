@@ -9,7 +9,7 @@ class coordinates_data_files_list(object):
         self._list_of_coor_data_files = []
 
         for item in self._list_of_dir_of_coor_data_files:
-            self._list_of_coor_data_files += subprocess.check_output('find %s -name *coordinates.txt' % item, shell=True).strip().split('\n')
+            self._list_of_coor_data_files += subprocess.check_output('''find %s -name "*coordinates.txt"''' % item, shell=True).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         self._list_of_coor_data_files = filter(lambda x: os.stat(x).st_size > 0, self._list_of_coor_data_files)   # remove empty files
