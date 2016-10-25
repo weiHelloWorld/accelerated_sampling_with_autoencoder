@@ -654,6 +654,51 @@ class Trp_cage(Sutils):
         return num_in_each_class, index_of_most_common_class, most_common_class_labels[0]
 
     @staticmethod
+    def rotating_dihedral_angles_and_save_to_pdb(input_pdb, target_dihedrals, output_pdb):
+        pdb_parser = PDB.PDBParser(QUIET=True)
+        temp_structure = pdb_parser.get_structure('temp', input_pdb)
+        coor_file = Trp_cage.generate_coordinates_from_pdb_files(input_pdb)[0]
+        current_dihedrals = Trp_cage.get_many_dihedrals_from_coordinates_in_file([coor_file])
+        rotation_angles = np.array(target_dihedrals) - np.array(current_dihedrals)
+
+        atom_indices_in_each_residue = [[]] * 20
+        temp_model = list(temp_structure.get_models())[0]
+        for _1, item in list(enumerate(temp_model.get_residues())):
+            atom_indices_in_each_residue[_1] = [int(_2.get_serial_number()) - 1 for _2 in item.get_atom()]
+
+        for temp_model in temp_structure.get_models():
+            atoms_in_this_frame = list(temp_model.get_atoms())
+            temp_coords = np.array([_1.get_coord() for _1 in atoms_in_this_frame])
+
+            for item in range(19):  # 19 * 2 = 38 dihedrals in total
+                C_atom_in_this_residue = filter(lambda x: x.get_name() == "C", atoms_in_this_frame)[item]
+                CA_atom_in_this_residue = filter(lambda x: x.get_name() == "CA", atoms_in_this_frame)[item]
+                CA_atom_in_next_residue = filter(lambda x: x.get_name() == "CA", atoms_in_this_frame)[item + 1]
+                N_atom_in_next_residue = filter(lambda x: x.get_name() == "N", atoms_in_this_frame)[item + 1]
+
+                axis_vector_0 = C_atom_in_this_residue.get_coord() - CA_atom_in_this_residue.get_coord()
+                axis_vector_1 = CA_atom_in_next_residue.get_coord() - N_atom_in_next_residue.get_coord()
+
+                fixed_index_0 = int(C_atom_in_this_residue.get_serial_number()) - 1
+                fixed_index_1 = int(N_atom_in_next_residue.get_serial_number()) - 1
+
+                indices_atom_to_rotate = reduce(lambda x, y: x + y, atom_indices_in_each_residue[:item + 1])
+
+                temp_coords = Sutils.rotating_group_of_atoms(temp_coords, indices_atom_to_rotate, fixed_index_0,
+                                                             axis_vector_0, rotation_angles[temp_model.get_id()][2 * item])
+                temp_coords = Sutils.rotating_group_of_atoms(temp_coords, indices_atom_to_rotate, fixed_index_1,
+                                                             axis_vector_1, rotation_angles[temp_model.get_id()][2 * item + 1])
+
+            # save coordinates into structure
+            for _1, item in enumerate(temp_model.get_atoms()):
+                item.set_coord(temp_coords[_1])
+
+        io = PDB.PDBIO()
+        io.set_structure(temp_structure)
+        io.save(output_pdb)
+        return
+
+    @staticmethod
     def get_expression_for_input_of_this_molecule():
         index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
         total_num_of_residues = 20
