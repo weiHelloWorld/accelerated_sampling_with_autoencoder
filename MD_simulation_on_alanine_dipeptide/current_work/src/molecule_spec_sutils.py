@@ -389,8 +389,14 @@ class Trp_cage(Sutils):
         index = 0
         cos_of_angle = np.dot(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
         sin_of_angle_vec = np.cross(normal_vectors_normalized_1[index], normal_vectors_normalized_2[index])
-        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sum(sin_of_angle_vec) * sum(diff_coordinates_mid[index]))
+        if sin_of_angle_vec[0] != 0 and diff_coordinates_mid[index][0] != 0:
+            component_index = 0
+        elif sin_of_angle_vec[1] != 0 and diff_coordinates_mid[index][1] != 0:
+            component_index = 1
+        else:
+            component_index = 2
 
+        sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sin_of_angle_vec[component_index] * diff_coordinates_mid[index][component_index])
         try:
             assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)  
         except:
