@@ -26,6 +26,7 @@ class autoencoder(object):
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
                  network_verbose=CONFIG_46,
+                 output_as_circular=CONFIG_47,
                  *args, **kwargs           # for extra init functions for subclasses
                  ):
 
@@ -55,6 +56,7 @@ class autoencoder(object):
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
+        self._output_as_circular = output_as_circular
         self._init_extra(*args, **kwargs)
         return
 
@@ -651,8 +653,13 @@ class autoencoder_Keras(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         temp_model = Sequential()
-        for item in self._molecule_net_layers[:-2]:
-            temp_model.add(item)
+        if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
+            for item in self._molecule_net_layers[:-5]:
+                temp_model.add(item)
+        else:
+            for item in self._molecule_net_layers[:-2]:
+                temp_model.add(item)
+
         if self._hidden_layers_type[1] == CircularLayer:
             PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in temp_model.predict(input_data)]
@@ -694,6 +701,11 @@ class autoencoder_Keras(autoencoder):
             else:
                 raise Exception ('this type of hidden layer not implemented')
 
+            if hasattr(self, '_output_as_circular') and self._output_as_circular:
+                molecule_net.add(Reshape((node_num[4] / 2, 2), input_shape=(node_num[4],)))
+                molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
+                molecule_net.add(Reshape((node_num[4],)))
+
             molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
                                  optimizer=SGD(lr=self._network_parameters[0],
                                                momentum=self._network_parameters[1],
@@ -702,12 +714,12 @@ class autoencoder_Keras(autoencoder):
                                  )
 
             training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s]\n''' % \
+parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
                                   (self._index, self._max_num_of_training, str(self._node_num),
                                    str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
                                    len(data),
                                    self._network_parameters[0], self._network_parameters[1],
-                                   self._network_parameters[2], str(self._network_parameters[4]))
+                                   self._network_parameters[2], str(self._network_parameters[4]), str(self._output_as_circular))
 
             print("Start " + training_print_info)
             call_back_list = []

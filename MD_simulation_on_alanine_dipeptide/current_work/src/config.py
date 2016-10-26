@@ -77,7 +77,7 @@ CONFIG_40 = 'implicit'                  # whether to include water molecules, op
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
-
+CONFIG_47 = False                        # whether to set the output layer as circular layer
 
 '''class iteration'''
 
