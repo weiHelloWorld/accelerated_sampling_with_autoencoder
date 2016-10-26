@@ -2,7 +2,7 @@ from ANN_simulation import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("data_folder", type=str, help="folder containing simulation data")
-parser.add_argument("--save_coor", type=int, default=1, help="save coordinates data into file")
+parser.add_argument("--save_cossin", type=int, default=1, help="save cossin data into file")
 parser.add_argument("--save_CA_RMSD", type=int, default=1, help="save CA RMSD into file")
 parser.add_argument("--save_radius_of_gyration", type=int, default=1, help="save radius of gyration into file")
 parser.add_argument("--save_residue_9_16_distance", type=int, default=1, help="save residue 9-16 distance into file")
@@ -20,9 +20,9 @@ info_cossin_file = data_folder + '/info_cossin.txt'
 info_CA_RMSD_file = data_folder + '/info_CA_RMSD.txt'
 info_radius_of_gyration_file = data_folder + '/info_radius_of_gyration.txt'
 info_residue_9_16_distance_file = data_folder + '/info_residue_9_16_distance.txt'
-info_residue_1_20_distance_file = coor_and_pdb_file_folder + '/info_residue_1_20_distance.txt'
+info_residue_1_20_distance_file = data_folder + '/info_residue_1_20_distance.txt'
 
-if args.save_coor:
+if args.save_cossin:
     np.savetxt(info_cossin_file, Trp_cage.get_many_cossin_from_coordinates_in_list_of_files(my_coor_file_list))
 
 if args.save_CA_RMSD:

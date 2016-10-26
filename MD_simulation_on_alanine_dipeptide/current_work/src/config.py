@@ -58,7 +58,7 @@ else:
 
 CONFIG_5 = 100                   # max number of training steps
 CONFIG_6 = None # filename to save this network
-CONFIG_36 = 2              #   dimensionality
+CONFIG_36 = 3              #   dimensionality
 if CONFIG_17[1] == CircularLayer:
     CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
 elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
