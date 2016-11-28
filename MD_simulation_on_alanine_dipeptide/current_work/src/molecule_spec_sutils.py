@@ -6,9 +6,6 @@ from config import *
 class Sutils(object):
     def __init__(self):
         return
-    
-    # @staticmethod
-    # def rotating_coordinates(axis_vector):
 
     @staticmethod
     def create_subclass_instance_using_name(name):
@@ -80,6 +77,16 @@ class Sutils(object):
                 f_out.write(item)
 
         return
+
+    @staticmethod
+    def rotating_around_center_of_mass(coords, axis_vector, angle):
+        center_of_mass = coords.mean(axis=0)
+        return Sutils.rotating_coordinates(coords, center_of_mass, axis_vector, angle)
+
+    @staticmethod
+    def rotating_coordinates(coords, fixed_coord, axis_vector, angle):
+        indices_atoms = list(range(len(coords)))
+        return Sutils.rotating_group_of_atoms(coords, indices_atoms, fixed_coord, axis_vector, angle)
 
     @staticmethod
     def rotating_group_of_atoms(coords, indices_atoms, fixed_coord, axis_vector, angle):

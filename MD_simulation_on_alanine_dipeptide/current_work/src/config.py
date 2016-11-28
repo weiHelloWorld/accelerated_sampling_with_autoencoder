@@ -20,7 +20,7 @@ from MDAnalysis.analysis.align import *
 from MDAnalysis.analysis.rms import rmsd
 from MDAnalysis.analysis.distances import distance_array
 from keras.models import Sequential
-from keras.optimizers import SGD
+from keras.optimizers import *
 from keras.layers import Dense, Activation, Lambda, Reshape
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
@@ -52,13 +52,13 @@ CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.01, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
 CONFIG_5 = 100                   # max number of training steps
 CONFIG_6 = None # filename to save this network
-CONFIG_36 = 3              #   dimensionality
+CONFIG_36 = 2              #   dimensionality
 if CONFIG_17[1] == CircularLayer:
     CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
 elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:

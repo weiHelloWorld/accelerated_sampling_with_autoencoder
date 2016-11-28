@@ -107,6 +107,14 @@ class test_Sutils(object):
         assert (opt_num == 4), opt_num
         return
 
+    @staticmethod
+    def test_rotating_coordinates():
+        data = np.loadtxt('dependency/temp_Trp_cage_data/1l2y_coordinates.txt').reshape((38, 60, 3))[0]
+        actual = Sutils.rotating_coordinates(data, [0,0,0], [0,0,1], np.pi / 2)
+        expected = np.array([data[:, 1], - data[:,0], data[:,2]]).T
+        assert_almost_equal(expected, actual)
+        return
+
 
 class test_Alanine_dipeptide(object):
     @staticmethod
