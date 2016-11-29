@@ -16,6 +16,7 @@ class autoencoder(object):
     def __init__(self,
                  index,  # the index of the current network
                  data_set_for_training,
+                 output_data_set = None,  # output data may not be the same with the input data
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
                  training_data_interval=CONFIG_2,
                  in_layer_type=LinearLayer,
@@ -32,6 +33,7 @@ class autoencoder(object):
 
         self._index = index
         self._data_set = data_set_for_training
+        self._output_data_set = output_data_set
         self._training_data_interval = training_data_interval
         if autoencoder_info_file is None:
             self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" % (CONFIG_30, index)
@@ -180,17 +182,25 @@ class autoencoder(object):
         a specific number of PCs (instead of all PCs)
         """
         input_data = np.array(self._data_set)
-        output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data(num_of_PCs)
+        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
+            expected_output_data = self._output_data_set
+        else:
+            expected_output_data = input_data
 
-        return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
+        return np.linalg.norm(expected_output_data - actual_output_data) / sqrt(self._node_num[0] * len(input_data))
 
     def get_fraction_of_variance_explained(self, num_of_PCs=None):
         """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
-        output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data(num_of_PCs)
+        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
+            expected_output_data = self._output_data_set
+        else:
+            expected_output_data = input_data
 
         var_of_input = sum(np.var(input_data, axis=0))
-        var_of_err = sum(np.var(output_data - input_data, axis=0))
+        var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
         return 1 - var_of_err / var_of_input
 
     def get_commands_for_further_biased_simulations(self, list_of_potential_center=None,
@@ -677,6 +687,11 @@ class autoencoder_Keras(autoencoder):
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
         num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
         data = self._data_set
+        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
+            print ("outputs different from inputs")
+            output_data_set = self._output_data_set
+        else:
+            output_data_set = data
 
         num_of_hidden_layers = len(self._hidden_layers_type)
         if self._hierarchical:
@@ -727,7 +742,8 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
             if self._enable_early_stopping:
                 call_back_list += [earlyStopping]
 
-            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
+
+            molecule_net.fit(data, output_data_set, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
                              verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
             dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
