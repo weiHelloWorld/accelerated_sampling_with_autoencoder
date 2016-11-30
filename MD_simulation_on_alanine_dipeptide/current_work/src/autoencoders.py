@@ -67,9 +67,13 @@ class autoencoder(object):
         """must be implemented by subclasses"""
         pass
 
-    def save_into_file(self, filename=CONFIG_6):
+    def save_into_file(self, filename=CONFIG_6, drop_data = False):
         if filename is None:
             filename = self._filename_to_save_network
+
+        if drop_data:
+            self._data_set = None
+            self._output_data_set = None
 
         if os.path.isfile(filename):  # backup file if previous one exists
             os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime(
