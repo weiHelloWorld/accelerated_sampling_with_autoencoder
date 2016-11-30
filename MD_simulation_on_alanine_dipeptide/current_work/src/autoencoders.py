@@ -203,7 +203,7 @@ class autoencoder(object):
         else:
             expected_output_data = input_data
 
-        var_of_input = sum(np.var(input_data, axis=0))
+        var_of_input = sum(np.var(expected_output_data, axis=0))
         var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
         return 1 - var_of_err / var_of_input
 
