@@ -22,6 +22,7 @@ parser.add_argument("--temperature", type=int, default= 300, help='simulation te
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
+parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
 parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided)')
@@ -137,7 +138,7 @@ def run_simulation(force_constant):
         force = ANN_Force()
 
         force.set_layer_types(layer_types)
-
+        force.set_data_type_in_input_layer(args.data_type_in_input_layer)
         force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
         force.set_num_of_nodes(CONFIG_3[:3])
         force.set_potential_center(potential_center)

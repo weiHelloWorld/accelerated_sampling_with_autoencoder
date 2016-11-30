@@ -69,7 +69,8 @@ else:
 if CONFIG_30 == "Alanine_dipeptide":
     CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
 elif CONFIG_30 == "Trp_cage":
-    CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
+    # CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
+    CONFIG_3 = [180, 300, CONFIG_37, 300, 180]
 else:
     raise Exception('molecule type error')
 
