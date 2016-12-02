@@ -140,6 +140,7 @@ def run_simulation(force_constant):
         force.set_layer_types(layer_types)
         force.set_data_type_in_input_layer(args.data_type_in_input_layer)
         force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
+        force.set_index_of_backbone_atoms(index_of_backbone_atoms)
         force.set_num_of_nodes(CONFIG_3[:3])
         force.set_potential_center(potential_center)
         force.set_force_constant(float(force_constant))
