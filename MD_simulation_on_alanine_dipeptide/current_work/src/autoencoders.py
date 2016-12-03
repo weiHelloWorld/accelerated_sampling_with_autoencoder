@@ -288,7 +288,8 @@ class autoencoder(object):
         return proper_potential_centers
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
-                                               folder_to_store_files='./standard_WHAM/', dimensionality=2):
+                                               folder_to_store_files='./standard_WHAM/', dimensionality=2, 
+                                               input_data_type='cossin'):   # input_data_type could be 'cossin' or 'Cartesian'
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -310,7 +311,13 @@ class autoencoder(object):
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
+            if input_data_type == 'cossin':
+                temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
+            elif input_data_type == 'Cartesian':
+                temp_coor = self.get_PCs(np.loadtxt(item) / 20)
+            else:
+                raise Exception('error input_data_type')
+
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
