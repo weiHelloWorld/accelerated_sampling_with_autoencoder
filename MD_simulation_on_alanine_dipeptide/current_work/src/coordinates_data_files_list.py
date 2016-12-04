@@ -22,6 +22,11 @@ class coordinates_data_files_list(object):
     def get_list_of_coor_data_files(self):
         return self._list_of_coor_data_files
 
+    def get_coor_data(self, scaling_factor):
+        result = np.concatenate([np.loadtxt(item) for item in self._list_of_coor_data_files], axis=0) / scaling_factor
+        assert (sum(self._list_of_line_num_of_coor_data_file) == result.shape[0])
+        return result
+
     def get_list_of_corresponding_pdb_files(self):
         list_of_corresponding_pdb_files = map(lambda x: x.strip().split('_coordinates.txt')[0] + '.pdb',
                                               self.get_list_of_coor_data_files()

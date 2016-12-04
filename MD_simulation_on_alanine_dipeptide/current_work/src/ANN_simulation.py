@@ -272,9 +272,14 @@ class iteration(object):
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        my_file_list = coordinates_data_files_list(
-            list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
-        data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
+        my_coor_data_obj = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30])
+        my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
+        if CONFIG_48 == 'cossin':
+            data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
+        elif CONFIG_48 == 'Cartesian':
+            data_set = my_coor_data_obj.get_coor_data(CONFIG_49)
+        else:
+            raise Exception('error input data type')
 
         max_FVE = 0
         current_network = None

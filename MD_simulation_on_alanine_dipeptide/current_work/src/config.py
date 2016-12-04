@@ -41,6 +41,8 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 
 CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
+CONFIG_48 = 'Cartesian'       # input data type, could be 'cossin' or 'Cartesian'
+CONFIG_49 = 20                # scaling factor for Cartesian coordinates
 
 '''class coordinates_data_files_list:'''
 
@@ -69,8 +71,12 @@ else:
 if CONFIG_30 == "Alanine_dipeptide":
     CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
 elif CONFIG_30 == "Trp_cage":
-    # CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
-    CONFIG_3 = [180, 300, CONFIG_37, 300, 180]
+    if CONFIG_48 == 'cossin':
+        CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
+    elif CONFIG_48 == 'Cartesian':
+        CONFIG_3 = [180, 300, CONFIG_37, 300, 180]
+    else:
+        raise Exception('error input data type')
 else:
     raise Exception('molecule type error')
 
