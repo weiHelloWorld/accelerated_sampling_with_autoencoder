@@ -480,7 +480,7 @@ class Trp_cage(Sutils):
         result = []
         for item in cossin:
             temp_angle = []
-            len_of_cos_sin = CONFIG_33
+            len_of_cos_sin = 76
             assert (len(item) == len_of_cos_sin), (len(item), len_of_cos_sin)
             for idx_of_angle in range(len_of_cos_sin / 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
