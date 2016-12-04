@@ -19,6 +19,14 @@ class coordinates_data_files_list(object):
 
         return
 
+    def create_sub_coor_data_files_list_using_filter_conditional(self, filter_conditional):
+        """
+        :param filter_conditional: a lambda conditional expression on file names
+        :return: a coordinates_data_files_list object
+        """
+        temp_coor_files = filter(filter_conditional, self._list_of_coor_data_files)
+        return coordinates_data_files_list(temp_coor_files)
+
     def get_list_of_coor_data_files(self):
         return self._list_of_coor_data_files
 

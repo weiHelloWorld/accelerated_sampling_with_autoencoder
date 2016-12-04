@@ -258,6 +258,15 @@ class test_coordinates_data_files_list(object):
         assert len(a.get_list_of_corresponding_pdb_files()) == num_of_coor_files - 1
         assert sorted(a.get_list_of_corresponding_pdb_files()) == a.get_list_of_corresponding_pdb_files()
 
+    @staticmethod
+    def test_create_sub_coor_data_files_list_using_filter_conditional():
+        folder = 'dependency/temp_data'
+        a = coordinates_data_files_list([folder])
+        a_sub = a.create_sub_coor_data_files_list_using_filter_conditional(lambda x: '0.7' in x)
+        for item in a_sub.get_list_of_coor_data_files():
+            assert ('0.7' in item)
+        return
+
 
 class test_neural_network_for_simulation(object):
     def __init__(self):
