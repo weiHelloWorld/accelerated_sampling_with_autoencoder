@@ -18,6 +18,7 @@ parser.add_argument("autoencoder_info_file", type=str, help="file to store autoe
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
+parser.add_argument("--scaling_factor", type=float, default = 2, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
@@ -42,6 +43,7 @@ args = parser.parse_args()
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
+scaling_factor = args.scaling_factor
 
 platform = Platform.getPlatformByName(args.platform)
 temperature = args.temperature
@@ -144,6 +146,7 @@ def run_simulation(force_constant):
         force.set_num_of_nodes(CONFIG_3[:3])
         force.set_potential_center(potential_center)
         force.set_force_constant(float(force_constant))
+        force.set_scaling_factor(float(scaling_factor))
 
         with open(autoencoder_info_file, 'r') as f_in:
             content = f_in.readlines()
