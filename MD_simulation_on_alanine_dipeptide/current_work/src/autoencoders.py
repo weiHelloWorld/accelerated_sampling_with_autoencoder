@@ -231,6 +231,12 @@ class autoencoder(object):
             force_constant_for_biased = CONFIG_9
 
         todo_list_of_commands_for_simulations = []
+        if CONFIG_48 == 'Cartesian':
+            input_data_type = 1
+        elif CONFIG_48 == 'cossin':
+            input_data_type = 0
+        else:
+            raise Exception("error input data type")
 
         for potential_center in list_of_potential_center:
             if isinstance(molecule_type, Alanine_dipeptide):
@@ -250,8 +256,8 @@ class autoencoder(object):
                                   '../target/Trp_cage/network_%d/' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  CONFIG_40, 'NVT')
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s" % parameter_list
+                                  CONFIG_40, 'NVT', input_data_type)
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --input_data_type %d" % parameter_list
                 if CONFIG_42:
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                         '../resources/Trp_cage/network_%d.pkl' % self._index)
