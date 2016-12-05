@@ -58,7 +58,7 @@ elif CONFIG_45 == 'keras':
 else:
     raise Exception('training backend not implemented')
 
-CONFIG_5 = 100                   # max number of training steps
+CONFIG_5 = 200                   # max number of training steps
 CONFIG_6 = None # filename to save this network
 CONFIG_36 = 2              #   dimensionality
 if CONFIG_17[1] == CircularLayer:

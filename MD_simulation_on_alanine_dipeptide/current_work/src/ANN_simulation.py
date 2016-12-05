@@ -276,8 +276,16 @@ class iteration(object):
         my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
         if CONFIG_48 == 'cossin':
             data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
+            output_data_set = None
         elif CONFIG_48 == 'Cartesian':
-            data_set = my_coor_data_obj.get_coor_data(CONFIG_49)
+            coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
+            coor_data_obj_output = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: 'aligned' in x)
+            for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(), coor_data_obj_output.get_list_of_coor_data_files()):
+                assert (_2 == _1.replace('_coordinates.txt', '_aligned_coordinates.txt'))
+
+            data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
+            output_data_set = coor_data_obj_output.get_coor_data(CONFIG_49)
+            assert (data_set.shape == output_data_set.shape)
         else:
             raise Exception('error input data type')
 
@@ -293,6 +301,7 @@ class iteration(object):
             elif CONFIG_45 == 'keras':
                 temp_network = autoencoder_Keras(index=self._index,
                                                  data_set_for_training=data_set,
+                                                 output_data_set=output_data_set,
                                                  training_data_interval=1,
                                                  )
             else:
@@ -347,6 +356,9 @@ class iteration(object):
         # TODO: run next line only when the jobs are done, check this
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = False)
+
+        if isinstance(molecule_type, Trp_cage):
+            subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage'])
         molecule_type.generate_coordinates_from_pdb_files()
         return
 
