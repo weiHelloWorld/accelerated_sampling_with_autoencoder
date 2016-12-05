@@ -19,8 +19,21 @@ class coordinates_data_files_list(object):
 
         return
 
+    def create_sub_coor_data_files_list_using_filter_conditional(self, filter_conditional):
+        """
+        :param filter_conditional: a lambda conditional expression on file names
+        :return: a coordinates_data_files_list object
+        """
+        temp_coor_files = filter(filter_conditional, self._list_of_coor_data_files)
+        return coordinates_data_files_list(temp_coor_files)
+
     def get_list_of_coor_data_files(self):
         return self._list_of_coor_data_files
+
+    def get_coor_data(self, scaling_factor):
+        result = np.concatenate([np.loadtxt(item) for item in self._list_of_coor_data_files], axis=0) / scaling_factor
+        assert (sum(self._list_of_line_num_of_coor_data_file) == result.shape[0])
+        return result
 
     def get_list_of_corresponding_pdb_files(self):
         list_of_corresponding_pdb_files = map(lambda x: x.strip().split('_coordinates.txt')[0] + '.pdb',

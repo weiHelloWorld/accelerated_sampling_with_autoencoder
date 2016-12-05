@@ -16,6 +16,7 @@ class autoencoder(object):
     def __init__(self,
                  index,  # the index of the current network
                  data_set_for_training,
+                 output_data_set = None,  # output data may not be the same with the input data
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
                  training_data_interval=CONFIG_2,
                  in_layer_type=LinearLayer,
@@ -26,11 +27,13 @@ class autoencoder(object):
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
                  network_verbose=CONFIG_46,
+                 output_as_circular=CONFIG_47,
                  *args, **kwargs           # for extra init functions for subclasses
                  ):
 
         self._index = index
         self._data_set = data_set_for_training
+        self._output_data_set = output_data_set
         self._training_data_interval = training_data_interval
         if autoencoder_info_file is None:
             self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" % (CONFIG_30, index)
@@ -55,6 +58,7 @@ class autoencoder(object):
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
+        self._output_as_circular = output_as_circular
         self._init_extra(*args, **kwargs)
         return
 
@@ -63,9 +67,13 @@ class autoencoder(object):
         """must be implemented by subclasses"""
         pass
 
-    def save_into_file(self, filename=CONFIG_6):
+    def save_into_file(self, filename=CONFIG_6, drop_data = False):
         if filename is None:
             filename = self._filename_to_save_network
+
+        if drop_data:
+            self._data_set = None
+            self._output_data_set = None
 
         if os.path.isfile(filename):  # backup file if previous one exists
             os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime(
@@ -178,17 +186,25 @@ class autoencoder(object):
         a specific number of PCs (instead of all PCs)
         """
         input_data = np.array(self._data_set)
-        output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data(num_of_PCs)
+        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
+            expected_output_data = self._output_data_set
+        else:
+            expected_output_data = input_data
 
-        return np.linalg.norm(input_data - output_data) / sqrt(self._node_num[0] * len(input_data))
+        return np.linalg.norm(expected_output_data - actual_output_data) / sqrt(self._node_num[0] * len(input_data))
 
     def get_fraction_of_variance_explained(self, num_of_PCs=None):
         """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
-        output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data(num_of_PCs)
+        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
+            expected_output_data = self._output_data_set
+        else:
+            expected_output_data = input_data
 
-        var_of_input = sum(np.var(input_data, axis=0))
-        var_of_err = sum(np.var(output_data - input_data, axis=0))
+        var_of_input = sum(np.var(expected_output_data, axis=0))
+        var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
         return 1 - var_of_err / var_of_input
 
     def get_commands_for_further_biased_simulations(self, list_of_potential_center=None,
@@ -215,6 +231,12 @@ class autoencoder(object):
             force_constant_for_biased = CONFIG_9
 
         todo_list_of_commands_for_simulations = []
+        if CONFIG_48 == 'Cartesian':
+            input_data_type = 1
+        elif CONFIG_48 == 'cossin':
+            input_data_type = 0
+        else:
+            raise Exception("error input data type")
 
         for potential_center in list_of_potential_center:
             if isinstance(molecule_type, Alanine_dipeptide):
@@ -234,8 +256,8 @@ class autoencoder(object):
                                   '../target/Trp_cage/network_%d/' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  CONFIG_40, 'NVT')
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s" % parameter_list
+                                  CONFIG_40, 'NVT', input_data_type)
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d" % parameter_list
                 if CONFIG_42:
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                         '../resources/Trp_cage/network_%d.pkl' % self._index)
@@ -272,7 +294,8 @@ class autoencoder(object):
         return proper_potential_centers
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
-                                               folder_to_store_files='./standard_WHAM/', dimensionality=2):
+                                               folder_to_store_files='./standard_WHAM/', dimensionality=2, 
+                                               input_data_type='cossin'):   # input_data_type could be 'cossin' or 'Cartesian'
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -294,7 +317,13 @@ class autoencoder(object):
             temp_window_count = float(
                 subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
             window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
+            if input_data_type == 'cossin':
+                temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
+            elif input_data_type == 'Cartesian':
+                temp_coor = self.get_PCs(np.loadtxt(item) / 20)
+            else:
+                raise Exception('error input_data_type')
+
             assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
@@ -651,8 +680,13 @@ class autoencoder_Keras(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         temp_model = Sequential()
-        for item in self._molecule_net_layers[:-2]:
-            temp_model.add(item)
+        if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
+            for item in self._molecule_net_layers[:-5]:
+                temp_model.add(item)
+        else:
+            for item in self._molecule_net_layers[:-2]:
+                temp_model.add(item)
+
         if self._hidden_layers_type[1] == CircularLayer:
             PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in temp_model.predict(input_data)]
@@ -670,6 +704,11 @@ class autoencoder_Keras(autoencoder):
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
         num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
         data = self._data_set
+        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
+            print ("outputs different from inputs")
+            output_data_set = self._output_data_set
+        else:
+            output_data_set = data
 
         num_of_hidden_layers = len(self._hidden_layers_type)
         if self._hierarchical:
@@ -694,6 +733,11 @@ class autoencoder_Keras(autoencoder):
             else:
                 raise Exception ('this type of hidden layer not implemented')
 
+            if hasattr(self, '_output_as_circular') and self._output_as_circular:
+                molecule_net.add(Reshape((node_num[4] / 2, 2), input_shape=(node_num[4],)))
+                molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
+                molecule_net.add(Reshape((node_num[4],)))
+
             molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
                                  optimizer=SGD(lr=self._network_parameters[0],
                                                momentum=self._network_parameters[1],
@@ -702,12 +746,12 @@ class autoencoder_Keras(autoencoder):
                                  )
 
             training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s]\n''' % \
+parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
                                   (self._index, self._max_num_of_training, str(self._node_num),
                                    str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
                                    len(data),
                                    self._network_parameters[0], self._network_parameters[1],
-                                   self._network_parameters[2], str(self._network_parameters[4]))
+                                   self._network_parameters[2], str(self._network_parameters[4]), str(self._output_as_circular))
 
             print("Start " + training_print_info)
             call_back_list = []
@@ -715,7 +759,8 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
             if self._enable_early_stopping:
                 call_back_list += [earlyStopping]
 
-            molecule_net.fit(data, data, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
+
+            molecule_net.fit(data, output_data_set, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
                              verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
             dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]

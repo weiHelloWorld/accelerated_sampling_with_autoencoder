@@ -6,6 +6,7 @@ import Bio.PDB, argparse, subprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument("sample_path", type=str, help="path (file or folder) of pdb file(s) to be aligned")
+parser.add_argument("--ignore_aligned_file",type=int, default=1)
 parser.add_argument("--ref", type=str, default="../resources/1l2y.pdb", help="reference pdb file")
 parser.add_argument("--name", type=str, default=None, help='name of the aligned pdb file')
 parser.add_argument('--remove_original', help='remove original pdb file after doing structural alignment', action="store_true")
@@ -14,6 +15,8 @@ args = parser.parse_args()
 ref_structure_pdb_file = args.ref
 
 pdb_files = subprocess.check_output(['find', args.sample_path, '-name', "*.pdb"]).strip().split('\n')
+if args.ignore_aligned_file:
+    pdb_files = filter(lambda x: not '_aligned.pdb' in x, pdb_files)
 
 for sample_structure_pdb_file in pdb_files:
     print "doing structural alignment for %s" % sample_structure_pdb_file

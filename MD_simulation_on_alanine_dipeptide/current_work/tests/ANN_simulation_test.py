@@ -107,6 +107,14 @@ class test_Sutils(object):
         assert (opt_num == 4), opt_num
         return
 
+    @staticmethod
+    def test_rotating_coordinates():
+        data = np.loadtxt('dependency/temp_Trp_cage_data/1l2y_coordinates.txt').reshape((38, 60, 3))[0]
+        actual = Sutils.rotating_coordinates(data, [0,0,0], [0,0,1], np.pi / 2)
+        expected = np.array([data[:, 1], - data[:,0], data[:,2]]).T
+        assert_almost_equal(expected, actual)
+        return
+
 
 class test_Alanine_dipeptide(object):
     @staticmethod
@@ -249,6 +257,15 @@ class test_coordinates_data_files_list(object):
         assert sorted(a.get_list_of_coor_data_files()) == a.get_list_of_coor_data_files()
         assert len(a.get_list_of_corresponding_pdb_files()) == num_of_coor_files - 1
         assert sorted(a.get_list_of_corresponding_pdb_files()) == a.get_list_of_corresponding_pdb_files()
+
+    @staticmethod
+    def test_create_sub_coor_data_files_list_using_filter_conditional():
+        folder = 'dependency/temp_data'
+        a = coordinates_data_files_list([folder])
+        a_sub = a.create_sub_coor_data_files_list_using_filter_conditional(lambda x: '0.7' in x)
+        for item in a_sub.get_list_of_coor_data_files():
+            assert ('0.7' in item)
+        return
 
 
 class test_neural_network_for_simulation(object):

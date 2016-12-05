@@ -20,7 +20,7 @@ from MDAnalysis.analysis.align import *
 from MDAnalysis.analysis.rms import rmsd
 from MDAnalysis.analysis.distances import distance_array
 from keras.models import Sequential
-from keras.optimizers import SGD
+from keras.optimizers import *
 from keras.layers import Dense, Activation, Lambda, Reshape
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
@@ -41,6 +41,8 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 
 CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
+CONFIG_48 = 'Cartesian'       # input data type, could be 'cossin' or 'Cartesian'
+CONFIG_49 = 20                # scaling factor for Cartesian coordinates
 
 '''class coordinates_data_files_list:'''
 
@@ -52,13 +54,13 @@ CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.01, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
-CONFIG_5 = 100                   # max number of training steps
+CONFIG_5 = 200                   # max number of training steps
 CONFIG_6 = None # filename to save this network
-CONFIG_36 = 3              #   dimensionality
+CONFIG_36 = 2              #   dimensionality
 if CONFIG_17[1] == CircularLayer:
     CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
 elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
@@ -69,7 +71,12 @@ else:
 if CONFIG_30 == "Alanine_dipeptide":
     CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
 elif CONFIG_30 == "Trp_cage":
-    CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
+    if CONFIG_48 == 'cossin':
+        CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
+    elif CONFIG_48 == 'Cartesian':
+        CONFIG_3 = [180, 300, CONFIG_37, 300, 180]
+    else:
+        raise Exception('error input data type')
 else:
     raise Exception('molecule type error')
 
@@ -77,7 +84,7 @@ CONFIG_40 = 'implicit'                  # whether to include water molecules, op
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
-
+CONFIG_47 = False                        # whether to set the output layer as circular layer
 
 '''class iteration'''
 

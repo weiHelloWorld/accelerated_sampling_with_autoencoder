@@ -79,17 +79,27 @@ class Sutils(object):
         return
 
     @staticmethod
-    def rotating_group_of_atoms(coords, indices_atoms, fixed_atom_index, axis_vector, angle):
+    def rotating_around_center_of_mass(coords, axis_vector, angle):
+        center_of_mass = coords.mean(axis=0)
+        return Sutils.rotating_coordinates(coords, center_of_mass, axis_vector, angle)
+
+    @staticmethod
+    def rotating_coordinates(coords, fixed_coord, axis_vector, angle):
+        indices_atoms = list(range(len(coords)))
+        return Sutils.rotating_group_of_atoms(coords, indices_atoms, fixed_coord, axis_vector, angle)
+
+    @staticmethod
+    def rotating_group_of_atoms(coords, indices_atoms, fixed_coord, axis_vector, angle):
         """
         :param coords: coordinates of all atoms
         :param indices_atoms: indices of atoms to rotate
-        :param fixed_atom_index: index of fixed atom
+        :param fixed_coord: coordinates of fixed point
         :param axis_vector: rotation axis
         :param angle: rotation angle
         :return: coordinates of all atoms after rotation
         """
         result = copy.deepcopy(coords)  # avoid modifying original input
-        temp_coords = coords[indices_atoms] - coords[fixed_atom_index]  # coordinates for rotation
+        temp_coords = coords[indices_atoms] - fixed_coord  # coordinates for rotation
         temp_coords = np.array(temp_coords)
         cos_value = np.cos(angle); sin_value = np.sin(angle)
         axis_vector_length = np.sqrt(np.sum(np.array(axis_vector) ** 2))
@@ -103,7 +113,7 @@ class Sutils(object):
                                     [ux * uz * (1 - cos_value) - uy * sin_value,
                                      uy * uz * (1 - cos_value) + ux * sin_value,
                                      cos_value + uz ** 2 * (1 - cos_value)]])
-        result[indices_atoms] = np.dot(temp_coords, rotation_matrix) + coords[fixed_atom_index]
+        result[indices_atoms] = np.dot(temp_coords, rotation_matrix) + fixed_coord
         return result
 
     @staticmethod
@@ -470,7 +480,7 @@ class Trp_cage(Sutils):
         result = []
         for item in cossin:
             temp_angle = []
-            len_of_cos_sin = CONFIG_33
+            len_of_cos_sin = 76
             assert (len(item) == len_of_cos_sin), (len(item), len_of_cos_sin)
             for idx_of_angle in range(len_of_cos_sin / 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
@@ -685,14 +695,14 @@ class Trp_cage(Sutils):
                 axis_vector_0 = C_atom_in_this_residue.get_coord() - CA_atom_in_this_residue.get_coord()
                 axis_vector_1 = CA_atom_in_next_residue.get_coord() - N_atom_in_next_residue.get_coord()
 
-                fixed_index_0 = int(C_atom_in_this_residue.get_serial_number()) - 1
-                fixed_index_1 = int(N_atom_in_next_residue.get_serial_number()) - 1
+                fixed_coord_0 = temp_coords[int(C_atom_in_this_residue.get_serial_number()) - 1]
+                fixed_coord_1 = temp_coords[int(N_atom_in_next_residue.get_serial_number()) - 1]
 
                 indices_atom_to_rotate = reduce(lambda x, y: x + y, atom_indices_in_each_residue[:item + 1])
 
-                temp_coords = Sutils.rotating_group_of_atoms(temp_coords, indices_atom_to_rotate, fixed_index_0,
+                temp_coords = Sutils.rotating_group_of_atoms(temp_coords, indices_atom_to_rotate, fixed_coord_0,
                                                              axis_vector_0, rotation_angles[temp_model.get_id()][2 * item])
-                temp_coords = Sutils.rotating_group_of_atoms(temp_coords, indices_atom_to_rotate, fixed_index_1,
+                temp_coords = Sutils.rotating_group_of_atoms(temp_coords, indices_atom_to_rotate, fixed_coord_1,
                                                              axis_vector_1, rotation_angles[temp_model.get_id()][2 * item + 1])
 
             # save coordinates into structure
