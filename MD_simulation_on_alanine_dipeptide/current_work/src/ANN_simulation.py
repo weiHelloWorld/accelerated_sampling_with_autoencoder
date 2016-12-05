@@ -286,6 +286,18 @@ class iteration(object):
             data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
             output_data_set = coor_data_obj_output.get_coor_data(CONFIG_49)
             assert (data_set.shape == output_data_set.shape)
+
+            # TODO: fix following for data augmentation
+            # TODO: may need to add arbitrary rotation to each frame
+            num_of_data = data_set.shape[0]
+            output_data_set = np.array(output_data_set.tolist() * 8)
+
+            data_set = data_set.reshape((num_of_data, 60, 3))
+            for axis_vec in [[0,0,1], [0,1,0],[1,0,0]]:
+                data_set = np.concatenate((data_set, 
+                                        map(lambda x: Sutils.rotating_around_center_of_mass(x, axis_vec, np.pi/2), data_set)) 
+                                        , axis=0)
+            data_set = data_set.reshape((8 * num_of_data, 180))
         else:
             raise Exception('error input data type')
 
