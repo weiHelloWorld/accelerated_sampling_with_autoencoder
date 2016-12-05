@@ -54,7 +54,7 @@ CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.01, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.00, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
@@ -74,7 +74,7 @@ elif CONFIG_30 == "Trp_cage":
     if CONFIG_48 == 'cossin':
         CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
     elif CONFIG_48 == 'Cartesian':
-        CONFIG_3 = [180, 300, CONFIG_37, 300, 180]
+        CONFIG_3 = [180, 50, CONFIG_37, 50, 180]
     else:
         raise Exception('error input data type')
 else:

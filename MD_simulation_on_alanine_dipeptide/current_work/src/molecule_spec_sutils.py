@@ -79,6 +79,12 @@ class Sutils(object):
         return
 
     @staticmethod
+    def rotating_randomly_around_center_of_mass(coords):
+        axis_vector = np.random.uniform(0, 1, 3)
+        angle = np.random.uniform(0, 2 * np.pi)
+        return Sutils.rotating_around_center_of_mass(coords, axis_vector, angle)
+
+    @staticmethod
     def rotating_around_center_of_mass(coords, axis_vector, angle):
         center_of_mass = coords.mean(axis=0)
         return Sutils.rotating_coordinates(coords, center_of_mass, axis_vector, angle)

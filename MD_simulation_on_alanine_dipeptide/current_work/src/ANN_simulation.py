@@ -286,6 +286,19 @@ class iteration(object):
             data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
             output_data_set = coor_data_obj_output.get_coor_data(CONFIG_49)
             assert (data_set.shape == output_data_set.shape)
+
+            # random rotation for data augmentation
+            num_of_copies = 16
+            num_of_data = data_set.shape[0]
+            output_data_set = np.array(output_data_set.tolist() * num_of_copies)
+
+            data_set = data_set.reshape((num_of_data, 60, 3))
+            temp_data_set = []
+            for _ in range(num_of_copies):
+                temp_data_set.append([Sutils.rotating_randomly_around_center_of_mass(x) for x in data_set])
+
+            data_set = np.concatenate(temp_data_set, axis=0)
+            data_set = data_set.reshape((num_of_copies * num_of_data, 180))
         else:
             raise Exception('error input data type')
 
