@@ -295,7 +295,8 @@ class autoencoder(object):
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
                                                folder_to_store_files='./standard_WHAM/', dimensionality=2, 
-                                               input_data_type='cossin'):   # input_data_type could be 'cossin' or 'Cartesian'
+                                               input_data_type='cossin',        # input_data_type could be 'cossin' or 'Cartesian'
+                                               scaling_factor=20):              # only works for 'Cartesian'
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -320,7 +321,7 @@ class autoencoder(object):
             if input_data_type == 'cossin':
                 temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             elif input_data_type == 'Cartesian':
-                temp_coor = self.get_PCs(np.loadtxt(item) / 20)
+                temp_coor = self.get_PCs(np.loadtxt(item) / scaling_factor)
             else:
                 raise Exception('error input_data_type')
 

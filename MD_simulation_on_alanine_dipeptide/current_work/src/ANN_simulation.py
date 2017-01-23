@@ -426,20 +426,27 @@ class single_biased_simulation_data(object):
 
         return
 
-    def get_center_of_data_cloud_in_this_biased_simulation(self):
-        cossin = molecule_type.get_many_cossin_from_coordinates_in_list_of_files([self._file_for_single_biased_simulation_coor])
-        PCs = self._my_network.get_PCs(cossin)
+    def get_center_of_data_cloud_in_this_biased_simulation(self, input_data_type):
+        if input_data_type == 'cossin':
+            PCs = self._my_network.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
+                [self._file_for_single_biased_simulation_coor]))
+        elif input_data_type == 'Cartesian':
+            scaling_factor = 20                       # TODO: use better way than hardcoding it 
+            PCs = self._my_network.get_PCs(np.loadtxt(self._file_for_single_biased_simulation_coor) / scaling_factor)
+        else:
+            raise Exception('error input_data_type')
+
         assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)
         PCs_transpose = list(zip(*PCs))
         center_of_data_cloud = map(lambda x: sum(x) / len(x), PCs_transpose)
         return center_of_data_cloud
 
-    def get_offset_between_potential_center_and_data_cloud_center(self):
+    def get_offset_between_potential_center_and_data_cloud_center(self, input_data_type):
         """see if the push in this biased simulation actually works, large offset means it
         does not work well
         """
-        PCs_average = self.get_center_of_data_cloud_in_this_biased_simulation()
+        PCs_average = self.get_center_of_data_cloud_in_this_biased_simulation(input_data_type)
         offset = [PCs_average[item] - self._potential_center[item] for item in range(self._dimension_of_PCs)]
         return offset
 
