@@ -152,17 +152,26 @@ class plotting(object):
                     return
 
             elif saving_snapshot_mode == 'single_point':
+                global temp_global_index_click
+                temp_global_index_click = 0
                 def onclick(event):
+                    global temp_global_index_click
                     if isinstance(event.artist, matplotlib.collections.PathCollection):
                         ind_list = list(event.ind)
                         print ('onclick:')
                         for item in ind_list:
                             print(item, x[item], y[item])
+
                         temp_ind_list = [item * step_interval for item in ind_list]  # should include step_interval
                         average_x = sum([x[item] for item in ind_list]) / len(ind_list)
                         average_y = sum([y[item] for item in ind_list]) / len(ind_list)
-                        out_file_name = folder_to_store_these_frames + '/temp_frames_[%f,%f].pdb' % (average_x, average_y)
+                        # notation on the graph
+                        axis_object.scatter([average_x], [average_y], s=50, marker='s')
+                        axis_object.text(average_x, average_y, '%d' % temp_global_index_click, picker = False, fontsize=15)
+                        out_file_name = folder_to_store_these_frames + '/%02d_temp_frames_[%f,%f].pdb' % \
+                                                                    (temp_global_index_click, average_x, average_y)
 
+                        temp_global_index_click += 1
                         related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_ind_list,
                             out_file_name=out_file_name)
                         # need to verify PCs generated from this output pdb file are consistent from those in the list selected
