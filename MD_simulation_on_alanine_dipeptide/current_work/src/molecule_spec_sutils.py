@@ -57,6 +57,12 @@ class Sutils(object):
         return remaining_index_list
 
     @staticmethod
+    def concat_first_frame_in_all_pdb_files(list_of_pdb_files, new_pdb_file_name):
+        for item in list_of_pdb_files:
+            Sutils.write_some_frames_into_a_new_file_based_on_index_list(item, [0], new_pdb_file_name)
+        return
+
+    @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
         print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
