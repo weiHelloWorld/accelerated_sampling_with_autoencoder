@@ -243,10 +243,11 @@ class autoencoder(object):
                 parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                                   '../target/Alanine_dipeptide/network_%d' % self._index,
                                   autoencoder_info_file,
-                                  'pc_' + str(potential_center).replace(' ', '')[1:-1]
+                                  'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                  input_data_type
                                   # need to remove white space, otherwise parsing error
                                   )
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --data_type_in_input_layer %d" % parameter_list
                 if CONFIG_42:  # whether the force constant adjustable mode is enabled
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                         '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)

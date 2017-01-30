@@ -18,7 +18,7 @@ parser.add_argument("autoencoder_info_file", type=str, help="file to store autoe
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
-parser.add_argument("--scaling_factor", type=float, default = 2, help='scaling_factor for ANN_Force')
+parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")

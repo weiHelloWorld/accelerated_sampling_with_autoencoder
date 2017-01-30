@@ -300,14 +300,20 @@ class iteration(object):
             num_of_copies = 16
             num_of_data = data_set.shape[0]
             output_data_set = np.array(output_data_set.tolist() * num_of_copies)
+            if isinstance(molecule_type, Alanine_dipeptide):
+                num_of_backbone_atoms = 7
+            elif isinstance(molecule_type, Trp_cage):
+                num_of_backbone_atoms = 60
+            else:
+                raise Exception("error molecule type")
 
-            data_set = data_set.reshape((num_of_data, 60, 3))
+            data_set = data_set.reshape((num_of_data, num_of_backbone_atoms, 3))
             temp_data_set = []
             for _ in range(num_of_copies):
                 temp_data_set.append([Sutils.rotating_randomly_around_center_of_mass(x) for x in data_set])
 
             data_set = np.concatenate(temp_data_set, axis=0)
-            data_set = data_set.reshape((num_of_copies * num_of_data, 180))
+            data_set = data_set.reshape((num_of_copies * num_of_data, num_of_backbone_atoms * 3))
         else:
             raise Exception('error input data type')
 
@@ -381,6 +387,11 @@ class iteration(object):
 
         if isinstance(molecule_type, Trp_cage):
             subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage'])
+        elif isinstance(molecule_type, Alanine_dipeptide):
+            subprocess.check_output(['python', 'structural_alignment.py','--ref',
+                                    '../resources/alanine_dipeptide.pdb', '../target/Alanine_dipeptide'])
+        else:
+            raise Exception("molecule type error")
         molecule_type.generate_coordinates_from_pdb_files()
         return
 

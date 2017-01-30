@@ -69,7 +69,10 @@ else:
     raise Exception('Layer not defined')
 
 if CONFIG_30 == "Alanine_dipeptide":
-    CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
+    if CONFIG_48 == 'cossin':
+        CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
+    elif CONFIG_48 == 'Cartesian':
+        CONFIG_3 = [21, 15, CONFIG_37, 15, 21]
 elif CONFIG_30 == "Trp_cage":
     if CONFIG_48 == 'cossin':
         CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
