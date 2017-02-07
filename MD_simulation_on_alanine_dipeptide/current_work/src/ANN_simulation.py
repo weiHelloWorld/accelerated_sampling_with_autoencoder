@@ -293,6 +293,9 @@ class iteration(object):
                 assert (_2 == _1.replace('_coordinates.txt', '_aligned_coordinates.txt'))
 
             data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
+            # remove the center of mass
+            data_set = Sutils.remove_translation(data_set)
+
             output_data_set = coor_data_obj_output.get_coor_data(CONFIG_49)
             assert (data_set.shape == output_data_set.shape)
 

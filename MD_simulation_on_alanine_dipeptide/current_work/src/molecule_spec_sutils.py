@@ -90,7 +90,10 @@ class Sutils(object):
                                      np.average(coords[item, 2::3])] * 7
                                     for item in range(coords.shape[0])]
         result = coords - np.array(coords_of_center_of_mass)
-        assert (np.all(np.sum(result[:, ::3], axis=1) == 0))
+        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
+                                     np.average(result[item, 2::3])] 
+                                    for item in range(result.shape[0])]
+        assert np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
         return result
 
     @staticmethod
