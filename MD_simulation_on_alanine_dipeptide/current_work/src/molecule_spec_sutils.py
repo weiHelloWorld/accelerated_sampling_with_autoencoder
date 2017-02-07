@@ -85,6 +85,15 @@ class Sutils(object):
         return
 
     @staticmethod
+    def remove_translation(coords):   # remove the translational degree of freedom
+        coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
+                                     np.average(coords[item, 2::3])] * 7
+                                    for item in range(coords.shape[0])]
+        result = coords - np.array(coords_of_center_of_mass)
+        assert (np.all(np.sum(result[:, ::3], axis=1) == 0))
+        return result
+
+    @staticmethod
     def rotating_randomly_around_center_of_mass(coords):
         axis_vector = np.random.uniform(0, 1, 3)
         angle = np.random.uniform(0, 2 * np.pi)
