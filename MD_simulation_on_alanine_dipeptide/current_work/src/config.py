@@ -119,7 +119,7 @@ CONFIG_29 = False  # whether we need to remove the water molecules from pdb file
 
 '''class Sutils'''
 
-CONFIG_10 = 10   # num of bins for get_boundary_points()
+CONFIG_10 = 20   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
@@ -148,7 +148,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 10000   # force constant for biased simulations
+CONFIG_9 = 15000   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
