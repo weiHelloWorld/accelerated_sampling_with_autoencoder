@@ -440,7 +440,9 @@ class single_biased_simulation_data(object):
                 [self._file_for_single_biased_simulation_coor]))
         elif input_data_type == 'Cartesian':
             scaling_factor = CONFIG_49
-            PCs = self._my_network.get_PCs(np.loadtxt(self._file_for_single_biased_simulation_coor) / scaling_factor)
+            temp_data = np.loadtxt(self._file_for_single_biased_simulation_coor) / scaling_factor
+            temp_data = Sutils.remove_translation(temp_data)
+            PCs = self._my_network.get_PCs(temp_data)
         else:
             raise Exception('error input_data_type')
 
