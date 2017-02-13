@@ -152,17 +152,26 @@ class plotting(object):
                     return
 
             elif saving_snapshot_mode == 'single_point':
+                global temp_global_index_click
+                temp_global_index_click = 0
                 def onclick(event):
+                    global temp_global_index_click
                     if isinstance(event.artist, matplotlib.collections.PathCollection):
                         ind_list = list(event.ind)
                         print ('onclick:')
                         for item in ind_list:
                             print(item, x[item], y[item])
+
                         temp_ind_list = [item * step_interval for item in ind_list]  # should include step_interval
                         average_x = sum([x[item] for item in ind_list]) / len(ind_list)
                         average_y = sum([y[item] for item in ind_list]) / len(ind_list)
-                        out_file_name = folder_to_store_these_frames + '/temp_frames_[%f,%f].pdb' % (average_x, average_y)
+                        # notation on the graph
+                        axis_object.scatter([average_x], [average_y], s=50, marker='s')
+                        axis_object.text(average_x, average_y, '%d' % temp_global_index_click, picker = False, fontsize=15)
+                        out_file_name = folder_to_store_these_frames + '/%02d_temp_frames_[%f,%f].pdb' % \
+                                                                    (temp_global_index_click, average_x, average_y)
 
+                        temp_global_index_click += 1
                         related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_ind_list,
                             out_file_name=out_file_name)
                         # need to verify PCs generated from this output pdb file are consistent from those in the list selected
@@ -284,21 +293,15 @@ class iteration(object):
                 assert (_2 == _1.replace('_coordinates.txt', '_aligned_coordinates.txt'))
 
             data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
+            # remove the center of mass
+            data_set = Sutils.remove_translation(data_set)
+
             output_data_set = coor_data_obj_output.get_coor_data(CONFIG_49)
             assert (data_set.shape == output_data_set.shape)
 
             # random rotation for data augmentation
             num_of_copies = 16
-            num_of_data = data_set.shape[0]
-            output_data_set = np.array(output_data_set.tolist() * num_of_copies)
-
-            data_set = data_set.reshape((num_of_data, 60, 3))
-            temp_data_set = []
-            for _ in range(num_of_copies):
-                temp_data_set.append([Sutils.rotating_randomly_around_center_of_mass(x) for x in data_set])
-
-            data_set = np.concatenate(temp_data_set, axis=0)
-            data_set = data_set.reshape((num_of_copies * num_of_data, 180))
+            data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
         else:
             raise Exception('error input data type')
 
@@ -372,6 +375,11 @@ class iteration(object):
 
         if isinstance(molecule_type, Trp_cage):
             subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage'])
+        elif isinstance(molecule_type, Alanine_dipeptide):
+            subprocess.check_output(['python', 'structural_alignment.py','--ref',
+                                    '../resources/alanine_dipeptide.pdb', '../target/Alanine_dipeptide'])
+        else:
+            raise Exception("molecule type error")
         molecule_type.generate_coordinates_from_pdb_files()
         return
 
@@ -426,20 +434,29 @@ class single_biased_simulation_data(object):
 
         return
 
-    def get_center_of_data_cloud_in_this_biased_simulation(self):
-        cossin = molecule_type.get_many_cossin_from_coordinates_in_list_of_files([self._file_for_single_biased_simulation_coor])
-        PCs = self._my_network.get_PCs(cossin)
+    def get_center_of_data_cloud_in_this_biased_simulation(self, input_data_type):
+        if input_data_type == 'cossin':
+            PCs = self._my_network.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
+                [self._file_for_single_biased_simulation_coor]))
+        elif input_data_type == 'Cartesian':
+            scaling_factor = CONFIG_49
+            temp_data = np.loadtxt(self._file_for_single_biased_simulation_coor) / scaling_factor
+            temp_data = Sutils.remove_translation(temp_data)
+            PCs = self._my_network.get_PCs(temp_data)
+        else:
+            raise Exception('error input_data_type')
+
         assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)
         PCs_transpose = list(zip(*PCs))
         center_of_data_cloud = map(lambda x: sum(x) / len(x), PCs_transpose)
         return center_of_data_cloud
 
-    def get_offset_between_potential_center_and_data_cloud_center(self):
+    def get_offset_between_potential_center_and_data_cloud_center(self, input_data_type):
         """see if the push in this biased simulation actually works, large offset means it
         does not work well
         """
-        PCs_average = self.get_center_of_data_cloud_in_this_biased_simulation()
+        PCs_average = self.get_center_of_data_cloud_in_this_biased_simulation(input_data_type)
         offset = [PCs_average[item] - self._potential_center[item] for item in range(self._dimension_of_PCs)]
         return offset
 

@@ -57,6 +57,12 @@ class Sutils(object):
         return remaining_index_list
 
     @staticmethod
+    def concat_first_frame_in_all_pdb_files(list_of_pdb_files, new_pdb_file_name):
+        for item in list_of_pdb_files:
+            Sutils.write_some_frames_into_a_new_file_based_on_index_list(item, [0], new_pdb_file_name)
+        return
+
+    @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
         print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
@@ -77,6 +83,42 @@ class Sutils(object):
                 f_out.write(item)
 
         return
+
+    @staticmethod
+    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type, remove_translation=True):
+        if remove_translation:
+            data_set = Sutils.remove_translation(data_set)
+            output_data_set = Sutils.remove_translation(output_data_set)
+
+        num_of_data = data_set.shape[0]
+        output_data_set = np.array(output_data_set.tolist() * num_of_copies)
+        if isinstance(molecule_type, Alanine_dipeptide):
+            num_of_backbone_atoms = 7
+        elif isinstance(molecule_type, Trp_cage):
+            num_of_backbone_atoms = 60
+        else:
+            raise Exception("error molecule type")
+
+        data_set = data_set.reshape((num_of_data, num_of_backbone_atoms, 3))
+        temp_data_set = []
+        for _ in range(num_of_copies):
+            temp_data_set.append([Sutils.rotating_randomly_around_center_of_mass(x) for x in data_set])
+
+        data_set = np.concatenate(temp_data_set, axis=0)
+        data_set = data_set.reshape((num_of_copies * num_of_data, num_of_backbone_atoms * 3))
+        return data_set, output_data_set
+
+    @staticmethod
+    def remove_translation(coords):   # remove the translational degree of freedom
+        coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
+                                     np.average(coords[item, 2::3])] * 7
+                                    for item in range(coords.shape[0])]
+        result = coords - np.array(coords_of_center_of_mass)
+        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
+                                     np.average(result[item, 2::3])] 
+                                    for item in range(result.shape[0])]
+        assert np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
+        return result
 
     @staticmethod
     def rotating_randomly_around_center_of_mass(coords):

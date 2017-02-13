@@ -39,10 +39,16 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 CONFIG_48 = 'Cartesian'       # input data type, could be 'cossin' or 'Cartesian'
-CONFIG_49 = 20                # scaling factor for Cartesian coordinates
+
+if CONFIG_30 == "Alanine_dipeptide":
+    CONFIG_49 = 10                # scaling factor for output for Cartesian coordinates
+elif CONFIG_30 == "Trp_cage":
+    CONFIG_49 = 20
+else:
+    raise Exception('molecule type error')
 
 '''class coordinates_data_files_list:'''
 
@@ -54,7 +60,7 @@ CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.00, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = [.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
@@ -69,7 +75,10 @@ else:
     raise Exception('Layer not defined')
 
 if CONFIG_30 == "Alanine_dipeptide":
-    CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
+    if CONFIG_48 == 'cossin':
+        CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
+    elif CONFIG_48 == 'Cartesian':
+        CONFIG_3 = [21, 40, CONFIG_37, 40, 21]
 elif CONFIG_30 == "Trp_cage":
     if CONFIG_48 == 'cossin':
         CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
@@ -110,7 +119,7 @@ CONFIG_29 = False  # whether we need to remove the water molecules from pdb file
 
 '''class Sutils'''
 
-CONFIG_10 = 10   # num of bins for get_boundary_points()
+CONFIG_10 = 20   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
@@ -138,8 +147,8 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = 10000 # num of simulation steps
-CONFIG_9 = 1000   # force constant for biased simulations
+CONFIG_8 = 5000 # num of simulation steps
+CONFIG_9 = 15000   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 

@@ -18,7 +18,7 @@ parser.add_argument("autoencoder_info_file", type=str, help="file to store autoe
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
-parser.add_argument("--scaling_factor", type=float, default = 2, help='scaling_factor for ANN_Force')
+parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
@@ -28,6 +28,7 @@ parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on
 parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
 parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
+parser.add_argument("--auto_equilibration", help="enable auto equilibration so that it will run enough equilibration steps", action="store_true")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -47,6 +48,7 @@ scaling_factor = args.scaling_factor
 
 platform = Platform.getPlatformByName(args.platform)
 temperature = args.temperature
+input_data_type = ['cossin', 'Cartesian'][args.data_type_in_input_layer]
 
 if float(force_constant) != 0:
     from ANN import *
@@ -189,6 +191,22 @@ def run_simulation(force_constant):
     print("begin equilibrating...")
     print datetime.datetime.now()
     simulation.step(args.equilibration_steps)
+    previous_distance_to_potential_center = 100
+    current_distance_to_potential_center = 90
+    if args.auto_equilibration:
+        distance_change_tolerance = 0.05
+        while abs(previous_distance_to_potential_center - current_distance_to_potential_center) > distance_change_tolerance:
+            temp_pdb_reporter_file_for_auto_equilibration = pdb_reporter_file.replace('.pdb', '_temp.pdb')
+            simulation.reporters.append(PDBReporter(temp_pdb_reporter_file_for_auto_equilibration, record_interval))
+            simulation.step(args.equilibration_steps)
+            previous_distance_to_potential_center = current_distance_to_potential_center
+            current_distance_to_potential_center = get_distance_between_data_cloud_center_and_potential_center(
+                            temp_pdb_reporter_file_for_auto_equilibration)
+            subprocess.check_output(['rm', temp_pdb_reporter_file_for_auto_equilibration])
+            print "previous_distance_to_potential_center =  %f\ncurrent_distance_to_potential_center = %f" % (
+                previous_distance_to_potential_center, current_distance_to_potential_center
+            )
+
     print("Done equilibration")
     print datetime.datetime.now()
 
@@ -213,7 +231,7 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     temp_network = pickle.load(open(args.autoencoder_file, 'rb'))
     print coor_file
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
-    offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center()
+    offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center(input_data_type)
     if CONFIG_17[1] == CircularLayer:
         offset = [min(abs(item), abs(item + 2 * np.pi), abs(item - 2 * np.pi)) for item in offset]
         print "circular offset"

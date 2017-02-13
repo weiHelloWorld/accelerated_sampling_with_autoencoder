@@ -243,10 +243,11 @@ class autoencoder(object):
                 parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                                   '../target/Alanine_dipeptide/network_%d' % self._index,
                                   autoencoder_info_file,
-                                  'pc_' + str(potential_center).replace(' ', '')[1:-1]
+                                  'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                  input_data_type
                                   # need to remove white space, otherwise parsing error
                                   )
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s" % parameter_list
+                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --data_type_in_input_layer %d" % parameter_list
                 if CONFIG_42:  # whether the force constant adjustable mode is enabled
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                         '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
@@ -295,7 +296,8 @@ class autoencoder(object):
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
                                                folder_to_store_files='./standard_WHAM/', dimensionality=2, 
-                                               input_data_type='cossin'):   # input_data_type could be 'cossin' or 'Cartesian'
+                                               input_data_type='cossin',        # input_data_type could be 'cossin' or 'Cartesian'
+                                               scaling_factor=20):              # only works for 'Cartesian'
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -320,7 +322,7 @@ class autoencoder(object):
             if input_data_type == 'cossin':
                 temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             elif input_data_type == 'Cartesian':
-                temp_coor = self.get_PCs(np.loadtxt(item) / 20)
+                temp_coor = self.get_PCs(np.loadtxt(item) / scaling_factor)
             else:
                 raise Exception('error input_data_type')
 
