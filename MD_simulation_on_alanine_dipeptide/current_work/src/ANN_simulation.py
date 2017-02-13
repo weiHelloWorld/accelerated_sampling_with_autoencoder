@@ -439,7 +439,7 @@ class single_biased_simulation_data(object):
             PCs = self._my_network.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
                 [self._file_for_single_biased_simulation_coor]))
         elif input_data_type == 'Cartesian':
-            scaling_factor = 20                       # TODO: use better way than hardcoding it 
+            scaling_factor = CONFIG_49
             PCs = self._my_network.get_PCs(np.loadtxt(self._file_for_single_biased_simulation_coor) / scaling_factor)
         else:
             raise Exception('error input_data_type')
