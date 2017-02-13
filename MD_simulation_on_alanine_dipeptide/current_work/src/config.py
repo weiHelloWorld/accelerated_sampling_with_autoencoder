@@ -44,9 +44,9 @@ CONFIG_45 = 'keras'                         # training backend: "pybrain", "kera
 CONFIG_48 = 'Cartesian'       # input data type, could be 'cossin' or 'Cartesian'
 
 if CONFIG_30 == "Alanine_dipeptide":
-    CONFIG_49 = 10                # scaling factor for output for Cartesian coordinates
+    CONFIG_49 = 5.0                # scaling factor for output for Cartesian coordinates
 elif CONFIG_30 == "Trp_cage":
-    CONFIG_49 = 20
+    CONFIG_49 = 20.0
 else:
     raise Exception('molecule type error')
 
@@ -60,7 +60,7 @@ CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
 else:
     raise Exception('training backend not implemented')
 
@@ -119,7 +119,7 @@ CONFIG_29 = False  # whether we need to remove the water molecules from pdb file
 
 '''class Sutils'''
 
-CONFIG_10 = 20   # num of bins for get_boundary_points()
+CONFIG_10 = 10   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
@@ -148,7 +148,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = 5000 # num of simulation steps
-CONFIG_9 = 15000   # force constant for biased simulations
+CONFIG_9 = 3000   # force constant for biased simulations
 CONFIG_16 = 50  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
@@ -165,5 +165,5 @@ CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)
 CONFIG_34 = 500            # force constant step, the value by which the force constant is increased each time (for force constant adjustable mode)
-CONFIG_35 = 0.05            # distance tolerance, max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)
+CONFIG_35 = 0.1            # distance tolerance, max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)
 
