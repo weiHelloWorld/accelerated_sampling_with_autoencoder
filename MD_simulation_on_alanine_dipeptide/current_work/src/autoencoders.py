@@ -279,16 +279,11 @@ class autoencoder(object):
         data_points = np.array(self.get_PCs())
         list_of_points = np.array(list_of_points)
         assert (data_points.shape[1] == list_of_points.shape[1])
-        distance_cal = lambda x, y: sqrt(np.dot(x - y, x - y))
-
         proper_potential_centers = []
 
         for item in list_of_points:
-            distances = map(lambda x: distance_cal(item, x),
-                            data_points
-                            )
-            neighbors_num = len(filter(lambda x: x < threshold_radius,
-                                       distances))
+            neighbors_num = sum([np.dot(item - x, item - x) < threshold_radius * threshold_radius for x in data_points])
+
             if neighbors_num >= min_num_of_neighbors:
                 proper_potential_centers += [item]
 
