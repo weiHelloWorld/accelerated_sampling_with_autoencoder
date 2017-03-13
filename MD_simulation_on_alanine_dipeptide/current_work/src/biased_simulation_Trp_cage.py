@@ -169,8 +169,11 @@ def run_simulation(force_constant):
     if flag_random_seed:
         integrator.setRandomNumberSeed(1)  # set random seed
 
-    properties = {'CudaDeviceIndex': args.device}
-    simulation = Simulation(modeller.topology, system, integrator, platform, properties)
+    if args.platform == "CUDA":
+        properties = {'CudaDeviceIndex': args.device}
+        simulation = Simulation(modeller.topology, system, integrator, platform, properties)
+    else:
+        simulation = Simulation(modeller.topology, system, integrator, platform)
     # print "positions = "
     # print (modeller.positions)
     simulation.context.setPositions(modeller.positions)

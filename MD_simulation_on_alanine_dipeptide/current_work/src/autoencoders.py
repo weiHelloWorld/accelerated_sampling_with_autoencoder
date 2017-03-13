@@ -238,7 +238,7 @@ class autoencoder(object):
         else:
             raise Exception("error input data type")
 
-        for potential_center in list_of_potential_center:
+        for device_index, potential_center in enumerate(list_of_potential_center):
             if isinstance(molecule_type, Alanine_dipeptide):
                 parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                                   '../target/Alanine_dipeptide/network_%d' % self._index,
@@ -257,8 +257,8 @@ class autoencoder(object):
                                   '../target/Trp_cage/network_%d/' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  CONFIG_40, 'NVT', input_data_type)
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d" % parameter_list
+                                  CONFIG_40, 'NVT', input_data_type, device_index % 2)
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d" % parameter_list
                 if CONFIG_42:
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                         '../resources/Trp_cage/network_%d.pkl' % self._index)
