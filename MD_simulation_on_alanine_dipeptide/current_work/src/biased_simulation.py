@@ -23,6 +23,7 @@ parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='lay
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
 parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
+parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
 # note on "force_constant_adjustable" mode:
@@ -158,7 +159,7 @@ def run_simulation(force_constant):
     if flag_random_seed:
         integrator.setRandomNumberSeed(1)  # set random seed
 
-    platform = Platform.getPlatformByName(CONFIG_23)
+    platform = Platform.getPlatformByName(args.platform)
     platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
     simulation = Simulation(pdb.topology, system, integrator, platform)
@@ -167,7 +168,11 @@ def run_simulation(force_constant):
     simulation.minimizeEnergy()
     simulation.step(10000)
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
-    simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, step=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True))
+    simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
+                                    step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
+                                                  temperature=True, progress=True, remainingTime=True,
+                                                  totalSteps=total_number_of_steps,
+                                                  ))
     simulation.step(total_number_of_steps)
 
     print('Done biased simulation!')
