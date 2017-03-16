@@ -89,7 +89,7 @@ elif CONFIG_30 == "Trp_cage":
 else:
     raise Exception('molecule type error')
 
-CONFIG_40 = 'implicit'                  # whether to include water molecules, option: "with_water" or "without_water"
+CONFIG_40 = 'explicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
@@ -110,7 +110,8 @@ CONFIG_31 = 10        # maximum number of failed simulations allowed in each ite
 
 CONFIG_14 = 7  # max number of jobs submitted each time
 CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
-CONFIG_29 = False  # whether we need to remove the water molecules from pdb files
+CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files
+CONFIG_50 = False   # whether we need to preserve original file if water molecules are removed
 
 
 ##########################################################################
@@ -147,9 +148,9 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = 100000 # num of simulation steps
-CONFIG_9 = 3000   # force constant for biased simulations
-CONFIG_16 = 1000  # record interval (the frequency of writing system state into the file)
+CONFIG_8 = 50000 # num of simulation steps
+CONFIG_9 = 5000   # force constant for biased simulations
+CONFIG_16 = 500  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
 ##########################################################################

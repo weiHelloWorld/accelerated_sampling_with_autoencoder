@@ -371,7 +371,7 @@ class iteration(object):
         
         # TODO: run next line only when the jobs are done, check this
         if CONFIG_29:
-            molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = False)
+            molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
 
         if isinstance(molecule_type, Trp_cage):
             subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage'])
