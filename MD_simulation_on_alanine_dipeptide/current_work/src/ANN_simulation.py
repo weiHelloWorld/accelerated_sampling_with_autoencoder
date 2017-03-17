@@ -286,6 +286,7 @@ class iteration(object):
         if CONFIG_48 == 'cossin':
             data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
             output_data_set = None
+            fraction_of_data_to_be_saved = 1
         elif CONFIG_48 == 'Cartesian':
             coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
             coor_data_obj_output = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: 'aligned' in x)
@@ -300,7 +301,8 @@ class iteration(object):
             assert (data_set.shape == output_data_set.shape)
 
             # random rotation for data augmentation
-            num_of_copies = 16
+            num_of_copies = CONFIG_52
+            fraction_of_data_to_be_saved = 1.0 / num_of_copies
             data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
         else:
             raise Exception('error input data type')
@@ -331,7 +333,7 @@ class iteration(object):
                 assert (max_FVE > 0)
                 current_network = copy.deepcopy(temp_network)
 
-        current_network.save_into_file()
+        current_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
         self._network = current_network
         return
 

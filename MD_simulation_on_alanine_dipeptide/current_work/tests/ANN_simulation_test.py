@@ -395,6 +395,7 @@ class test_autoencoder_Keras(object):
                                   batch_size=50
                                   )
         model.train().save_into_file('test_save_into_file.pkl')
+        model.save_into_file('test_save_into_file_fraction.pkl', fraction_of_data_to_be_saved=0.5)
         return
 
 

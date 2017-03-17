@@ -67,13 +67,18 @@ class autoencoder(object):
         """must be implemented by subclasses"""
         pass
 
-    def save_into_file(self, filename=CONFIG_6, drop_data = False):
+    def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
             filename = self._filename_to_save_network
 
-        if drop_data:
-            self._data_set = None
-            self._output_data_set = None
+        if fraction_of_data_to_be_saved != 1.0:
+            number_of_data_points_to_be_saved = self._data_set.shape[0] * fraction_of_data_to_be_saved
+            print ("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
+                                                                                        number_of_data_points_to_be_saved,
+                                                                                        self._data_set.shape[0]))
+            self._data_set = self._data_set[:number_of_data_points_to_be_saved]
+            if not self._output_data_set is None:        # for backward compatibility
+                self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]
 
         if os.path.isfile(filename):  # backup file if previous one exists
             os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime(

@@ -42,6 +42,7 @@ layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", Line
 CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 CONFIG_48 = 'Cartesian'       # input data type, could be 'cossin' or 'Cartesian'
+CONFIG_52 = 16                # number of copies we generate for data augmentation
 
 if CONFIG_30 == "Alanine_dipeptide":
     CONFIG_49 = 5.0                # scaling factor for output for Cartesian coordinates
