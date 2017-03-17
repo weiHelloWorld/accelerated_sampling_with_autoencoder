@@ -90,6 +90,7 @@ else:
     raise Exception('molecule type error')
 
 CONFIG_40 = 'explicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
+CONFIG_51 = 'NPT'                  # simulation ensemble type (for Trp-cage only)
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
@@ -148,9 +149,9 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = 50000 # num of simulation steps
+CONFIG_8 = 100000 # num of simulation steps
 CONFIG_9 = 5000   # force constant for biased simulations
-CONFIG_16 = 500  # record interval (the frequency of writing system state into the file)
+CONFIG_16 = 1000  # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'  # max running time for the sge job
 
 ##########################################################################
@@ -161,7 +162,15 @@ CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
 CONFIG_23 = 'CUDA'   # simulation platform
-CONFIG_25 = '/home/fisiksnju/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
+
+temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
+if temp_home_directory == "/home/fisiksnju":
+    CONFIG_25 = '/home/fisiksnju/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
+elif temp_home_directory == "/home/weichen9":
+    CONFIG_25 = '/home/weichen9/.my_softwares/openmm6/lib/plugins'
+else:
+    raise Exception('unknown user directory: %s' % temp_home_directory)
+
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)
