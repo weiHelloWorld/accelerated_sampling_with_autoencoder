@@ -30,26 +30,28 @@ it configures all default values/global parameters for constructors/functions
 '''
 
 #######################################################################
-######################   some global variables  #######################
+############   some global variables and helper functions  ############
 #######################################################################
 
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
+CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+WARNING_INFO = "Comment out this line to continue."
+
+def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
+    if molecule_name == "Alanine_dipeptide": return parameter_list[0]
+    elif molecule_name == "Trp_cage": return parameter_list[1]
+    else: raise Exception("molecule not defined!")
 
 #######################################################################
 ############   config for ANN_simulation.py  ##########################
 #######################################################################
 
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
 CONFIG_48 = 'Cartesian'       # input data type, could be 'cossin' or 'Cartesian'
 CONFIG_52 = 16                # number of copies we generate for data augmentation
 
-if CONFIG_30 == "Alanine_dipeptide":
-    CONFIG_49 = 5.0                # scaling factor for output for Cartesian coordinates
-elif CONFIG_30 == "Trp_cage":
-    CONFIG_49 = 20.0
-else:
-    raise Exception('molecule type error')
+if CONFIG_48 == 'Cartesian':
+    CONFIG_49 = get_mol_param([5.0, 20.0]) # scaling factor for output for Cartesian coordinates
 
 '''class coordinates_data_files_list:'''
 
@@ -60,14 +62,18 @@ CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
+    raise Exception("Warning: PyBrain is no longer supported!  " + WARNING_INFO)
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = [0.3, 0.9, 0, True, [0.00, 0.00001, 0.00, 0.00]]      # [learning rates, momentum, learning rate decay, nesterov, regularization coeff], note that the definition of these parameters are different from those in Pybrain
+    CONFIG_4 = get_mol_param([
+        [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+        [0.3, 0.9, 0, True, [0.00, 0.00001, 0.00, 0.00]]
+        ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
 else:
     raise Exception('training backend not implemented')
 
 CONFIG_5 = 200                   # max number of training steps
-CONFIG_6 = None # filename to save this network
-CONFIG_36 = 2              #   dimensionality
+CONFIG_6 = None                # filename to save this network
+CONFIG_36 = 2                  #   dimensionality
 if CONFIG_17[1] == CircularLayer:
     CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
 elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
@@ -75,27 +81,30 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
-if CONFIG_30 == "Alanine_dipeptide":
-    if CONFIG_48 == 'cossin':
-        CONFIG_3 = [8, 15, CONFIG_37, 15, 8]  # the structure of ANN: number of nodes in each layer
-    elif CONFIG_48 == 'Cartesian':
-        CONFIG_3 = [21, 40, CONFIG_37, 40, 21]
-elif CONFIG_30 == "Trp_cage":
-    if CONFIG_48 == 'cossin':
-        CONFIG_3 = [76, 50, CONFIG_37, 50, 76]
-    elif CONFIG_48 == 'Cartesian':
-        CONFIG_3 = [180, 50, CONFIG_37, 50, 180]
-    else:
-        raise Exception('error input data type')
+if CONFIG_48 == 'cossin':
+    CONFIG_3 = get_mol_param([
+         [8, 15, CONFIG_37, 15, 8],  # the structure of ANN: number of nodes in each layer
+         [76, 50, CONFIG_37, 50, 76]
+        ])
+    raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
+elif CONFIG_48 == 'Cartesian':
+    CONFIG_3 = get_mol_param([
+         [21, 40, CONFIG_37, 40, 21],  # the structure of ANN: number of nodes in each layer
+         [180, 50, CONFIG_37, 50, 180]
+         ])
 else:
-    raise Exception('molecule type error')
+    raise Exception('error input data type')
 
 CONFIG_40 = 'explicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_51 = 'NPT'                  # simulation ensemble type (for Trp-cage only)
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = False                             # whether to use hierarchical autoencoder
+if CONFIG_44:
+    raise Exception("Warning: no longer supported (used for backward compatibility)!  " + WARNING_INFO)
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
 CONFIG_47 = False                        # whether to set the output layer as circular layer
+if CONFIG_47:
+    raise Exception("Warning: this is a bad choice!  " + WARNING_INFO)
 
 '''class iteration'''
 
@@ -103,9 +112,13 @@ CONFIG_47 = False                        # whether to set the output layer as ci
 
 CONFIG_13 = 3  # num of network trainings we are going to run, and pick the one with least FVE from them
 CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers
+if CONFIG_43:
+    raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
+if CONFIG_24 == "cluster":
+    raise Exception("Warning: it has not been tested on the cluster for relatively long time, not recommended!  " + WARNING_INFO)
 CONFIG_31 = 10        # maximum number of failed simulations allowed in each iteration
 
 '''def run_simulation'''
@@ -137,6 +150,7 @@ elif CONFIG_17[1] == TanhLayer:
 elif CONFIG_17[1] == ReluLayer:
     CONFIG_18 = False
     CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]   # FIXME: modify this later
+    raise Exception("Warning: very few tests are done for ReLu layer, this is not recommended!  " + WARNING_INFO)
 else:
     raise Exception('Layer not defined')
 
@@ -150,10 +164,10 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = 100000 # num of simulation steps
-CONFIG_9 = 5000   # force constant for biased simulations
-CONFIG_16 = 1000  # record interval (the frequency of writing system state into the file)
-CONFIG_19 = '24:00:00'  # max running time for the sge job
+CONFIG_8 = get_mol_param([20000, 100000])                  # num of simulation steps
+CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
+CONFIG_16 = get_mol_param([200, 1000])                     # record interval (the frequency of writing system state into the file)
+CONFIG_19 = '24:00:00'                                    # max running time for the sge job
 
 ##########################################################################
 ############   config for biased_simulation{,_Trp_cage}.py  ##############
@@ -174,6 +188,7 @@ else:
 
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
+
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)
 CONFIG_34 = 500            # force constant step, the value by which the force constant is increased each time (for force constant adjustable mode)
 CONFIG_35 = 0.1            # distance tolerance, max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)
