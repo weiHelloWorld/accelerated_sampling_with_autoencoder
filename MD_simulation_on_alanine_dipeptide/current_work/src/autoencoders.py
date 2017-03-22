@@ -1,6 +1,7 @@
 from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
+from sklearn.cluster import KMeans
 
 ##################    set types of molecules  ############################
 
@@ -293,6 +294,12 @@ class autoencoder(object):
                 proper_potential_centers += [item]
 
         return proper_potential_centers
+
+    def get_proper_potential_centers_for_WHAM_2(self, total_number_of_potential_centers):
+        data_points = np.array(self.get_PCs())
+        kmeans = KMeans(init='k-means++', n_clusters=total_number_of_potential_centers, n_init=10)
+        kmeans.fit(data_points)
+        return kmeans.cluster_centers_
 
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
                                                folder_to_store_files='./standard_WHAM/', dimensionality=2, 

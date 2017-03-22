@@ -34,7 +34,7 @@ it configures all default values/global parameters for constructors/functions
 #######################################################################
 
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
@@ -110,7 +110,7 @@ if CONFIG_47:
 
 '''def train_network_and_save'''
 
-CONFIG_13 = 3  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = get_mol_param([5,3])  # num of network trainings we are going to run, and pick the one with least FVE from them
 CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers
 if CONFIG_43:
     raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)
@@ -135,7 +135,7 @@ CONFIG_50 = False   # whether we need to preserve original file if water molecul
 
 '''class Sutils'''
 
-CONFIG_10 = 10   # num of bins for get_boundary_points()
+CONFIG_10 = get_mol_param([10,10])   # num of bins for get_boundary_points()
 CONFIG_11 = 15  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
@@ -164,9 +164,9 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = get_mol_param([20000, 100000])                  # num of simulation steps
-CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
-CONFIG_16 = get_mol_param([200, 1000])                     # record interval (the frequency of writing system state into the file)
+CONFIG_8 = get_mol_param([5000, 100000])                  # num of simulation steps
+CONFIG_9 = get_mol_param([2000, 5000])                     # force constant for biased simulations
+CONFIG_16 = get_mol_param([50, 1000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'                                    # max running time for the sge job
 
 ##########################################################################
@@ -176,13 +176,13 @@ CONFIG_19 = '24:00:00'                                    # max running time for
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
-CONFIG_23 = 'CUDA'   # simulation platform
+CONFIG_23 = get_mol_param(['CPU', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
 if temp_home_directory == "/home/fisiksnju":
     CONFIG_25 = '/home/fisiksnju/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
 elif temp_home_directory == "/home/weichen9":
-    CONFIG_25 = '/home/weichen9/.my_softwares/openmm6/lib/plugins'
+    CONFIG_25 = '/home/weichen9/.my_softwares/openmm7/lib/plugins'
 else:
     raise Exception('unknown user directory: %s' % temp_home_directory)
 
