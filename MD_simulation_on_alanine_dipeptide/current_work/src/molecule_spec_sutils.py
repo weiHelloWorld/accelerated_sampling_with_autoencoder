@@ -663,14 +663,15 @@ class Trp_cage(Sutils):
         return result_rmsd_of_atoms
 
     @staticmethod
-    def metric_radius_of_gyration(list_of_files, step_interval = 1):
+    def metric_radius_of_gyration(list_of_files, step_interval = 1, atom_selection_statement = "name CA"):
         result = []
         index = 0
         for item_file in list_of_files:
             temp_sample = Universe(item_file)
+            temp_atoms = temp_sample.select_atoms(atom_selection_statement)
             for _ in temp_sample.trajectory:
                 if index % step_interval == 0:
-                    result.append(temp_sample.atoms.radius_of_gyration())
+                    result.append(temp_atoms.radius_of_gyration())
                 index += 1
 
         return result
