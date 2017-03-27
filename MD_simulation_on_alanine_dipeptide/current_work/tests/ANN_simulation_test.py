@@ -395,6 +395,7 @@ class test_autoencoder_Keras(object):
                                   batch_size=50
                                   )
         model.train().save_into_file('test_save_into_file.pkl')
+        model.save_into_file('test_save_into_file_fraction.pkl', fraction_of_data_to_be_saved=0.5)
         return
 
 
@@ -409,7 +410,7 @@ class test_biased_simulation(object):
             subprocess.check_output(['rm', '-rf', output_folder])
 
         subprocess.check_output(
-            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s'
+            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s --platform CPU'
             % (output_folder, autoencoder_coeff_file, potential_center, "8,15,4", "Tanh,Circular"),
             shell=True)
 

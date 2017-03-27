@@ -19,15 +19,15 @@ class plotting(object):
                                             fig_object,
                                             axis_object,
                                             network=None,
-                                            cossin_data_for_plotting=None,
+                                            input_data_for_plotting=None,   # input could be cossin or Cartesian
                                             color_option='pure',
                                             other_coloring=None,
                                             contain_title=True,
                                             title=None,
                                             axis_ranges=None,
                                             contain_colorbar=True,
-                                            smoothing_using_RNR = False,   # smooth the coloring values for data points using RadiusNeighborsRegressor()
-                                            variance_using_RNR = False,    # get variance of coloring values over space using RNR
+                                            smoothing_using_RNR = False,  # smooth the coloring values for data points using RadiusNeighborsRegressor()
+                                            variance_using_RNR = False,  # get variance of coloring values over space using RNR
                                             smoothing_radius = 0.1,
                                             enable_mousing_clicking_event = False,
                                             related_coor_list_obj = None,
@@ -42,26 +42,26 @@ class plotting(object):
 
         if network is None: network = self._network
         if title is None: title = "plotting in %s, coloring with %s" % (plotting_space, color_option)  # default title
-        if cossin_data_for_plotting is None:
-            cossin_data = self._network._data_set
+        if input_data_for_plotting is None:
+            input_data = self._network._data_set
         else:
-            cossin_data = cossin_data_for_plotting
+            input_data = input_data_for_plotting
 
         if plotting_space == "PC":
-            PCs_to_plot = network.get_PCs(input_data= cossin_data)
+            PCs_to_plot = network.get_PCs(input_data= input_data)
 
             (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
             labels = ["PC1", "PC2"]
 
         elif plotting_space == "phipsi":
             assert (isinstance(molecule_type, Alanine_dipeptide))
-            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(cossin_data)
+            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(input_data)
 
             (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
             labels = ["phi", "psi"]
         elif plotting_space == "1st_4th_dihedrals":
             assert (isinstance(molecule_type, Alanine_dipeptide))
-            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(cossin_data)
+            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(input_data)
 
             (x,y) = ([item[0] for item in temp_dihedrals], [item[3] for item in temp_dihedrals])
             labels = ["dihedral_1", "dihedral_4"]
@@ -75,16 +75,16 @@ class plotting(object):
             coloring = list(range(len(x)))
         elif color_option == 'phi':
             assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[1] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
+            coloring = [item[1] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
         elif color_option == 'psi':
             assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[2] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
+            coloring = [item[2] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
         elif color_option == '1st_dihedral':
             assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[0] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
+            coloring = [item[0] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
         elif color_option == '4th_dihedral':
             assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[3] for item in molecule_type.get_many_dihedrals_from_cossin(cossin_data)]
+            coloring = [item[3] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
         elif color_option == 'other':
             assert (len(other_coloring) == len(x)), (len(other_coloring), len(x))
             coloring = other_coloring
@@ -125,7 +125,7 @@ class plotting(object):
 
             # should calculate step_interval
             total_num_of_lines_in_coor_files = sum(related_coor_list_obj.get_list_of_line_num_of_coor_data_file())
-            step_interval = int(total_num_of_lines_in_coor_files / len(cossin_data))
+            step_interval = int(total_num_of_lines_in_coor_files / len(input_data))
 
             if saving_snapshot_mode == 'multiple_points':
                 axis_object.text(-1.2, -1.2, 'save_frames', picker = True, fontsize=12)  # TODO: find better coordinates
@@ -219,6 +219,22 @@ class plotting(object):
         axis_object.scatter(x, y, marker=marker)
         return fig_object, axis_object
 
+    def equilibration_check(self, coor_file_folder,
+                            scaling_factor, save_fig=True):
+        """this function checks equilibration by plotting each individual runs in PC space, colored with 'step',
+        note: inputs should be Cartesian coordinates, the case with input using cossin is not implemented
+        """
+        _1 = coordinates_data_files_list([coor_file_folder])
+        for item in _1.get_list_of_coor_data_files():
+            data = np.loadtxt(item) / scaling_factor
+            data = Sutils.remove_translation(data)
+            fig, ax = plt.subplots()
+            self.plotting_with_coloring_option("PC", fig, ax, input_data_for_plotting=data, color_option='step',
+                                            title=item.strip().split('/')[-1])
+            if save_fig:
+                fig.savefig(ax.get_title() + '.png')
+        return
+
 
 class iteration(object):
     def __init__(self, index,
@@ -286,6 +302,7 @@ class iteration(object):
         if CONFIG_48 == 'cossin':
             data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
             output_data_set = None
+            fraction_of_data_to_be_saved = 1
         elif CONFIG_48 == 'Cartesian':
             coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
             coor_data_obj_output = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: 'aligned' in x)
@@ -300,7 +317,8 @@ class iteration(object):
             assert (data_set.shape == output_data_set.shape)
 
             # random rotation for data augmentation
-            num_of_copies = 16
+            num_of_copies = CONFIG_52
+            fraction_of_data_to_be_saved = 1.0 / num_of_copies
             data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
         else:
             raise Exception('error input data type')
@@ -331,7 +349,7 @@ class iteration(object):
                 assert (max_FVE > 0)
                 current_network = copy.deepcopy(temp_network)
 
-        current_network.save_into_file()
+        current_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
         self._network = current_network
         return
 
@@ -371,7 +389,7 @@ class iteration(object):
         
         # TODO: run next line only when the jobs are done, check this
         if CONFIG_29:
-            molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = False)
+            molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
 
         if isinstance(molecule_type, Trp_cage):
             subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage'])

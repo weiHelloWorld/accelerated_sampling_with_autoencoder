@@ -1,6 +1,7 @@
 from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
+from sklearn.cluster import KMeans
 
 ##################    set types of molecules  ############################
 
@@ -67,13 +68,18 @@ class autoencoder(object):
         """must be implemented by subclasses"""
         pass
 
-    def save_into_file(self, filename=CONFIG_6, drop_data = False):
+    def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
             filename = self._filename_to_save_network
 
-        if drop_data:
-            self._data_set = None
-            self._output_data_set = None
+        if fraction_of_data_to_be_saved != 1.0:
+            number_of_data_points_to_be_saved = self._data_set.shape[0] * fraction_of_data_to_be_saved
+            print ("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
+                                                                                        number_of_data_points_to_be_saved,
+                                                                                        self._data_set.shape[0]))
+            self._data_set = self._data_set[:number_of_data_points_to_be_saved]
+            if not self._output_data_set is None:        # for backward compatibility
+                self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]
 
         if os.path.isfile(filename):  # backup file if previous one exists
             os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime(
@@ -238,7 +244,7 @@ class autoencoder(object):
         else:
             raise Exception("error input data type")
 
-        for potential_center in list_of_potential_center:
+        for device_index, potential_center in enumerate(list_of_potential_center):
             if isinstance(molecule_type, Alanine_dipeptide):
                 parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
                                   '../target/Alanine_dipeptide/network_%d' % self._index,
@@ -257,8 +263,8 @@ class autoencoder(object):
                                   '../target/Trp_cage/network_%d/' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  CONFIG_40, 'NVT', input_data_type)
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d" % parameter_list
+                                  CONFIG_40, CONFIG_51, input_data_type, device_index % 2)
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d" % parameter_list
                 if CONFIG_42:
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                         '../resources/Trp_cage/network_%d.pkl' % self._index)
@@ -279,25 +285,28 @@ class autoencoder(object):
         data_points = np.array(self.get_PCs())
         list_of_points = np.array(list_of_points)
         assert (data_points.shape[1] == list_of_points.shape[1])
-        distance_cal = lambda x, y: sqrt(np.dot(x - y, x - y))
-
         proper_potential_centers = []
 
         for item in list_of_points:
-            distances = map(lambda x: distance_cal(item, x),
-                            data_points
-                            )
-            neighbors_num = len(filter(lambda x: x < threshold_radius,
-                                       distances))
+            neighbors_num = sum([np.dot(item - x, item - x) < threshold_radius * threshold_radius for x in data_points])
+
             if neighbors_num >= min_num_of_neighbors:
                 proper_potential_centers += [item]
 
         return proper_potential_centers
 
+    def get_proper_potential_centers_for_WHAM_2(self, total_number_of_potential_centers):
+        data_points = np.array(self.get_PCs())
+        kmeans = KMeans(init='k-means++', n_clusters=total_number_of_potential_centers, n_init=10)
+        kmeans.fit(data_points)
+        return kmeans.cluster_centers_
+
     def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
                                                folder_to_store_files='./standard_WHAM/', dimensionality=2, 
                                                input_data_type='cossin',        # input_data_type could be 'cossin' or 'Cartesian'
-                                               scaling_factor=20):              # only works for 'Cartesian'
+                                               scaling_factor=CONFIG_49,       # only works for 'Cartesian'
+                                               dihedral_angle_range=[1,2]     # only used fro alanine dipeptide
+                                               ):
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -322,7 +331,7 @@ class autoencoder(object):
             if input_data_type == 'cossin':
                 temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             elif input_data_type == 'Cartesian':
-                temp_coor = self.get_PCs(np.loadtxt(item) / scaling_factor)
+                temp_coor = self.get_PCs(Sutils.remove_translation(np.loadtxt(item) / scaling_factor))
             else:
                 raise Exception('error input_data_type')
 
@@ -330,9 +339,9 @@ class autoencoder(object):
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
                 temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
-                temp_umbOP = [a[1:3] for a in temp_angles]
+                temp_umbOP = [[a[temp_dihedral_index] for temp_dihedral_index in dihedral_angle_range] for a in temp_angles]
                 assert (temp_window_count == len(temp_umbOP))
-                assert (2 == len(temp_umbOP[0]))
+                assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
 
         max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))

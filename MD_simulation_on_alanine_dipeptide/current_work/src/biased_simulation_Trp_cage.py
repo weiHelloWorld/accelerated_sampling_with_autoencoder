@@ -25,6 +25,7 @@ parser.add_argument("--starting_frame", type=int, default=0, help="index of star
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
+parser.add_argument("--device", type=str, default='0', help='device index to run simulation on')
 parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
 parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
@@ -168,7 +169,11 @@ def run_simulation(force_constant):
     if flag_random_seed:
         integrator.setRandomNumberSeed(1)  # set random seed
 
-    simulation = Simulation(modeller.topology, system, integrator, platform)
+    if args.platform == "CUDA":
+        properties = {'CudaDeviceIndex': args.device}
+        simulation = Simulation(modeller.topology, system, integrator, platform, properties)
+    else:
+        simulation = Simulation(modeller.topology, system, integrator, platform)
     # print "positions = "
     # print (modeller.positions)
     simulation.context.setPositions(modeller.positions)

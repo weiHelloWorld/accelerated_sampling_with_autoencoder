@@ -44,7 +44,7 @@ content_for_sge_file = '''#!/bin/bash
 echo "This job is DONE!"
 
 exit 0
-''' % (gpu_option_string, command_in_sge_file, args.node)
+''' % (gpu_option_string, args.node, command_in_sge_file)
 
 folder_to_store_sge_files = '../sge_files/'
 
