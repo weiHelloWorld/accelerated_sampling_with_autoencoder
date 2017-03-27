@@ -34,7 +34,7 @@ it configures all default values/global parameters for constructors/functions
 #######################################################################
 
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
-CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
@@ -165,7 +165,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = get_mol_param([5000, 100000])                  # num of simulation steps
-CONFIG_9 = get_mol_param([2000, 5000])                     # force constant for biased simulations
+CONFIG_9 = get_mol_param([3000, 3000])                     # force constant for biased simulations
 CONFIG_16 = get_mol_param([50, 1000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '24:00:00'                                    # max running time for the sge job
 
