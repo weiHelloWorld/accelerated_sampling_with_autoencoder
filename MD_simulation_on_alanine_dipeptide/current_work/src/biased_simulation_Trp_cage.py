@@ -26,7 +26,7 @@ parser.add_argument("--minimize_energy", type=int, default=1, help='whether to m
 parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--device", type=str, default='0', help='device index to run simulation on')
-parser.add_argument("--checkpoint", help="whether to save checkpoint at the end of the simulation", action="store_true")
+parser.add_argument("--checkpoint", type=int, default=1, help="whether to save checkpoint at the end of the simulation")
 parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
 parser.add_argument("--auto_equilibration", help="enable auto equilibration so that it will run enough equilibration steps", action="store_true")
@@ -77,6 +77,7 @@ def run_simulation(force_constant):
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
                                                               str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
     state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
+    checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
 
     if args.starting_pdb_file != '../resources/1l2y.pdb':
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
@@ -131,12 +132,8 @@ def run_simulation(force_constant):
         raise Exception("parameter error")
 
     system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
-    if args.ensemble_type == "NPT":
+    if args.ensemble_type == "NPT" and args.whether_to_add_water_mol_opt == 'explicit':
         system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
-    elif args.ensemble_type == "NVT":
-        pass
-    else:
-        raise Exception("ensemble = %s not found!" % args.ensemble_type)
 
     # add custom force (only for biased simulation)
     if float(force_constant) != 0:
@@ -179,9 +176,11 @@ def run_simulation(force_constant):
     simulation.context.setPositions(modeller.positions)
 
     if args.starting_checkpoint != '':
-        print args.starting_checkpoint
-        # FIXME: there is seg fault when loading checkpoint?
-        simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
+        if args.starting_checkpoint == "auto":
+            simulation.loadCheckpoint(checkpoint_file)
+        else:
+            print args.starting_checkpoint
+            simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
 
     print datetime.datetime.now()
     if args.minimize_energy:
@@ -224,8 +223,9 @@ def run_simulation(force_constant):
     simulation.step(total_number_of_steps)
 
     if args.checkpoint:
-        checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
         simulation.saveCheckpoint(checkpoint_file)
+        if os.path.isfile(checkpoint_file):
+            os.rename(checkpoint_file, checkpoint_file.split('.chk')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".chk") 
 
     print('Done!')
     print datetime.datetime.now()
