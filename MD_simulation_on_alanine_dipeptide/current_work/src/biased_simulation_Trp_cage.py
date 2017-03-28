@@ -27,7 +27,7 @@ parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='dat
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--device", type=str, default='0', help='device index to run simulation on')
 parser.add_argument("--checkpoint", type=int, default=1, help="whether to save checkpoint at the end of the simulation")
-parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided, "auto" means automatically)')
+parser.add_argument("--starting_checkpoint", type=str, default="auto", help='starting checkpoint file, to resume simulation ("none" means no starting checkpoint file is provided, "auto" means automatically)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
 parser.add_argument("--fast_equilibration", type=int, default=0, help="do fast equilibration by running biased simulation with larger force constant")
 parser.add_argument("--auto_equilibration", help="enable auto equilibration so that it will run enough equilibration steps", action="store_true")
@@ -179,7 +179,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
     simulation.context.setPositions(modeller.positions)
     print datetime.datetime.now()
 
-    if args.starting_checkpoint != '':
+    if args.starting_checkpoint != 'none':
         if args.starting_checkpoint == "auto":  # restart from checkpoint if it exists
             if os.path.isfile(checkpoint_file):
                 print ("resume simulation from %s" % checkpoint_file)
