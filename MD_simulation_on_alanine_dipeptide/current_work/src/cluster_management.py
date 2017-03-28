@@ -73,7 +73,9 @@ exit 0
     @staticmethod
     def get_num_of_running_jobs():
         output = subprocess.check_output(['qstat'])
-        num_of_running_jobs = len(re.findall('weichen9', output))
+        all_entries = output.strip().split('\n')[2:]   # remove header
+        all_entries = [item for item in all_entries if (not item.strip().split()[4] == 'dr')]   # remove job in "dr" state
+        num_of_running_jobs = len(all_entries)
         print('checking number of running jobs = %d\n' % num_of_running_jobs)
         return num_of_running_jobs
 
