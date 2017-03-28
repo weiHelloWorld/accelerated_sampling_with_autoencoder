@@ -79,6 +79,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
                                                               str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
     state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
     checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
+    if args.fast_equilibration:
+        checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
 
     if args.starting_pdb_file != '../resources/1l2y.pdb':
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
@@ -229,8 +231,6 @@ def run_simulation(force_constant, number_of_simulation_steps):
         if os.path.isfile(checkpoint_file):
             os.rename(checkpoint_file, checkpoint_file.split('.chk')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".chk")
         simulation.saveCheckpoint(checkpoint_file)
-        if args.fast_equilibration:
-            simulation.saveCheckpoint(checkpoint_file.replace(str(force_constant), str(args.force_constant)))
 
     print('Done!')
     print datetime.datetime.now()
@@ -252,7 +252,10 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
 if __name__ == '__main__':
     if not args.fc_adjustable:
         if args.fast_equilibration:
-            run_simulation(args.force_constant * 5, args.equilibration_steps + args.record_interval)  # make sure at least one frame is recorded
+            run_simulation(args.force_constant * 5, 5 * args.record_interval)
+            run_simulation(args.force_constant * 3, 10 * args.record_interval)
+            run_simulation(args.force_constant * 2, 20 * args.record_interval)
+            run_simulation(args.force_constant * 1.5, 40 * args.record_interval)
         
         run_simulation(args.force_constant, total_number_of_steps)
 
