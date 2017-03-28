@@ -27,8 +27,9 @@ parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='dat
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--device", type=str, default='0', help='device index to run simulation on')
 parser.add_argument("--checkpoint", type=int, default=1, help="whether to save checkpoint at the end of the simulation")
-parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided)')
+parser.add_argument("--starting_checkpoint", type=str, default='', help='starting checkpoint file, to resume simulation (empty string means no starting checkpoint file is provided, "auto" means automatically)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
+parser.add_argument("--fast_equilibration", type=int, default=0, help="do fast equilibration by running biased simulation with larger force constant")
 parser.add_argument("--auto_equilibration", help="enable auto equilibration so that it will run enough equilibration steps", action="store_true")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
@@ -61,7 +62,7 @@ autoencoder_info_file = args.autoencoder_info_file
 potential_center = list(map(lambda x: float(x), args.pc_potential_center.replace('"','')\
                                 .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
 
-def run_simulation(force_constant):
+def run_simulation(force_constant, number_of_simulation_steps):
     if not os.path.exists(folder_to_store_output_files):
         try:
             os.makedirs(folder_to_store_output_files)
@@ -174,15 +175,17 @@ def run_simulation(force_constant):
     # print "positions = "
     # print (modeller.positions)
     simulation.context.setPositions(modeller.positions)
+    print datetime.datetime.now()
 
     if args.starting_checkpoint != '':
-        if args.starting_checkpoint == "auto":
-            simulation.loadCheckpoint(checkpoint_file)
+        if args.starting_checkpoint == "auto":  # restart from checkpoint if it exists
+            if os.path.isfile(checkpoint_file):
+                print ("resume simulation from %s" % checkpoint_file)
+                simulation.loadCheckpoint(checkpoint_file)
         else:
-            print args.starting_checkpoint
+            print ("resume simulation from %s" % args.starting_checkpoint)
             simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
 
-    print datetime.datetime.now()
     if args.minimize_energy:
         print('begin Minimizing energy...')
         print datetime.datetime.now()
@@ -218,14 +221,16 @@ def run_simulation(force_constant):
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True,
-                                                  totalSteps=total_number_of_steps,
+                                                  totalSteps=number_of_simulation_steps + args.equilibration_steps,
                                                   ))
-    simulation.step(total_number_of_steps)
+    simulation.step(number_of_simulation_steps)
 
     if args.checkpoint:
         if os.path.isfile(checkpoint_file):
             os.rename(checkpoint_file, checkpoint_file.split('.chk')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".chk")
         simulation.saveCheckpoint(checkpoint_file)
+        if args.fast_equilibration:
+            simulation.saveCheckpoint(checkpoint_file.replace(str(force_constant), str(args.force_constant)))
 
     print('Done!')
     print datetime.datetime.now()
@@ -246,7 +251,11 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
 
 if __name__ == '__main__':
     if not args.fc_adjustable:
-        run_simulation(args.force_constant)
+        if args.fast_equilibration:
+            run_simulation(args.force_constant * 5, args.equilibration_steps + args.record_interval)  # make sure at least one frame is recorded
+        
+        run_simulation(args.force_constant, total_number_of_steps)
+
     else:
         force_constant = args.force_constant
         distance_of_data_cloud_center = float("inf")
