@@ -223,9 +223,9 @@ def run_simulation(force_constant):
     simulation.step(total_number_of_steps)
 
     if args.checkpoint:
-        simulation.saveCheckpoint(checkpoint_file)
         if os.path.isfile(checkpoint_file):
-            os.rename(checkpoint_file, checkpoint_file.split('.chk')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".chk") 
+            os.rename(checkpoint_file, checkpoint_file.split('.chk')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".chk")
+        simulation.saveCheckpoint(checkpoint_file)
 
     print('Done!')
     print datetime.datetime.now()

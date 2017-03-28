@@ -104,7 +104,7 @@ class plotting(object):
         else:
             raise Exception('color_option not defined!')
 
-        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
+        im = axis_object.scatter(x,y,s=4, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
         axis_object.set_ylabel(labels[1])
         if contain_title:
