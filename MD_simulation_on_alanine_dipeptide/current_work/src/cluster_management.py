@@ -107,7 +107,7 @@ exit 0
     def submit_new_jobs_if_there_are_too_few_jobs(num):
         if cluster_management.get_num_of_running_jobs() < num:
             job_list = cluster_management.get_sge_files_list()
-            cluster_management.submit_sge_jobs_and_archive_files(job_list, num)
+            cluster_management.submit_sge_jobs_and_archive_files(job_list, num - cluster_management.get_num_of_running_jobs())
         return
 
     @staticmethod
