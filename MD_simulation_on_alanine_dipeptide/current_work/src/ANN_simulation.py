@@ -225,11 +225,14 @@ class plotting(object):
         note: inputs should be Cartesian coordinates, the case with input using cossin is not implemented
         """
         import scipy
-        ks_stats_dict = {}
+        ks_stats_list = []
+        temp_arrow_list = []
+        potential_centers_list = []
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
             data = np.loadtxt(item) / scaling_factor
             data = Sutils.remove_translation(data)
+            potential_centers_list.append([float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')])
             # do analysis using K-S test
             PCs = self._network.get_PCs(data)
             dim_of_PCs = PCs.shape[1]
@@ -241,29 +244,36 @@ class plotting(object):
                     ]) / float(dim_of_PCs)
                  for xx in range(num_of_splits) for yy in range(xx + 1, num_of_splits)] 
             )
-            ks_stats_dict[item] = ks_stats
-            # print "ks_stats for %s = %f" % (item, ks_stats)
+            ks_stats_list.append(ks_stats)
+            # plot arrow from center of first split to last split
+            temp_arrow_start = np.average(samples_for_KS_testing[0], axis=0)
+            temp_arrow_end = np.average(samples_for_KS_testing[-1], axis=0)
+            temp_arrow = (temp_arrow_end - temp_arrow_start)
+            assert (temp_arrow.shape[0] == 2), temp_arrow.shape[0]
+            temp_arrow_list.append(temp_arrow)
             
             fig, ax = plt.subplots()
             self.plotting_with_coloring_option("PC", fig, ax, input_data_for_plotting=data, color_option='step',
                                             title=item.strip().split('/')[-1])
+            ax.quiver([temp_arrow_start[0]], [temp_arrow_start[1]], [temp_arrow[0]], [temp_arrow[1]],
+                      units="x")
             if save_fig:
                 fig.savefig(ax.get_title() + '.png')
 
         # plotting K-S stats
-        # print ks_stats_dict
-        temp_harmonic_centers_and_stats = np.array([
-            [float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')] + [value]
-            for item, value in ks_stats_dict.items()])
+        potential_centers_list = np.array(potential_centers_list)
+        temp_arrow_list = np.array(temp_arrow_list)
         fig, ax = plt.subplots()
-        im = ax.scatter(temp_harmonic_centers_and_stats[:,0], temp_harmonic_centers_and_stats[:,1], 
-            c=temp_harmonic_centers_and_stats[:,2], cmap="Blues")
+        im = ax.scatter(potential_centers_list[:,0], potential_centers_list[:,1],  c=ks_stats_list, cmap="Blues")
+        fig.colorbar(im, ax=ax)
+        ax.quiver(potential_centers_list[:,0], potential_centers_list[:,1],
+                  temp_arrow_list[:,0] / 2.0, temp_arrow_list[:,1] / 2.0,
+                  units = 'x')
         ax.set_xlabel("PC1")
         ax.set_ylabel("PC2")
-        fig.colorbar(im, ax=ax)
         fig.savefig("temp_harmonic_centers_and_stats.png")
 
-        return temp_harmonic_centers_and_stats
+        return
 
 
 class iteration(object):
