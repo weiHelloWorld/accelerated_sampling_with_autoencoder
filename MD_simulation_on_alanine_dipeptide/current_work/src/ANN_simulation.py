@@ -224,10 +224,20 @@ class plotting(object):
         """this function checks equilibration by plotting each individual runs in PC space, colored with 'step',
         note: inputs should be Cartesian coordinates, the case with input using cossin is not implemented
         """
+        import scipy
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
             data = np.loadtxt(item) / scaling_factor
             data = Sutils.remove_translation(data)
+            PCs = self._network.get_PCs(data)
+            samples_for_KS_testing = np.split(PCs, 2)
+            dim_of_PCs = PCs.shape[1]
+            ks_stats = sum(
+                [scipy.stats.ks_2samp(samples_for_KS_testing[0][:,subindex], samples_for_KS_testing[1][:,subindex])[0]
+                for subindex in range(dim_of_PCs) 
+                ]) / float(dim_of_PCs)
+            print "ks_stats for %s = %f" % (item, ks_stats)
+            
             fig, ax = plt.subplots()
             self.plotting_with_coloring_option("PC", fig, ax, input_data_for_plotting=data, color_option='step',
                                             title=item.strip().split('/')[-1])
