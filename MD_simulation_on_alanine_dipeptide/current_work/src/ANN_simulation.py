@@ -256,7 +256,7 @@ class plotting(object):
             self.plotting_with_coloring_option("PC", fig, ax, input_data_for_plotting=data, color_option='step',
                                             title=item.strip().split('/')[-1])
             ax.quiver([temp_arrow_start[0]], [temp_arrow_start[1]], [temp_arrow[0]], [temp_arrow[1]],
-                      units="x")
+                      units="xy", scale=1)
             if save_fig:
                 fig.savefig(ax.get_title() + '.png')
 
@@ -267,8 +267,8 @@ class plotting(object):
         im = ax.scatter(potential_centers_list[:,0], potential_centers_list[:,1],  c=ks_stats_list, cmap="Blues")
         fig.colorbar(im, ax=ax)
         ax.quiver(potential_centers_list[:,0], potential_centers_list[:,1],
-                  temp_arrow_list[:,0] / 2.0, temp_arrow_list[:,1] / 2.0,
-                  units = 'x')
+                  temp_arrow_list[:,0], temp_arrow_list[:,1],
+                  units = 'xy', scale=1)
         ax.set_xlabel("PC1")
         ax.set_ylabel("PC2")
         fig.savefig("temp_harmonic_centers_and_stats.png")
