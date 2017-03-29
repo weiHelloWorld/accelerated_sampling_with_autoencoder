@@ -220,30 +220,50 @@ class plotting(object):
         return fig_object, axis_object
 
     def equilibration_check(self, coor_file_folder,
-                            scaling_factor, save_fig=True):
+                            scaling_factor, num_of_splits, save_fig=True):
         """this function checks equilibration by plotting each individual runs in PC space, colored with 'step',
         note: inputs should be Cartesian coordinates, the case with input using cossin is not implemented
         """
         import scipy
+        ks_stats_dict = {}
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
             data = np.loadtxt(item) / scaling_factor
             data = Sutils.remove_translation(data)
+            # do analysis using K-S test
             PCs = self._network.get_PCs(data)
-            samples_for_KS_testing = np.split(PCs, 2)
             dim_of_PCs = PCs.shape[1]
-            ks_stats = sum(
-                [scipy.stats.ks_2samp(samples_for_KS_testing[0][:,subindex], samples_for_KS_testing[1][:,subindex])[0]
-                for subindex in range(dim_of_PCs) 
-                ]) / float(dim_of_PCs)
-            print "ks_stats for %s = %f" % (item, ks_stats)
+            samples_for_KS_testing = np.split(PCs, num_of_splits)
+            ks_stats = max([
+                sum(
+                    [scipy.stats.ks_2samp(samples_for_KS_testing[xx][:,subindex], samples_for_KS_testing[yy][:,subindex])[0]
+                        for subindex in range(dim_of_PCs) 
+                    ]) / float(dim_of_PCs)
+                 for xx in range(num_of_splits) for yy in range(xx + 1, num_of_splits)] 
+            )
+            ks_stats_dict[item] = ks_stats
+            # print "ks_stats for %s = %f" % (item, ks_stats)
             
             fig, ax = plt.subplots()
             self.plotting_with_coloring_option("PC", fig, ax, input_data_for_plotting=data, color_option='step',
                                             title=item.strip().split('/')[-1])
             if save_fig:
                 fig.savefig(ax.get_title() + '.png')
-        return
+
+        # plotting K-S stats
+        # print ks_stats_dict
+        temp_harmonic_centers_and_stats = np.array([
+            [float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')] + [value]
+            for item, value in ks_stats_dict.items()])
+        fig, ax = plt.subplots()
+        im = ax.scatter(temp_harmonic_centers_and_stats[:,0], temp_harmonic_centers_and_stats[:,1], 
+            c=temp_harmonic_centers_and_stats[:,2], cmap="Blues")
+        ax.set_xlabel("PC1")
+        ax.set_ylabel("PC2")
+        fig.colorbar(im, ax=ax)
+        fig.savefig("temp_harmonic_centers_and_stats.png")
+
+        return temp_harmonic_centers_and_stats
 
 
 class iteration(object):
