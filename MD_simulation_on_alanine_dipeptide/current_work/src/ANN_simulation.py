@@ -228,6 +228,7 @@ class plotting(object):
         ks_stats_list = []
         temp_arrow_list = []
         potential_centers_list = []
+        temp_arrow_start_list = []
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
             data = np.loadtxt(item) / scaling_factor
@@ -251,6 +252,7 @@ class plotting(object):
             temp_arrow = (temp_arrow_end - temp_arrow_start)
             assert (temp_arrow.shape[0] == 2), temp_arrow.shape[0]
             temp_arrow_list.append(temp_arrow)
+            temp_arrow_start_list.append(temp_arrow_start)
             
             fig, ax = plt.subplots()
             self.plotting_with_coloring_option("PC", fig, ax, input_data_for_plotting=data, color_option='step',
@@ -263,14 +265,21 @@ class plotting(object):
         # plotting K-S stats
         potential_centers_list = np.array(potential_centers_list)
         temp_arrow_list = np.array(temp_arrow_list)
+        temp_arrow_start_list = np.array(temp_arrow_start_list)
         fig, ax = plt.subplots()
         im = ax.scatter(potential_centers_list[:,0], potential_centers_list[:,1],  c=ks_stats_list, cmap="Blues")
-        fig.colorbar(im, ax=ax)
-        ax.quiver(potential_centers_list[:,0], potential_centers_list[:,1],
+        col_bar = fig.colorbar(im, ax=ax)
+        col_bar.set_label("KS value")
+        for pc, arr_start in zip(potential_centers_list, temp_arrow_start_list):
+            # connect potential center to starting point of arrow with dashed line
+            ax.plot([pc[0], arr_start[0]], [pc[1], arr_start[1]], linestyle='dotted')
+
+        ax.quiver(temp_arrow_start_list[:,0], temp_arrow_start_list[:,1],
                   temp_arrow_list[:,0], temp_arrow_list[:,1],
                   units = 'xy', scale=1)
         ax.set_xlabel("PC1")
         ax.set_ylabel("PC2")
+        fig.set_size_inches((10, 10))
         fig.savefig("temp_harmonic_centers_and_stats.png")
 
         return
