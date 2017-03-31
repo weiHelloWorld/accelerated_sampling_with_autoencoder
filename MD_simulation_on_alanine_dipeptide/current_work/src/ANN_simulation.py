@@ -176,10 +176,18 @@ class plotting(object):
                             out_file_name=out_file_name)
                         # need to verify PCs generated from this output pdb file are consistent from those in the list selected
                         molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
-                        cossin_data_selected = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
-                            list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
-                        PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
-                        assert_almost_equal(PCs_of_points_selected, np.array([[x[item], y[item]] for item in ind_list]))
+                        if CONFIG_48 == "cossin":
+                            temp_input_data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
+                                list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
+                        elif CONFIG_48 == "Cartesian":
+                            scaling_factor = CONFIG_49
+                            temp_input_data = np.loadtxt(out_file_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
+                            temp_input_data = Sutils.remove_translation(temp_input_data)
+                        else:
+                            raise Exception("input data type error")
+
+                        PCs_of_points_selected = network.get_PCs(input_data=temp_input_data)
+                        assert_almost_equal(PCs_of_points_selected, np.array([[x[item], y[item]] for item in ind_list]), decimal=4)
 
                     return
             else:
