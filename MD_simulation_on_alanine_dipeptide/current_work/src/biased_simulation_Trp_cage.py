@@ -74,6 +74,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
     input_pdb_file_of_molecule = args.starting_pdb_file
     force_field_file = 'amber03.xml'
     water_field_file = 'tip4pew.xml'
+    implicit_solvent_force_field = 'amber03_obc.xml'
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
                                                               str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
@@ -121,7 +122,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=Ewald, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
-        forcefield = ForceField('amber03.xml', 'amber03_obc.xml')
+        forcefield = ForceField(force_field_file, implicit_solvent_force_field)
         system = forcefield.createSystem(pdb.topology,nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=5 * nanometers,
                                          constraints=simulation_constraints, rigidWater=True, removeCMMotion=True)
 
