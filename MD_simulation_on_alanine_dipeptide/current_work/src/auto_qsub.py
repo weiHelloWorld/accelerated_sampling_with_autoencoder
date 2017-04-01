@@ -38,7 +38,7 @@ content_for_sge_file = '''#!/bin/bash
 #$ -M wei.herbert.chen@gmail.com         # email address
 
 #$ -q all.q               # queue name
-#$ -l h_rt=240:00:00       # run time (hh:mm:ss)
+#$ -l h_rt=%s       # run time (hh:mm:ss)
 
 %s
 
@@ -49,7 +49,7 @@ content_for_sge_file = '''#!/bin/bash
 echo "This job is DONE!"
 
 exit 0
-''' % (gpu_option_string, node_string, command_in_sge_file)
+''' % (CONFIG_19, gpu_option_string, node_string, command_in_sge_file)
 
 folder_to_store_sge_files = '../sge_files/'
 

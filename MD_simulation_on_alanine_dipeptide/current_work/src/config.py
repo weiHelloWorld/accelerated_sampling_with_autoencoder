@@ -167,7 +167,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 CONFIG_8 = get_mol_param([5000, 100000])                  # num of simulation steps
 CONFIG_9 = get_mol_param([3000, 3000])                     # force constant for biased simulations
 CONFIG_16 = get_mol_param([50, 1000])                     # record interval (the frequency of writing system state into the file)
-CONFIG_19 = '24:00:00'                                    # max running time for the sge job
+CONFIG_19 = '48:00:00'                                    # max running time for the sge job
 
 ##########################################################################
 ############   config for biased_simulation{,_Trp_cage}.py  ##############
