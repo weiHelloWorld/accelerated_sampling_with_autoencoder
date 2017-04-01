@@ -127,7 +127,7 @@ exit 0
         # first check if there are unsubmitted jobs
         while num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
             time.sleep(10)
-            cluster_management.get_sge_dot_o_e_files_in_current_folder_and_handle_jobs_not_finished_successfully()
+            cluster_management.get_sge_dot_e_files_in_current_folder_and_handle_jobs_not_finished_successfully()
             try:
                 cluster_management.submit_new_jobs_if_there_are_too_few_jobs(num)
                 num_of_unsubmitted_jobs = len(cluster_management.get_sge_files_list())
@@ -174,9 +174,10 @@ exit 0
                 latest_out_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, out_file_list)[0]
                 latest_err_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, err_file_list)[0]
                 with open(latest_out_file, 'r') as out_f:
-                    out_content = out_f.readlines()
+                    out_content = [item.strip() for item in out_f.readlines()]
+
                 with open(latest_err_file, 'r') as err_f:
-                    err_content = err_f.readlines()
+                    err_content = [item.strip() for item in err_f.readlines()]
                     err_content = filter(lambda x: x[:4] != 'bash', err_content)  # ignore error info starting with "bash"
                     err_content = filter(lambda x: not 'Using Theano backend' in x, err_content)
                     err_content = filter(lambda x: x != "", err_content)
@@ -211,9 +212,10 @@ exit 0
         return
 
     @staticmethod
-    def get_sge_dot_o_e_files_in_current_folder_and_handle_jobs_not_finished_successfully(latest_version=True):
-        sge_o_e_files = subprocess.check_output('ls *.sge.*', shell=True).strip().split()
-        sge_files = [item.split('.sge')[0] + '.sge' for item in sge_o_e_files]
+    def get_sge_dot_e_files_in_current_folder_and_handle_jobs_not_finished_successfully(latest_version=True):
+        all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
+        sge_e_files = filter(lambda x: '.sge.e' in x, all_files_in_this_dir)
+        sge_files = [item.split('.sge')[0] + '.sge' for item in sge_e_files]
         sge_files = list(set(sge_files))
         print "sge_files = %s" % str(sge_files)
         cluster_management.handle_jobs_not_finished_successfully_and_archive(sge_files, latest_version)
