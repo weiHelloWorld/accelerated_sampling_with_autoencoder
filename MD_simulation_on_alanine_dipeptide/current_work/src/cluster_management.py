@@ -107,7 +107,8 @@ exit 0
     def submit_new_jobs_if_there_are_too_few_jobs(num):
         if cluster_management.get_num_of_running_jobs() < num:
             job_list = cluster_management.get_sge_files_list()
-            cluster_management.submit_sge_jobs_and_archive_files(job_list, num - cluster_management.get_num_of_running_jobs())
+            cluster_management.submit_sge_jobs_and_archive_files(job_list, 
+                                    num - cluster_management.get_num_of_running_jobs())
         return
 
     @staticmethod
@@ -126,6 +127,7 @@ exit 0
         # first check if there are unsubmitted jobs
         while num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
             time.sleep(10)
+            cluster_management.get_sge_dot_o_e_files_in_current_folder_and_handle_jobs_not_finished_successfully()
             try:
                 cluster_management.submit_new_jobs_if_there_are_too_few_jobs(num)
                 num_of_unsubmitted_jobs = len(cluster_management.get_sge_files_list())
@@ -147,24 +149,26 @@ exit 0
         """
         return value:
         0: finishes successfully
+        3: not finished
         1: finishes with exception
         2: aborted due to time limit or other reason
         -1: job does not exist
         """
-        job_finished_message = 'This job is DONE!\n'
+        job_finished_message = 'This job is DONE!'
         # first we check whether the job finishes
         if cluster_management.is_job_running_on_cluster(job_sgefile_name):
-            return 0  # not finished
+            return 3  # not finished
         else:
-            all_files_in_this_dir = subprocess.check_output(['ls']).split()
+            all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
 
-            out_file_list = filter(lambda x: job_sgefile_name in x and ".o" in x, all_files_in_this_dir)
-            err_file_list = filter(lambda x: job_sgefile_name in x and ".e" in x, all_files_in_this_dir)
+            out_file_list = filter(lambda x: job_sgefile_name + ".o" in x, all_files_in_this_dir)
+            err_file_list = filter(lambda x: job_sgefile_name + ".e" in x, all_files_in_this_dir)
 
             if len(out_file_list) == 0 or len(err_file_list) == 0:
-                return -1   # job does not exist
+                print "%s does not exist" % job_sgefile_name
+                return -1  
 
-            if latest_version:
+            if latest_version:   # check output/error information for the latest version, since a job could be submitted multiple times
                 job_serial_number_list = map(lambda x: int(x.split('.sge.o')[1]), out_file_list)
                 job_serial_number_of_latest_version = max(job_serial_number_list)
                 latest_out_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, out_file_list)[0]
@@ -174,11 +178,43 @@ exit 0
                 with open(latest_err_file, 'r') as err_f:
                     err_content = err_f.readlines()
                     err_content = filter(lambda x: x[:4] != 'bash', err_content)  # ignore error info starting with "bash"
+                    err_content = filter(lambda x: not 'Using Theano backend' in x, err_content)
+                    err_content = filter(lambda x: x != "", err_content)
 
                 if (job_finished_message in out_content) and (len(err_content) != 0):
-                    return 1  # ends with exception
+                    print "%s ends with exception" % job_sgefile_name
+                    return 1  
                 elif not job_finished_message in out_content:
-                    return 2  # aborted due to time limit or other reason
+                    print "%s aborted due to time limit or other reason" % job_sgefile_name
+                    return 2  
+                else:
+                    print "%s finishes successfully" % job_sgefile_name
+                    return 0  
             else:
                 # TODO: handle this case
                 return
+
+    @staticmethod
+    def handle_jobs_not_finished_successfully_and_archive(job_sgefile_name_list, latest_version=True):
+        dir_to_archive_files = '../sge_files/archive/'
+        folder_to_store_sge_files='../sge_files/'
+        for item in job_sgefile_name_list:
+            status_code = cluster_management.check_whether_job_finishes_successfully(item, latest_version)
+            if status_code in (1, 2):
+                print "restore sge_file: %s" % item
+                subprocess.check_output(['cp', dir_to_archive_files + item, folder_to_store_sge_files])
+                assert (os.path.exists(folder_to_store_sge_files + item))
+            
+            if status_code in (0, 1, 2):  # archive .o/.e files for finished jobs
+                print "archive .o/.e files for %s" % item
+                subprocess.check_output('mv %s.*  %s' % (item, dir_to_archive_files), shell=True)
+        return
+
+    @staticmethod
+    def get_sge_dot_o_e_files_in_current_folder_and_handle_jobs_not_finished_successfully(latest_version=True):
+        sge_o_e_files = subprocess.check_output('ls *.sge.*', shell=True).strip().split()
+        sge_files = [item.split('.sge')[0] + '.sge' for item in sge_o_e_files]
+        sge_files = list(set(sge_files))
+        print "sge_files = %s" % str(sge_files)
+        cluster_management.handle_jobs_not_finished_successfully_and_archive(sge_files, latest_version)
+        return
