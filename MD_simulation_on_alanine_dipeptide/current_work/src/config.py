@@ -136,7 +136,7 @@ CONFIG_50 = False   # whether we need to preserve original file if water molecul
 '''class Sutils'''
 
 CONFIG_10 = get_mol_param([10,10])   # num of bins for get_boundary_points()
-CONFIG_11 = 15  # num of boundary points
+CONFIG_11 = get_mol_param([15,20])  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
 CONFIG_41 = False    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
@@ -165,7 +165,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 '''class cluster_management'''
 
 CONFIG_8 = get_mol_param([5000, 100000])                  # num of simulation steps
-CONFIG_9 = get_mol_param([3000, 3000])                     # force constant for biased simulations
+CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
 CONFIG_16 = get_mol_param([50, 1000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '48:00:00'                                    # max running time for the sge job
 

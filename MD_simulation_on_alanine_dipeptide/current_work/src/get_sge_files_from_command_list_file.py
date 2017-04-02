@@ -4,7 +4,7 @@ from cluster_management import *
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("cmdfile", type=str, help="file containing Python programs")
-    parser.add_argument('--gpu', help="whether to run on GPU", action="store_true")
+    parser.add_argument('--gpu', type=int, help="whether to run on GPU")
     parser.add_argument('--folder_sge',type=str, default ='../sge_files/', help='fodler to store sge files')
     args = parser.parse_args()
 

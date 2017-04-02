@@ -221,7 +221,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
     print datetime.datetime.now()
 
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
-    simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
+    simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, time=True,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True,
                                                   totalSteps=number_of_simulation_steps + args.equilibration_steps,

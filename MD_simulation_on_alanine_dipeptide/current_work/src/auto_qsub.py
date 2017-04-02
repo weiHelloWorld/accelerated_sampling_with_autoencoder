@@ -3,13 +3,13 @@ This program takes a "terminal command" (should be within quotation mark) as an 
 generate corresponding sge file, and qsub it.
 """
 
-
+from config import *
 import argparse, subprocess, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("command", type=str, help="command to run")
 parser.add_argument("--submit", help="submit the job", action="store_true")
-parser.add_argument('--gpu', help="whether to run on GPU", action="store_true")
+parser.add_argument('--gpu', type=int, help="whether to run on GPU")
 parser.add_argument("--node", type=int, default=-1)
 args = parser.parse_args()
 
