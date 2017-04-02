@@ -104,7 +104,7 @@ class plotting(object):
         else:
             raise Exception('color_option not defined!')
 
-        im = axis_object.scatter(x,y, c=coloring, cmap='gist_rainbow', picker=True)
+        im = axis_object.scatter(x,y,s=4, c=coloring, cmap='gist_rainbow', picker=True)
         axis_object.set_xlabel(labels[0])
         axis_object.set_ylabel(labels[1])
         if contain_title:
@@ -176,10 +176,18 @@ class plotting(object):
                             out_file_name=out_file_name)
                         # need to verify PCs generated from this output pdb file are consistent from those in the list selected
                         molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
-                        cossin_data_selected = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
-                            list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
-                        PCs_of_points_selected = network.get_PCs(input_data=cossin_data_selected)
-                        assert_almost_equal(PCs_of_points_selected, np.array([[x[item], y[item]] for item in ind_list]))
+                        if CONFIG_48 == "cossin":
+                            temp_input_data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
+                                list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
+                        elif CONFIG_48 == "Cartesian":
+                            scaling_factor = CONFIG_49
+                            temp_input_data = np.loadtxt(out_file_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
+                            temp_input_data = Sutils.remove_translation(temp_input_data)
+                        else:
+                            raise Exception("input data type error")
+
+                        PCs_of_points_selected = network.get_PCs(input_data=temp_input_data)
+                        assert_almost_equal(PCs_of_points_selected, np.array([[x[item], y[item]] for item in ind_list]), decimal=4)
 
                     return
             else:
@@ -220,19 +228,68 @@ class plotting(object):
         return fig_object, axis_object
 
     def equilibration_check(self, coor_file_folder,
-                            scaling_factor, save_fig=True):
+                            scaling_factor, num_of_splits, save_fig=True):
         """this function checks equilibration by plotting each individual runs in PC space, colored with 'step',
         note: inputs should be Cartesian coordinates, the case with input using cossin is not implemented
         """
+        import scipy
+        ks_stats_list = []
+        temp_arrow_list = []
+        potential_centers_list = []
+        temp_arrow_start_list = []
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
             data = np.loadtxt(item) / scaling_factor
             data = Sutils.remove_translation(data)
+            potential_centers_list.append([float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')])
+            # do analysis using K-S test
+            PCs = self._network.get_PCs(data)
+            dim_of_PCs = PCs.shape[1]
+            samples_for_KS_testing = np.split(PCs, num_of_splits)
+            ks_stats = max([
+                sum(
+                    [scipy.stats.ks_2samp(samples_for_KS_testing[xx][:,subindex], samples_for_KS_testing[yy][:,subindex])[0]
+                        for subindex in range(dim_of_PCs) 
+                    ]) / float(dim_of_PCs)
+                 for xx in range(num_of_splits) for yy in range(xx + 1, num_of_splits)] 
+            )
+            ks_stats_list.append(ks_stats)
+            # plot arrow from center of first split to last split
+            temp_arrow_start = np.average(samples_for_KS_testing[0], axis=0)
+            temp_arrow_end = np.average(samples_for_KS_testing[-1], axis=0)
+            temp_arrow = (temp_arrow_end - temp_arrow_start)
+            assert (temp_arrow.shape[0] == 2), temp_arrow.shape[0]
+            temp_arrow_list.append(temp_arrow)
+            temp_arrow_start_list.append(temp_arrow_start)
+            
             fig, ax = plt.subplots()
             self.plotting_with_coloring_option("PC", fig, ax, input_data_for_plotting=data, color_option='step',
                                             title=item.strip().split('/')[-1])
+            ax.quiver([temp_arrow_start[0]], [temp_arrow_start[1]], [temp_arrow[0]], [temp_arrow[1]],
+                      units="xy", scale=1)
             if save_fig:
                 fig.savefig(ax.get_title() + '.png')
+
+        # plotting K-S stats
+        potential_centers_list = np.array(potential_centers_list)
+        temp_arrow_list = np.array(temp_arrow_list)
+        temp_arrow_start_list = np.array(temp_arrow_start_list)
+        fig, ax = plt.subplots()
+        im = ax.scatter(potential_centers_list[:,0], potential_centers_list[:,1],  c=ks_stats_list, cmap="Blues")
+        col_bar = fig.colorbar(im, ax=ax)
+        col_bar.set_label("KS value")
+        for pc, arr_start in zip(potential_centers_list, temp_arrow_start_list):
+            # connect potential center to starting point of arrow with dashed line
+            ax.plot([pc[0], arr_start[0]], [pc[1], arr_start[1]], linestyle='dotted')
+
+        ax.quiver(temp_arrow_start_list[:,0], temp_arrow_start_list[:,1],
+                  temp_arrow_list[:,0], temp_arrow_list[:,1],
+                  units = 'xy', scale=1)
+        ax.set_xlabel("PC1")
+        ax.set_ylabel("PC2")
+        fig.set_size_inches((10, 10))
+        fig.savefig("temp_harmonic_centers_and_stats.png")
+
         return
 
 
