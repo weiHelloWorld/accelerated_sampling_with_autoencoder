@@ -208,9 +208,12 @@ exit 0
         for item in job_sgefile_name_list:
             status_code = cluster_management.check_whether_job_finishes_successfully(item, latest_version)
             if status_code in (1, 2):
-                print "restore sge_file: %s" % item
-                subprocess.check_output(['cp', dir_to_archive_files + item, folder_to_store_sge_files])
-                assert (os.path.exists(folder_to_store_sge_files + item))
+                if os.path.isfile(dir_to_archive_files + item): 
+                    print "restore sge_file: %s" % item
+                    subprocess.check_output(['cp', dir_to_archive_files + item, folder_to_store_sge_files])
+                    assert (os.path.exists(folder_to_store_sge_files + item))
+                else:
+                    print "%s not exists in %s" % (item, dir_to_archive_files)
             
             if status_code in (0, 1, 2):  # archive .o/.e files for finished jobs
                 print "archive .o/.e files for %s" % item
