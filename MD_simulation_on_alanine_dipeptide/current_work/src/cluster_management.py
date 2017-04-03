@@ -199,6 +199,12 @@ exit 0
     def handle_jobs_not_finished_successfully_and_archive(job_sgefile_name_list, latest_version=True):
         dir_to_archive_files = '../sge_files/archive/'
         folder_to_store_sge_files='../sge_files/'
+        if not os.path.exists(dir_to_archive_files):
+            subprocess.check_output(['mkdir', dir_to_archive_files])
+
+        if not os.path.exists(folder_to_store_sge_files):
+            subprocess.check_output(['mkdir', folder_to_store_sge_files])
+            
         for item in job_sgefile_name_list:
             status_code = cluster_management.check_whether_job_finishes_successfully(item, latest_version)
             if status_code in (1, 2):
