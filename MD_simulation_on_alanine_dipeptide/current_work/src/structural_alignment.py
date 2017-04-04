@@ -17,7 +17,7 @@ ref_structure_pdb_file = args.ref
 
 pdb_files = subprocess.check_output(['find', args.sample_path, '-name', "*.pdb"]).strip().split('\n')
 if args.ignore_aligned_file:
-    pdb_files = filter(lambda x: not '_aligned.pdb' in x, pdb_files)
+    pdb_files = filter(lambda x: not '_aligned' in x, pdb_files)
 
 for sample_structure_pdb_file in pdb_files:
     print "doing structural alignment for %s" % sample_structure_pdb_file
