@@ -10,6 +10,7 @@ parser.add_argument("--ignore_aligned_file",type=int, default=1)
 parser.add_argument("--ref", type=str, default="../resources/1l2y.pdb", help="reference pdb file")
 parser.add_argument("--name", type=str, default=None, help='name of the aligned pdb file')
 parser.add_argument('--remove_original', help='remove original pdb file after doing structural alignment', action="store_true")
+parser.add_argument('--suffix', type=str, default="", help="string that appends at the end of filename")
 args = parser.parse_args()
 
 ref_structure_pdb_file = args.ref
@@ -22,7 +23,7 @@ for sample_structure_pdb_file in pdb_files:
     print "doing structural alignment for %s" % sample_structure_pdb_file
 
     if args.name is None:
-        output_pdb_file = sample_structure_pdb_file.split('.pdb')[0] + '_aligned.pdb'
+        output_pdb_file = sample_structure_pdb_file.split('.pdb')[0] + '_aligned%s.pdb' % (args.suffix)
     else:
         output_pdb_file = parser.name
 
