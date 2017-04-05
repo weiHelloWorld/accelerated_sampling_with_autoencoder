@@ -65,3 +65,4 @@ with open(sge_filename, 'w') as sge_file:
 
 if whether_to_qsub:
     subprocess.check_output(['qsub', sge_filename])
+    subprocess.check_output(['rm', sge_filename])
