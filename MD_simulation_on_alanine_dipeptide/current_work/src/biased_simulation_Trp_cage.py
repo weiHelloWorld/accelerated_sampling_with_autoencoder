@@ -257,6 +257,7 @@ if __name__ == '__main__':
             run_simulation(args.force_constant * 3, 10 * args.record_interval)
             run_simulation(args.force_constant * 2, 20 * args.record_interval)
             run_simulation(args.force_constant * 1.5, 40 * args.record_interval)
+            run_simulation(args.force_constant * 1.2, 40 * args.record_interval)
         
         run_simulation(args.force_constant, total_number_of_steps)
 
