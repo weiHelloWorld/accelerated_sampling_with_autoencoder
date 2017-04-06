@@ -764,7 +764,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                                    self._network_parameters[0], self._network_parameters[1],
                                    self._network_parameters[2], str(self._network_parameters[4]), str(self._output_as_circular))
 
-            print("Start " + training_print_info)
+            print("Start " + training_print_info + str(datetime.datetime.now()))
             call_back_list = []
             earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
             if self._enable_early_stopping:
@@ -781,7 +781,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
             self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in molecule_net.layers if isinstance(item, Dense)]  # transpose the weights for consistency
             self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if isinstance(item, Dense)]
 
-            print('Done ' + training_print_info)
+            print('Done ' + training_print_info + str(datetime.datetime.now()))
 
             self._molecule_net_layers = molecule_net.layers
 
