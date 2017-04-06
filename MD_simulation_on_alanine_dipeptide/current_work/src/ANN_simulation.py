@@ -362,16 +362,23 @@ class iteration(object):
             fraction_of_data_to_be_saved = 1
         elif CONFIG_48 == 'Cartesian':
             coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
-            coor_data_obj_output = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: 'aligned' in x)
+            coor_data_obj_output = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+                lambda x: 'aligned_coordinates.txt' in x)
+            coor_data_obj_output_1 = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+                lambda x: 'aligned_1_coordinates.txt' in x)
             for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(), coor_data_obj_output.get_list_of_coor_data_files()):
-                assert (_2 == _1.replace('_coordinates.txt', '_aligned_coordinates.txt'))
+                assert (_2 == _1.replace('_coordinates.txt', '_aligned_coordinates.txt')), (_2, _1)
+
+            for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(), coor_data_obj_output_1.get_list_of_coor_data_files()):
+                assert (_2 == _1.replace('_coordinates.txt', '_aligned_1_coordinates.txt')), (_2, _1)
 
             data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
             # remove the center of mass
             data_set = Sutils.remove_translation(data_set)
-
-            output_data_set = coor_data_obj_output.get_coor_data(CONFIG_49)
-            assert (data_set.shape == output_data_set.shape)
+            print coor_data_obj_output_1.get_coor_data(CONFIG_49)
+            output_data_set = np.concatenate((coor_data_obj_output.get_coor_data(CONFIG_49),
+                                              coor_data_obj_output_1.get_coor_data(CONFIG_49)), axis=1)
+            assert (data_set.shape[0] == output_data_set.shape[0])
 
             # random rotation for data augmentation
             num_of_copies = CONFIG_52
@@ -450,6 +457,9 @@ class iteration(object):
 
         if isinstance(molecule_type, Trp_cage):
             subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage'])
+            subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage',
+                                     '--ref', '../resources/Trp_cage_ref_1.pdb', '--suffix', '_1'])
+
         elif isinstance(molecule_type, Alanine_dipeptide):
             subprocess.check_output(['python', 'structural_alignment.py','--ref',
                                     '../resources/alanine_dipeptide.pdb', '../target/Alanine_dipeptide'])
