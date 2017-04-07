@@ -217,7 +217,11 @@ exit 0
             
             if status_code in (0, 1, 2):  # archive .o/.e files for finished jobs
                 print "archive .o/.e files for %s" % item
-                subprocess.check_output('mv %s.*  %s' % (item, dir_to_archive_files), shell=True)
+                all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
+                temp_dot_o_e_files_for_this_item = filter(lambda x: (item + '.o' in x) or (item + '.e' in x), 
+                                                          all_files_in_this_dir)
+                for temp_item_o_e_file in temp_dot_o_e_files_for_this_item:
+                    subprocess.check_output(['mv', temp_item_o_e_file, dir_to_archive_files])
         return
 
     @staticmethod
