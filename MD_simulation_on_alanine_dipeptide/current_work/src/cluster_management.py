@@ -199,16 +199,29 @@ exit 0
     def handle_jobs_not_finished_successfully_and_archive(job_sgefile_name_list, latest_version=True):
         dir_to_archive_files = '../sge_files/archive/'
         folder_to_store_sge_files='../sge_files/'
+        if not os.path.exists(dir_to_archive_files):
+            subprocess.check_output(['mkdir', dir_to_archive_files])
+
+        if not os.path.exists(folder_to_store_sge_files):
+            subprocess.check_output(['mkdir', folder_to_store_sge_files])
+            
         for item in job_sgefile_name_list:
             status_code = cluster_management.check_whether_job_finishes_successfully(item, latest_version)
             if status_code in (1, 2):
-                print "restore sge_file: %s" % item
-                subprocess.check_output(['cp', dir_to_archive_files + item, folder_to_store_sge_files])
-                assert (os.path.exists(folder_to_store_sge_files + item))
+                if os.path.isfile(dir_to_archive_files + item): 
+                    print "restore sge_file: %s" % item
+                    subprocess.check_output(['cp', dir_to_archive_files + item, folder_to_store_sge_files])
+                    assert (os.path.exists(folder_to_store_sge_files + item))
+                else:
+                    print "%s not exists in %s" % (item, dir_to_archive_files)
             
             if status_code in (0, 1, 2):  # archive .o/.e files for finished jobs
                 print "archive .o/.e files for %s" % item
-                subprocess.check_output('mv %s.*  %s' % (item, dir_to_archive_files), shell=True)
+                all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
+                temp_dot_o_e_files_for_this_item = filter(lambda x: (item + '.o' in x) or (item + '.e' in x), 
+                                                          all_files_in_this_dir)
+                for temp_item_o_e_file in temp_dot_o_e_files_for_this_item:
+                    subprocess.check_output(['mv', temp_item_o_e_file, dir_to_archive_files])
         return
 
     @staticmethod

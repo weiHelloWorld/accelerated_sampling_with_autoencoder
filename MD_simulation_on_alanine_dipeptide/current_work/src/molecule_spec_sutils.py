@@ -618,9 +618,21 @@ class Trp_cage(Sutils):
         return diff
 
     @staticmethod
-    def metric_get_residue_9_16_distance(list_of_files, step_interval = 1):
-        distances_list = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
-        return np.array([item[8][15] for item in distances_list])
+    def metric_get_residue_9_16_salt_bridge_distance(list_of_files, step_interval = 1):
+        distances_list = []
+        index = 0
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            sample_atom_selection_1 = sample.select_atoms("name OD2 and resid 9")
+            sample_atom_selection_2 = sample.select_atoms("name NH2 and resid 16")
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    distances_list.append(
+                        distance_array(sample_atom_selection_1.positions, sample_atom_selection_2.positions))
+
+                index += 1
+
+        return np.array(distances_list).flatten()
 
     @staticmethod
     def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
