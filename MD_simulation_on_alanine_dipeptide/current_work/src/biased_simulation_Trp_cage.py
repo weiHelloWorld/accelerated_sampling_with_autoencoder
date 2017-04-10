@@ -253,11 +253,11 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
 if __name__ == '__main__':
     if not args.fc_adjustable:
         if args.fast_equilibration:
-            run_simulation(args.force_constant * 5, 5 * args.record_interval)
-            run_simulation(args.force_constant * 3, 10 * args.record_interval)
-            run_simulation(args.force_constant * 2, 20 * args.record_interval)
-            run_simulation(args.force_constant * 1.5, 40 * args.record_interval)
-            run_simulation(args.force_constant * 1.2, 40 * args.record_interval)
+            run_simulation(args.force_constant * 5, int(0.02 * total_number_of_steps))
+            run_simulation(args.force_constant * 3, int(0.05 * total_number_of_steps))
+            run_simulation(args.force_constant * 2, int(0.05 * total_number_of_steps))
+            run_simulation(args.force_constant * 1.5, int(0.1 * total_number_of_steps))
+            run_simulation(args.force_constant * 1.2, int(0.1 * total_number_of_steps))
         
         run_simulation(args.force_constant, total_number_of_steps)
 
