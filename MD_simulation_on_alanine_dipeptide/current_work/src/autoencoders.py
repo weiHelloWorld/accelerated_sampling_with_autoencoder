@@ -73,7 +73,7 @@ class autoencoder(object):
             filename = self._filename_to_save_network
 
         if fraction_of_data_to_be_saved != 1.0:
-            number_of_data_points_to_be_saved = self._data_set.shape[0] * fraction_of_data_to_be_saved
+            number_of_data_points_to_be_saved = int(self._data_set.shape[0] * fraction_of_data_to_be_saved)
             print ("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
                                                                                         number_of_data_points_to_be_saved,
                                                                                         self._data_set.shape[0]))

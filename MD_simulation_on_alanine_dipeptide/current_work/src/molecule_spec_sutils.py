@@ -263,8 +263,8 @@ class Sutils(object):
             diff_with_neighbors = np.zeros(hist_matrix.shape)
             temp_1 = [list(range(item)) for item in hist_matrix.shape]
             for grid_index in itertools.product(*temp_1):
-                neighbor_index_list = [np.array(grid_index) + temp_2 for temp_2 in np.eye(dimensionality)]
-                neighbor_index_list += [np.array(grid_index) - temp_2 for temp_2 in np.eye(dimensionality)]
+                neighbor_index_list = [(np.array(grid_index) + temp_2).astype(int) for temp_2 in np.eye(dimensionality)]
+                neighbor_index_list += [(np.array(grid_index) - temp_2).astype(int) for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list = filter(lambda x: np.all(x >= 0) and np.all(x < num_of_bins), neighbor_index_list)
                 # print "grid_index = %s" % str(grid_index)
                 # print "neighbor_index_list = %s" % str(neighbor_index_list)
@@ -275,7 +275,7 @@ class Sutils(object):
         # get grid centers
         edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
         grid_centers = np.array(list(itertools.product(*edge_centers)))  # "itertools.product" gives Cartesian/direct product of several lists
-        grid_centers = np.reshape(grid_centers, np.append(num_of_bins * np.ones(dimensionality), dimensionality))
+        grid_centers = np.reshape(grid_centers, np.append(num_of_bins * np.ones(dimensionality), dimensionality).astype(int))
         # print grid_centers
 
         potential_centers = []
