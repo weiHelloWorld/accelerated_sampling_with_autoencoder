@@ -305,7 +305,8 @@ class autoencoder(object):
                                                folder_to_store_files='./standard_WHAM/', dimensionality=2, 
                                                input_data_type='cossin',        # input_data_type could be 'cossin' or 'Cartesian'
                                                scaling_factor=CONFIG_49,       # only works for 'Cartesian'
-                                               dihedral_angle_range=[1,2]     # only used fro alanine dipeptide
+                                               dihedral_angle_range=[1,2],     # only used fro alanine dipeptide
+                                               starting_index_of_last_few_frames=0        # number of last few frames used in calculation, 0 means to use all frames
                                                ):
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
@@ -325,9 +326,6 @@ class autoencoder(object):
             force_constants += [[temp_force_constant] * dimensionality  ]
             temp_harmonic_center_string = item.split('_pc_[')[1].split(']')[0]
             harmonic_centers += [[float(item_1) for item_1 in temp_harmonic_center_string.split(',')]]
-            temp_window_count = float(
-                subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
-            window_counts += [temp_window_count]
             if input_data_type == 'cossin':
                 temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             elif input_data_type == 'Cartesian':
@@ -335,7 +333,9 @@ class autoencoder(object):
             else:
                 raise Exception('error input_data_type')
 
-            assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
+            temp_coor = temp_coor[starting_index_of_last_few_frames:]
+            window_counts += [float(temp_coor.shape[0])]   # there exists problems if using int
+
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
                 temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
@@ -354,7 +354,7 @@ class autoencoder(object):
                                                                             'harmonic_centers': harmonic_centers,
                                                                             'coords': coords, 'dim': dimensionality,
                                                                             'temperature': 300.0,
-                                                                            'periodicity': [[1.0] * dimensionality],
+                                                                            'periodicity': [[0.0] * dimensionality],
                                                                             'dF_tol': 0.0001,
                                                                             'min_gap_max_ORIG': [
                                                                                 [min_of_coor[item_2], interval,

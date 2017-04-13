@@ -228,7 +228,9 @@ class plotting(object):
         return fig_object, axis_object
 
     def equilibration_check(self, coor_file_folder,
-                            scaling_factor, num_of_splits, save_fig=True):
+                            scaling_factor, num_of_splits, save_fig=True,
+                            starting_index_of_last_few_frames=0
+                            ):
         """this function checks equilibration by plotting each individual runs in PC space, colored with 'step',
         note: inputs should be Cartesian coordinates, the case with input using cossin is not implemented
         """
@@ -239,7 +241,7 @@ class plotting(object):
         temp_arrow_start_list = []
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
-            data = np.loadtxt(item) / scaling_factor
+            data = np.loadtxt(item)[starting_index_of_last_few_frames:] / scaling_factor
             data = Sutils.remove_translation(data)
             potential_centers_list.append([float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')])
             # do analysis using K-S test
