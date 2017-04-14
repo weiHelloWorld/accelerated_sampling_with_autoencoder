@@ -234,7 +234,17 @@ class autoencoder(object):
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
         if force_constant_for_biased is None:
-            force_constant_for_biased = CONFIG_9
+            if CONFIG_53 == "fixed":
+                force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
+            elif CONFIG_53 == "flexible":
+                folder_state_coor_file = '../resources/1l2y_coordinates.txt'
+                input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
+                print("PC_folded_state = %s" % str(PC_folded_state))
+                force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
+                                             for item in list_of_potential_center]
+            else:
+                raise Exception("error")
 
         todo_list_of_commands_for_simulations = []
         if CONFIG_48 == 'Cartesian':
@@ -244,9 +254,9 @@ class autoencoder(object):
         else:
             raise Exception("error input data type")
 
-        for device_index, potential_center in enumerate(list_of_potential_center):
+        for index, potential_center in enumerate(list_of_potential_center):
             if isinstance(molecule_type, Alanine_dipeptide):
-                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
                                   '../target/Alanine_dipeptide/network_%d' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
@@ -259,11 +269,11 @@ class autoencoder(object):
                         '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
 
             elif isinstance(molecule_type, Trp_cage):
-                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
                                   '../target/Trp_cage/network_%d/' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  CONFIG_40, CONFIG_51, input_data_type, device_index % 2)
+                                  CONFIG_40, CONFIG_51, input_data_type, index % 2)
                 command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d" % parameter_list
                 if CONFIG_42:
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (

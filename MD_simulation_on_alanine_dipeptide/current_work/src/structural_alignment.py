@@ -36,7 +36,8 @@ for sample_structure_pdb_file in pdb_files:
     else:
         ref = Universe(ref_structure_pdb_file) 
         trj = Universe(sample_structure_pdb_file) 
-        AlignTraj(trj, ref, select=args.atom_selection, filename=output_pdb_file)
+        predefined_filename = rms_fit_trj(trj, ref, select=args.atom_selection)
+        subprocess.check_output(['mv', predefined_filename, output_pdb_file])
 
         print "done structural alignment for %s" % sample_structure_pdb_file
 

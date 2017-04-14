@@ -166,6 +166,8 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 CONFIG_8 = get_mol_param([5000, 100000])                  # num of simulation steps
 CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
+CONFIG_53 = get_mol_param(['fixed', 'flexible'])          # use fixed/flexible force constants for biased simulation for each iteration
+CONFIG_54 = 2.47 * get_mol_param([20.0, 10.0])             # max external potential energy allowed (in k_BT)
 CONFIG_16 = get_mol_param([50, 1000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '48:00:00'                                    # max running time for the sge job
 
