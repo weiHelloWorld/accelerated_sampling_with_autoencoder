@@ -466,6 +466,8 @@ class iteration(object):
         elif isinstance(molecule_type, Alanine_dipeptide):
             subprocess.check_output(['python', 'structural_alignment.py','--ref',
                                     '../resources/alanine_dipeptide.pdb', '../target/Alanine_dipeptide'])
+            subprocess.check_output(['python', 'structural_alignment.py', '../target/Alanine_dipeptide',
+                                     '--ref', '../resources/alanine_ref_1.pdb', '--suffix', '_1'])
         else:
             raise Exception("molecule type error")
         molecule_type.generate_coordinates_from_pdb_files()
