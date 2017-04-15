@@ -19,11 +19,6 @@ from MDAnalysis import Universe
 from MDAnalysis.analysis.align import *
 from MDAnalysis.analysis.rms import rmsd
 from MDAnalysis.analysis.distances import distance_array
-from keras.models import Sequential
-from keras.optimizers import *
-from keras.layers import Dense, Activation, Lambda, Reshape
-from keras.regularizers import l2
-from keras.callbacks import EarlyStopping
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
@@ -34,7 +29,7 @@ it configures all default values/global parameters for constructors/functions
 #######################################################################
 
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list

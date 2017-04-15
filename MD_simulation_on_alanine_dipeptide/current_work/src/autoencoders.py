@@ -2,6 +2,11 @@ from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
+from keras.models import Sequential
+from keras.optimizers import *
+from keras.layers import Dense, Activation, Lambda, Reshape
+from keras.regularizers import l2
+from keras.callbacks import EarlyStopping
 
 ##################    set types of molecules  ############################
 
@@ -237,12 +242,15 @@ class autoencoder(object):
             if CONFIG_53 == "fixed":
                 force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
             elif CONFIG_53 == "flexible":
-                folder_state_coor_file = '../resources/1l2y_coordinates.txt'
-                input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
-                PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
-                print("PC_folded_state = %s" % str(PC_folded_state))
-                force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
-                                             for item in list_of_potential_center]
+                if isinstance(molecule_type, Trp_cage):
+                    folder_state_coor_file = '../resources/1l2y_coordinates.txt'
+                    input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                    PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
+                    print("PC_folded_state = %s" % str(PC_folded_state))
+                    force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
+                                                 for item in list_of_potential_center]
+                elif isinstance(molecule_type, Alanine_dipeptide):
+                    pass # TODO
             else:
                 raise Exception("error")
 
