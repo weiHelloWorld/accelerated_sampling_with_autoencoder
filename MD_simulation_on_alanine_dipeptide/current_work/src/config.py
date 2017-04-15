@@ -84,7 +84,7 @@ if CONFIG_48 == 'cossin':
     raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
 elif CONFIG_48 == 'Cartesian':
     CONFIG_3 = get_mol_param([
-         [21, 40, CONFIG_37, 40, 21],  # the structure of ANN: number of nodes in each layer
+         [21, 40, CONFIG_37, 40, 21 * 2],  # the structure of ANN: number of nodes in each layer
          [180, 50, CONFIG_37, 50, 180 * 2]
          ])
 else:
