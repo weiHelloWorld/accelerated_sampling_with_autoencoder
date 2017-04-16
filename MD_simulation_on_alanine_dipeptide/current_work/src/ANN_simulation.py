@@ -365,22 +365,21 @@ class iteration(object):
             fraction_of_data_to_be_saved = 1
         elif CONFIG_48 == 'Cartesian':
             coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
-            coor_data_obj_output = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-                lambda x: 'aligned_coordinates.txt' in x)
-            coor_data_obj_output_1 = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-                lambda x: 'aligned_1_coordinates.txt' in x)
-            for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(), coor_data_obj_output.get_list_of_coor_data_files()):
-                assert (_2 == _1.replace('_coordinates.txt', '_aligned_coordinates.txt')), (_2, _1)
+            alignment_coor_file_suffix_list = ['_aligned_coordinates.txt', '_aligned_1_coordinates.txt']
+            assert (len(alignment_coor_file_suffix_list) == CONFIG_55)
+            coor_data_obj_output_list = [my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+                lambda x: item in x) for item in alignment_coor_file_suffix_list]
 
-            for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(), coor_data_obj_output_1.get_list_of_coor_data_files()):
-                assert (_2 == _1.replace('_coordinates.txt', '_aligned_1_coordinates.txt')), (_2, _1)
+            for item in range(len(alignment_coor_file_suffix_list)):
+                for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(),
+                                  coor_data_obj_output_list[item].get_list_of_coor_data_files()):
+                    assert (_2 == _1.replace('_coordinates.txt', alignment_coor_file_suffix_list[item])), (_2, _1)
 
             data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
             # remove the center of mass
             data_set = Sutils.remove_translation(data_set)
-            print coor_data_obj_output_1.get_coor_data(CONFIG_49)
-            output_data_set = np.concatenate((coor_data_obj_output.get_coor_data(CONFIG_49),
-                                              coor_data_obj_output_1.get_coor_data(CONFIG_49)), axis=1)
+            output_data_set = np.concatenate([item.get_coor_data(CONFIG_49) for item in coor_data_obj_output_list]
+                                             , axis=1)
             assert (data_set.shape[0] == output_data_set.shape[0])
 
             # random rotation for data augmentation
@@ -444,7 +443,7 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            num_of_simulations_run_in_parallel = 8
+            num_of_simulations_run_in_parallel = CONFIG_56
             total_num_failed_jobs = 0
             for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):
                 temp_commands_parallel = commands[item * num_of_simulations_run_in_parallel: (item + 1) * num_of_simulations_run_in_parallel]
@@ -457,7 +456,7 @@ class iteration(object):
 
             # TODO: currently they are not run in parallel, fix this later
         
-        # TODO: run next line only when the jobs are done, check this
+        # next line only when the jobs are done, check this
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
 

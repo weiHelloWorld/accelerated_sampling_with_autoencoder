@@ -76,6 +76,8 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
+CONFIG_55 = get_mol_param([2,2])       # number of reference configurations used in training
+
 if CONFIG_48 == 'cossin':
     CONFIG_3 = get_mol_param([
          [8, 15, CONFIG_37, 15, 8],  # the structure of ANN: number of nodes in each layer
@@ -84,8 +86,8 @@ if CONFIG_48 == 'cossin':
     raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
 elif CONFIG_48 == 'Cartesian':
     CONFIG_3 = get_mol_param([
-         [21, 40, CONFIG_37, 40, 21 * 2],  # the structure of ANN: number of nodes in each layer
-         [180, 50, CONFIG_37, 50, 180 * 2]
+         [21, 40, CONFIG_37, 40, 21 * CONFIG_55],  # the structure of ANN: number of nodes in each layer
+         [180, 50, CONFIG_37, 50, 180 * CONFIG_55]
          ])
 else:
     raise Exception('error input data type')
@@ -118,6 +120,7 @@ CONFIG_31 = 10        # maximum number of failed simulations allowed in each ite
 
 '''def run_simulation'''
 
+CONFIG_56 = 8  # number of biased simulations running in parallel
 CONFIG_14 = 7  # max number of jobs submitted each time
 CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files
