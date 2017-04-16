@@ -444,13 +444,16 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            procs_to_run_commands = list(range(len(commands)))
-            for index, item in enumerate(commands):
-                print ("running: \t" + item)
-                procs_to_run_commands[index] = subprocess.Popen(item.split())
+            num_of_simulations_run_in_parallel = 8
+            total_num_failed_jobs = 0
+            for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):
+                temp_commands_parallel = commands[item * num_of_simulations_run_in_parallel: (item + 1) * num_of_simulations_run_in_parallel]
+                print ("running: \t" + '\n'.join(temp_commands_parallel))
+                procs_to_run_commands = [subprocess.Popen(_1.strip().split()) for _1 in temp_commands_parallel]
+                exit_codes = [p.wait() for p in procs_to_run_commands]
+                total_num_failed_jobs += sum(exit_codes)
 
-            exit_codes = [p.wait() for p in procs_to_run_commands]
-            assert (sum(exit_codes) < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
+            assert (total_num_failed_jobs < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
 
             # TODO: currently they are not run in parallel, fix this later
         

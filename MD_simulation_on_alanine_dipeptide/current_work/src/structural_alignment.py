@@ -14,7 +14,7 @@ parser.add_argument("--ref", type=str, default="../resources/1l2y.pdb", help="re
 parser.add_argument("--name", type=str, default=None, help='name of the aligned pdb file')
 parser.add_argument('--remove_original', help='remove original pdb file after doing structural alignment', action="store_true")
 parser.add_argument('--suffix', type=str, default="", help="string that appends at the end of filename")
-parser.add_argument('--atom_selection', type=str, default='name CA', help='atom_selection_statement for alignment')
+parser.add_argument('--atom_selection', type=str, default='backbone', help='atom_selection_statement for alignment')
 args = parser.parse_args()
 
 ref_structure_pdb_file = args.ref
