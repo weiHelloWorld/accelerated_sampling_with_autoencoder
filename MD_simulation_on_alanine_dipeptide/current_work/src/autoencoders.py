@@ -355,7 +355,8 @@ class autoencoder(object):
                 raise Exception('error input_data_type')
 
             temp_coor = temp_coor[starting_index_of_last_few_frames:]
-            window_counts += [float(temp_coor.shape[0])]   # there exists problems if using int
+            temp_window_count = temp_coor.shape[0]
+            window_counts += [float(temp_window_count)]   # there exists problems if using int
 
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
