@@ -53,6 +53,13 @@ if CONFIG_48 == 'Cartesian':
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class autoencoder:'''
+CONFIG_57 = [
+    [2,5,7,9,15,17,19],
+    [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95,
+    117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184,
+    185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252,
+    253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
+]                                          # index of atoms for training and biased simulations
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
@@ -86,8 +93,8 @@ if CONFIG_48 == 'cossin':
     raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
 elif CONFIG_48 == 'Cartesian':
     CONFIG_3 = get_mol_param([
-         [21, 40, CONFIG_37, 40, 21 * CONFIG_55],  # the structure of ANN: number of nodes in each layer
-         [180, 50, CONFIG_37, 50, 180 * CONFIG_55]
+         [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  # the structure of ANN: number of nodes in each layer
+         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55]
          ])
 else:
     raise Exception('error input data type')

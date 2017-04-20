@@ -408,13 +408,13 @@ class Alanine_dipeptide(Sutils):
 
     @staticmethod
     def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval =1):
-        index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[0]]
         output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
         return output_file_list
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
-        index_of_backbone_atoms = [2, 5, 7, 9, 15, 17, 19]
+        index_of_backbone_atoms = CONFIG_57[0]
         expression_for_input_of_this_molecule = ''
         for i in range(len(index_of_backbone_atoms) - 3):
             index_of_coss = 2 * i
@@ -544,7 +544,7 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[1]]
         assert (len(index_of_backbone_atoms) % 3 == 0)
 
         output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
@@ -778,7 +778,7 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
-        index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[1]]
         total_num_of_residues = 20
         list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], list(range(total_num_of_residues))) \
                                + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], list(range(total_num_of_residues)))

@@ -86,7 +86,7 @@ def run_simulation(force_constant):
                                                 [5,7,9,15],
                                                 [7,9,15,17],
                                                 [9,15,17,19]]
-    index_of_backbone_atoms = [2,5,7,9,15,17,19]
+    index_of_backbone_atoms = CONFIG_57[0]
 
 
     with open(autoencoder_info_file, 'r') as f_in:
