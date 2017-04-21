@@ -93,9 +93,9 @@ class Sutils(object):
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
         if isinstance(molecule_type, Alanine_dipeptide):
-            num_of_backbone_atoms = 7
+            num_of_backbone_atoms = len(CONFIG_57[0])
         elif isinstance(molecule_type, Trp_cage):
-            num_of_backbone_atoms = 60
+            num_of_backbone_atoms = len(CONFIG_57[1])
         else:
             raise Exception("error molecule type")
 
