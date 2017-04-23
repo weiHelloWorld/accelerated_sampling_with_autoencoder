@@ -26,6 +26,7 @@ class plotting(object):
                                             title=None,
                                             axis_ranges=None,
                                             contain_colorbar=True,
+                                            colorbar_label=None,
                                             smoothing_using_RNR = False,  # smooth the coloring values for data points using RadiusNeighborsRegressor()
                                             variance_using_RNR = False,  # get variance of coloring values over space using RNR
                                             smoothing_radius = 0.1,
@@ -115,7 +116,9 @@ class plotting(object):
             axis_object.set_ylim(axis_ranges[1])
 
         if contain_colorbar:
-            fig_object.colorbar(im, ax=axis_object)
+            temp_colorbar = fig_object.colorbar(im, ax=axis_object)
+            if not colorbar_label is None:
+                temp_colorbar.set_label(str(colorbar_label))
 
         # mouse clicking event
         if enable_mousing_clicking_event:
