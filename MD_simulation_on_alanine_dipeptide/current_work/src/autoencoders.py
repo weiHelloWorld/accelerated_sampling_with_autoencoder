@@ -2,6 +2,11 @@ from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
+from keras.models import Sequential
+from keras.optimizers import *
+from keras.layers import Dense, Activation, Lambda, Reshape
+from keras.regularizers import l2
+from keras.callbacks import EarlyStopping
 
 ##################    set types of molecules  ############################
 
@@ -73,7 +78,7 @@ class autoencoder(object):
             filename = self._filename_to_save_network
 
         if fraction_of_data_to_be_saved != 1.0:
-            number_of_data_points_to_be_saved = self._data_set.shape[0] * fraction_of_data_to_be_saved
+            number_of_data_points_to_be_saved = int(self._data_set.shape[0] * fraction_of_data_to_be_saved)
             print ("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
                                                                                         number_of_data_points_to_be_saved,
                                                                                         self._data_set.shape[0]))
@@ -234,7 +239,23 @@ class autoencoder(object):
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
         if force_constant_for_biased is None:
-            force_constant_for_biased = CONFIG_9
+            if CONFIG_53 == "fixed":
+                force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
+            elif CONFIG_53 == "flexible":
+                if isinstance(molecule_type, Trp_cage):
+                    folder_state_coor_file = '../resources/1l2y_coordinates.txt'
+                elif isinstance(molecule_type, Alanine_dipeptide):
+                    folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+                else:
+                    raise Exception('molecule type error')
+
+                input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
+                print("PC_folded_state = %s" % str(PC_folded_state))
+                force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
+                                             for item in list_of_potential_center]
+            else:
+                raise Exception("error")
 
         todo_list_of_commands_for_simulations = []
         if CONFIG_48 == 'Cartesian':
@@ -244,9 +265,9 @@ class autoencoder(object):
         else:
             raise Exception("error input data type")
 
-        for device_index, potential_center in enumerate(list_of_potential_center):
+        for index, potential_center in enumerate(list_of_potential_center):
             if isinstance(molecule_type, Alanine_dipeptide):
-                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
                                   '../target/Alanine_dipeptide/network_%d' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
@@ -259,12 +280,12 @@ class autoencoder(object):
                         '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
 
             elif isinstance(molecule_type, Trp_cage):
-                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased),
+                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
                                   '../target/Trp_cage/network_%d/' % self._index,
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  CONFIG_40, CONFIG_51, input_data_type, device_index % 2)
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d" % parameter_list
+                                  CONFIG_40, CONFIG_51, input_data_type, index % 2)
+                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration 1" % parameter_list
                 if CONFIG_42:
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                         '../resources/Trp_cage/network_%d.pkl' % self._index)
@@ -305,7 +326,8 @@ class autoencoder(object):
                                                folder_to_store_files='./standard_WHAM/', dimensionality=2, 
                                                input_data_type='cossin',        # input_data_type could be 'cossin' or 'Cartesian'
                                                scaling_factor=CONFIG_49,       # only works for 'Cartesian'
-                                               dihedral_angle_range=[1,2]     # only used fro alanine dipeptide
+                                               dihedral_angle_range=[1,2],     # only used fro alanine dipeptide
+                                               starting_index_of_last_few_frames=0        # number of last few frames used in calculation, 0 means to use all frames
                                                ):
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
@@ -325,9 +347,6 @@ class autoencoder(object):
             force_constants += [[temp_force_constant] * dimensionality  ]
             temp_harmonic_center_string = item.split('_pc_[')[1].split(']')[0]
             harmonic_centers += [[float(item_1) for item_1 in temp_harmonic_center_string.split(',')]]
-            temp_window_count = float(
-                subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
-            window_counts += [temp_window_count]
             if input_data_type == 'cossin':
                 temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
             elif input_data_type == 'Cartesian':
@@ -335,7 +354,10 @@ class autoencoder(object):
             else:
                 raise Exception('error input_data_type')
 
-            assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
+            temp_coor = temp_coor[starting_index_of_last_few_frames:]
+            temp_window_count = temp_coor.shape[0]
+            window_counts += [float(temp_window_count)]   # there exists problems if using int
+
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
                 temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
@@ -354,7 +376,7 @@ class autoencoder(object):
                                                                             'harmonic_centers': harmonic_centers,
                                                                             'coords': coords, 'dim': dimensionality,
                                                                             'temperature': 300.0,
-                                                                            'periodicity': [[1.0] * dimensionality],
+                                                                            'periodicity': [[0.0] * dimensionality],
                                                                             'dF_tol': 0.0001,
                                                                             'min_gap_max_ORIG': [
                                                                                 [min_of_coor[item_2], interval,

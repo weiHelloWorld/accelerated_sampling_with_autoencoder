@@ -19,11 +19,6 @@ from MDAnalysis import Universe
 from MDAnalysis.analysis.align import *
 from MDAnalysis.analysis.rms import rmsd
 from MDAnalysis.analysis.distances import distance_array
-from keras.models import Sequential
-from keras.optimizers import *
-from keras.layers import Dense, Activation, Lambda, Reshape
-from keras.regularizers import l2
-from keras.callbacks import EarlyStopping
 
 '''This is the configuration file for all Python code in this directory,
 it configures all default values/global parameters for constructors/functions
@@ -34,7 +29,7 @@ it configures all default values/global parameters for constructors/functions
 #######################################################################
 
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
@@ -58,6 +53,13 @@ if CONFIG_48 == 'Cartesian':
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 '''class autoencoder:'''
+CONFIG_57 = [
+    [2,5,7,9,15,17,19],
+    [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95,
+    117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184,
+    185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252,
+    253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
+]                                          # index of atoms for training and biased simulations
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
@@ -66,7 +68,7 @@ if CONFIG_45 == 'pybrain':
 elif CONFIG_45 == 'keras':
     CONFIG_4 = get_mol_param([
         [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        [0.3, 0.9, 0, True, [0.00, 0.00001, 0.00, 0.00]]
+        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]]
         ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
 else:
     raise Exception('training backend not implemented')
@@ -81,6 +83,8 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
+CONFIG_55 = get_mol_param([2,2])       # number of reference configurations used in training
+
 if CONFIG_48 == 'cossin':
     CONFIG_3 = get_mol_param([
          [8, 15, CONFIG_37, 15, 8],  # the structure of ANN: number of nodes in each layer
@@ -89,8 +93,8 @@ if CONFIG_48 == 'cossin':
     raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
 elif CONFIG_48 == 'Cartesian':
     CONFIG_3 = get_mol_param([
-         [21, 40, CONFIG_37, 40, 21],  # the structure of ANN: number of nodes in each layer
-         [180, 50, CONFIG_37, 50, 180 * 2]
+         [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  # the structure of ANN: number of nodes in each layer
+         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55]
          ])
 else:
     raise Exception('error input data type')
@@ -123,6 +127,7 @@ CONFIG_31 = 10        # maximum number of failed simulations allowed in each ite
 
 '''def run_simulation'''
 
+CONFIG_56 = 8  # number of biased simulations running in parallel
 CONFIG_14 = 7  # max number of jobs submitted each time
 CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files
@@ -164,9 +169,11 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 '''class cluster_management'''
 
-CONFIG_8 = get_mol_param([5000, 100000])                  # num of simulation steps
+CONFIG_8 = get_mol_param([50000, 100000])                  # num of simulation steps
 CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
-CONFIG_16 = get_mol_param([50, 1000])                     # record interval (the frequency of writing system state into the file)
+CONFIG_53 = get_mol_param(['flexible', 'flexible'])          # use fixed/flexible force constants for biased simulation for each iteration
+CONFIG_54 = 2.47 * get_mol_param([30.0, 20.0])             # max external potential energy allowed (in k_BT)
+CONFIG_16 = get_mol_param([500, 1000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_19 = '48:00:00'                                    # max running time for the sge job
 
 ##########################################################################

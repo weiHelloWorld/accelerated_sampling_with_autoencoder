@@ -30,6 +30,7 @@ parser.add_argument("--checkpoint", type=int, default=1, help="whether to save c
 parser.add_argument("--starting_checkpoint", type=str, default="auto", help='starting checkpoint file, to resume simulation ("none" means no starting checkpoint file is provided, "auto" means automatically)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
 parser.add_argument("--fast_equilibration", type=int, default=0, help="do fast equilibration by running biased simulation with larger force constant")
+parser.add_argument("--remove_eq_file", type=int, default=1, help="remove equilibration pdb files associated with fast equilibration")
 parser.add_argument("--auto_equilibration", help="enable auto equilibration so that it will run enough equilibration steps", action="store_true")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
@@ -103,10 +104,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
     box_size = 4.5    # in nm
     time_step = CONFIG_22       # simulation time step, in ps
 
-    index_of_backbone_atoms = [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95,
-            117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184,
-            185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252,
-            253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
+    index_of_backbone_atoms = CONFIG_57[1]
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
@@ -253,11 +251,12 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
 if __name__ == '__main__':
     if not args.fc_adjustable:
         if args.fast_equilibration:
-            run_simulation(args.force_constant * 5, 5 * args.record_interval)
-            run_simulation(args.force_constant * 3, 10 * args.record_interval)
-            run_simulation(args.force_constant * 2, 20 * args.record_interval)
-            run_simulation(args.force_constant * 1.5, 40 * args.record_interval)
-            run_simulation(args.force_constant * 1.2, 40 * args.record_interval)
+            temp_eq_force_constants = [args.force_constant * item for item in [5, 3, 2, 1.5, 1.2]]
+            temp_eq_num_steps = [int(total_number_of_steps * item) for item in [0.02, 0.05, 0.05, 0.1, 0.1]]
+            for item_1, item_2 in zip(temp_eq_force_constants, temp_eq_num_steps):
+                temp_eq_pdb = run_simulation(item_1, item_2)
+                if args.remove_eq_file:
+                    subprocess.check_output(['rm', temp_eq_pdb])
         
         run_simulation(args.force_constant, total_number_of_steps)
 

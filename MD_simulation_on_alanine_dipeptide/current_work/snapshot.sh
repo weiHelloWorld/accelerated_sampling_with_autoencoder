@@ -11,7 +11,7 @@ dir_name=${prefix}"/snapshot_"${current_time}
 
 mkdir -p ${dir_name}
 
-for item in README.md resources src target tests; do
+for item in README.md resources src target; do
 	echo "copying "${item}
 	rsync -ar --exclude='.*' ${item} ${dir_name}
 done

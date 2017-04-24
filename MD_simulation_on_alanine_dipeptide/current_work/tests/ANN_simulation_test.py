@@ -314,15 +314,6 @@ class test_neural_network_for_simulation(object):
         self._network.get_fraction_of_variance_explained()
         return
 
-    def test_get_commands_for_further_biased_simulations(self):
-        # TODO: add testing for values, currently only tests basic functionality
-        assert isinstance(self._network, neural_network_for_simulation)
-        commands = self._network.get_commands_for_further_biased_simulations()
-        with open("test_get_commands_for_further_biased_simulations.txt", 'w') as my_f:
-            for item in commands:
-                my_f.write(str(item) + '\n')
-        return
-
     def test_get_proper_potential_centers_for_WHAM(self):
         # TODO: add testing for values, currently only tests basic functionality
         assert isinstance(self._network, neural_network_for_simulation)

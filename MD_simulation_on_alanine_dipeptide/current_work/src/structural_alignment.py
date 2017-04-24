@@ -3,6 +3,9 @@ modified from the code: https://gist.github.com/andersx/6354971
 """
 
 import Bio.PDB, argparse, subprocess, os
+from MDAnalysis import *
+from MDAnalysis.analysis.align import *
+from MDAnalysis.analysis.rms import rmsd
 
 parser = argparse.ArgumentParser()
 parser.add_argument("sample_path", type=str, help="path (file or folder) of pdb file(s) to be aligned")
@@ -11,6 +14,7 @@ parser.add_argument("--ref", type=str, default="../resources/1l2y.pdb", help="re
 parser.add_argument("--name", type=str, default=None, help='name of the aligned pdb file')
 parser.add_argument('--remove_original', help='remove original pdb file after doing structural alignment', action="store_true")
 parser.add_argument('--suffix', type=str, default="", help="string that appends at the end of filename")
+parser.add_argument('--atom_selection', type=str, default='backbone', help='atom_selection_statement for alignment')
 args = parser.parse_args()
 
 ref_structure_pdb_file = args.ref
@@ -30,24 +34,10 @@ for sample_structure_pdb_file in pdb_files:
     if os.path.exists(output_pdb_file) and os.path.getmtime(sample_structure_pdb_file) < os.path.getmtime(output_pdb_file):
         print ("aligned file already exists: %s (remove previous one if needed)" % output_pdb_file)
     else:
-        pdb_parser = Bio.PDB.PDBParser(QUIET = True)
-
-        ref_structure = pdb_parser.get_structure("reference", ref_structure_pdb_file)
-        sample_structure = pdb_parser.get_structure("sample", sample_structure_pdb_file)
-
-        ref_atoms = [item for item in ref_structure[0].get_atoms()]
-
-        for sample_model in sample_structure:
-            sample_atoms = [item for item in sample_model.get_atoms()]
-            super_imposer = Bio.PDB.Superimposer()
-            super_imposer.set_atoms(ref_atoms, sample_atoms)
-            super_imposer.apply(sample_model.get_atoms())
-            # print super_imposer.rms
-
-        # Save the aligned version
-        io = Bio.PDB.PDBIO()
-        io.set_structure(sample_structure)
-        io.save(output_pdb_file)
+        ref = Universe(ref_structure_pdb_file) 
+        trj = Universe(sample_structure_pdb_file) 
+        predefined_filename = rms_fit_trj(trj, ref, select=args.atom_selection)
+        subprocess.check_output(['mv', predefined_filename, output_pdb_file])
 
         print "done structural alignment for %s" % sample_structure_pdb_file
 

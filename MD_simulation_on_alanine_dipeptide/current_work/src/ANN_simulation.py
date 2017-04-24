@@ -26,6 +26,7 @@ class plotting(object):
                                             title=None,
                                             axis_ranges=None,
                                             contain_colorbar=True,
+                                            colorbar_label=None,
                                             smoothing_using_RNR = False,  # smooth the coloring values for data points using RadiusNeighborsRegressor()
                                             variance_using_RNR = False,  # get variance of coloring values over space using RNR
                                             smoothing_radius = 0.1,
@@ -115,7 +116,9 @@ class plotting(object):
             axis_object.set_ylim(axis_ranges[1])
 
         if contain_colorbar:
-            fig_object.colorbar(im, ax=axis_object)
+            temp_colorbar = fig_object.colorbar(im, ax=axis_object)
+            if not colorbar_label is None:
+                temp_colorbar.set_label(str(colorbar_label))
 
         # mouse clicking event
         if enable_mousing_clicking_event:
@@ -228,7 +231,9 @@ class plotting(object):
         return fig_object, axis_object
 
     def equilibration_check(self, coor_file_folder,
-                            scaling_factor, num_of_splits, save_fig=True):
+                            scaling_factor, num_of_splits, save_fig=True,
+                            starting_index_of_last_few_frames=0
+                            ):
         """this function checks equilibration by plotting each individual runs in PC space, colored with 'step',
         note: inputs should be Cartesian coordinates, the case with input using cossin is not implemented
         """
@@ -239,7 +244,7 @@ class plotting(object):
         temp_arrow_start_list = []
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
-            data = np.loadtxt(item) / scaling_factor
+            data = np.loadtxt(item)[starting_index_of_last_few_frames:] / scaling_factor
             data = Sutils.remove_translation(data)
             potential_centers_list.append([float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')])
             # do analysis using K-S test
@@ -363,28 +368,13 @@ class iteration(object):
             fraction_of_data_to_be_saved = 1
         elif CONFIG_48 == 'Cartesian':
             coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
-            coor_data_obj_output = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-                lambda x: 'aligned_coordinates.txt' in x)
-            coor_data_obj_output_1 = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-                lambda x: 'aligned_1_coordinates.txt' in x)
-            for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(), coor_data_obj_output.get_list_of_coor_data_files()):
-                assert (_2 == _1.replace('_coordinates.txt', '_aligned_coordinates.txt')), (_2, _1)
-
-            for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(), coor_data_obj_output_1.get_list_of_coor_data_files()):
-                assert (_2 == _1.replace('_coordinates.txt', '_aligned_1_coordinates.txt')), (_2, _1)
-
-            data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
-            # remove the center of mass
-            data_set = Sutils.remove_translation(data_set)
-            print coor_data_obj_output_1.get_coor_data(CONFIG_49)
-            output_data_set = np.concatenate((coor_data_obj_output.get_coor_data(CONFIG_49),
-                                              coor_data_obj_output_1.get_coor_data(CONFIG_49)), axis=1)
-            assert (data_set.shape[0] == output_data_set.shape[0])
-
-            # random rotation for data augmentation
+            alignment_coor_file_suffix_list = ['_aligned_coordinates.txt', '_aligned_1_coordinates.txt']
             num_of_copies = CONFIG_52
             fraction_of_data_to_be_saved = 1.0 / num_of_copies
-            data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
+            data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
+                ['../target/' + CONFIG_30], alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
+                molecule_type
+            )
         else:
             raise Exception('error input data type')
 
@@ -442,17 +432,20 @@ class iteration(object):
                                         num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
-            procs_to_run_commands = list(range(len(commands)))
-            for index, item in enumerate(commands):
-                print ("running: \t" + item)
-                procs_to_run_commands[index] = subprocess.Popen(item.split())
+            num_of_simulations_run_in_parallel = CONFIG_56
+            total_num_failed_jobs = 0
+            for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):
+                temp_commands_parallel = commands[item * num_of_simulations_run_in_parallel: (item + 1) * num_of_simulations_run_in_parallel]
+                print ("running: \t" + '\n'.join(temp_commands_parallel))
+                procs_to_run_commands = [subprocess.Popen(_1.strip().split()) for _1 in temp_commands_parallel]
+                exit_codes = [p.wait() for p in procs_to_run_commands]
+                total_num_failed_jobs += sum(exit_codes)
 
-            exit_codes = [p.wait() for p in procs_to_run_commands]
-            assert (sum(exit_codes) < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
+            assert (total_num_failed_jobs < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
 
             # TODO: currently they are not run in parallel, fix this later
         
-        # TODO: run next line only when the jobs are done, check this
+        # next line only when the jobs are done, check this
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
 
@@ -463,7 +456,11 @@ class iteration(object):
 
         elif isinstance(molecule_type, Alanine_dipeptide):
             subprocess.check_output(['python', 'structural_alignment.py','--ref',
-                                    '../resources/alanine_dipeptide.pdb', '../target/Alanine_dipeptide'])
+                                    '../resources/alanine_dipeptide.pdb', '../target/Alanine_dipeptide',
+                                    '--atom_selection', 'backbone'])
+            subprocess.check_output(['python', 'structural_alignment.py', '../target/Alanine_dipeptide',
+                                     '--ref', '../resources/alanine_ref_1.pdb', '--suffix', '_1', 
+                                     "--atom_selection", 'backbone'])
         else:
             raise Exception("molecule type error")
         molecule_type.generate_coordinates_from_pdb_files()

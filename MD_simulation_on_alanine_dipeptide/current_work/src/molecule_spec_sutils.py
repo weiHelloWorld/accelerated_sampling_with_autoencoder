@@ -2,10 +2,40 @@
 """
 
 from config import *
+from coordinates_data_files_list import *
 
 class Sutils(object):
     def __init__(self):
         return
+
+    @staticmethod
+    def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(folder_list,
+                                                                                 alignment_coor_file_suffix_list,
+                                                                                 scaling_factor,
+                                                                                 num_of_copies,
+                                                                                 molecule_type
+                                                                                 ):
+        my_coor_data_obj = coordinates_data_files_list(list_of_dir_of_coor_data_files=folder_list)
+        coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+            lambda x: not 'aligned' in x)
+        assert (len(alignment_coor_file_suffix_list) == CONFIG_55)
+        coor_data_obj_output_list = [my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+            lambda x: item in x) for item in alignment_coor_file_suffix_list]
+
+        for item in range(len(alignment_coor_file_suffix_list)):
+            for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(),
+                              coor_data_obj_output_list[item].get_list_of_coor_data_files()):
+                assert (_2 == _1.replace('_coordinates.txt', alignment_coor_file_suffix_list[item])), (_2, _1)
+
+        data_set = coor_data_obj_input.get_coor_data(scaling_factor)
+        # remove the center of mass
+        data_set = Sutils.remove_translation(data_set)
+        output_data_set = np.concatenate([item.get_coor_data(scaling_factor) for item in coor_data_obj_output_list]
+                                         , axis=1)
+        assert (data_set.shape[0] == output_data_set.shape[0])
+        # random rotation for data augmentation
+        data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
+        return data_set, output_data_set
 
     @staticmethod
     def create_subclass_instance_using_name(name):
@@ -93,9 +123,9 @@ class Sutils(object):
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
         if isinstance(molecule_type, Alanine_dipeptide):
-            num_of_backbone_atoms = 7
+            num_of_backbone_atoms = len(CONFIG_57[0])
         elif isinstance(molecule_type, Trp_cage):
-            num_of_backbone_atoms = 60
+            num_of_backbone_atoms = len(CONFIG_57[1])
         else:
             raise Exception("error molecule type")
 
@@ -263,8 +293,8 @@ class Sutils(object):
             diff_with_neighbors = np.zeros(hist_matrix.shape)
             temp_1 = [list(range(item)) for item in hist_matrix.shape]
             for grid_index in itertools.product(*temp_1):
-                neighbor_index_list = [np.array(grid_index) + temp_2 for temp_2 in np.eye(dimensionality)]
-                neighbor_index_list += [np.array(grid_index) - temp_2 for temp_2 in np.eye(dimensionality)]
+                neighbor_index_list = [(np.array(grid_index) + temp_2).astype(int) for temp_2 in np.eye(dimensionality)]
+                neighbor_index_list += [(np.array(grid_index) - temp_2).astype(int) for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list = filter(lambda x: np.all(x >= 0) and np.all(x < num_of_bins), neighbor_index_list)
                 # print "grid_index = %s" % str(grid_index)
                 # print "neighbor_index_list = %s" % str(neighbor_index_list)
@@ -275,7 +305,7 @@ class Sutils(object):
         # get grid centers
         edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
         grid_centers = np.array(list(itertools.product(*edge_centers)))  # "itertools.product" gives Cartesian/direct product of several lists
-        grid_centers = np.reshape(grid_centers, np.append(num_of_bins * np.ones(dimensionality), dimensionality))
+        grid_centers = np.reshape(grid_centers, np.append(num_of_bins * np.ones(dimensionality), dimensionality).astype(int))
         # print grid_centers
 
         potential_centers = []
@@ -408,13 +438,13 @@ class Alanine_dipeptide(Sutils):
 
     @staticmethod
     def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval =1):
-        index_of_backbone_atoms = ['2', '5', '7', '9', '15', '17', '19']
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[0]]
         output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
         return output_file_list
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
-        index_of_backbone_atoms = [2, 5, 7, 9, 15, 17, 19]
+        index_of_backbone_atoms = CONFIG_57[0]
         expression_for_input_of_this_molecule = ''
         for i in range(len(index_of_backbone_atoms) - 3):
             index_of_coss = 2 * i
@@ -544,7 +574,7 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[1]]
         assert (len(index_of_backbone_atoms) % 3 == 0)
 
         output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
@@ -778,7 +808,7 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def get_expression_for_input_of_this_molecule():
-        index_of_backbone_atoms = ['1', '2', '3', '17', '18', '19', '36', '37', '38', '57', '58', '59', '76', '77', '78', '93', '94', '95', '117', '118', '119', '136', '137', '138', '158', '159', '160', '170', '171', '172', '177', '178', '179', '184', '185', '186', '198', '199', '200', '209', '210', '211', '220', '221', '222', '227', '228', '229', '251', '252', '253', '265', '266', '267', '279', '280', '281', '293', '294', '295' ]
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[1]]
         total_num_of_residues = 20
         list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], list(range(total_num_of_residues))) \
                                + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], list(range(total_num_of_residues)))
