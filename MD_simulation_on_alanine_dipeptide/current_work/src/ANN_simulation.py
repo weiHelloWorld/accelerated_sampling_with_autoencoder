@@ -369,26 +369,12 @@ class iteration(object):
         elif CONFIG_48 == 'Cartesian':
             coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
             alignment_coor_file_suffix_list = ['_aligned_coordinates.txt', '_aligned_1_coordinates.txt']
-            assert (len(alignment_coor_file_suffix_list) == CONFIG_55)
-            coor_data_obj_output_list = [my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-                lambda x: item in x) for item in alignment_coor_file_suffix_list]
-
-            for item in range(len(alignment_coor_file_suffix_list)):
-                for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(),
-                                  coor_data_obj_output_list[item].get_list_of_coor_data_files()):
-                    assert (_2 == _1.replace('_coordinates.txt', alignment_coor_file_suffix_list[item])), (_2, _1)
-
-            data_set = coor_data_obj_input.get_coor_data(CONFIG_49)
-            # remove the center of mass
-            data_set = Sutils.remove_translation(data_set)
-            output_data_set = np.concatenate([item.get_coor_data(CONFIG_49) for item in coor_data_obj_output_list]
-                                             , axis=1)
-            assert (data_set.shape[0] == output_data_set.shape[0])
-
-            # random rotation for data augmentation
             num_of_copies = CONFIG_52
             fraction_of_data_to_be_saved = 1.0 / num_of_copies
-            data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
+            data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
+                ['../target/' + CONFIG_30], alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
+                molecule_type
+            )
         else:
             raise Exception('error input data type')
 
