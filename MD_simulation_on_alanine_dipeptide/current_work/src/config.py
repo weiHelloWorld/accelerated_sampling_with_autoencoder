@@ -127,7 +127,7 @@ CONFIG_31 = 10        # maximum number of failed simulations allowed in each ite
 
 '''def run_simulation'''
 
-CONFIG_56 = 8  # number of biased simulations running in parallel
+CONFIG_56 = get_mol_param([20, 8])    # number of biased simulations running in parallel
 CONFIG_14 = 7  # max number of jobs submitted each time
 CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
 CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files

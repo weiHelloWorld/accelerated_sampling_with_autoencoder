@@ -373,7 +373,8 @@ class iteration(object):
             fraction_of_data_to_be_saved = 1.0 / num_of_copies
             data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
                 ['../target/' + CONFIG_30], alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
-                molecule_type
+                molecule_type,
+                use_representative_points_for_training=True
             )
         else:
             raise Exception('error input data type')

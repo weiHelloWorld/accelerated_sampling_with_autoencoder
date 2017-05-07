@@ -3,18 +3,21 @@
 
 from config import *
 from coordinates_data_files_list import *
+from sklearn.cluster import KMeans
 
 class Sutils(object):
     def __init__(self):
         return
 
     @staticmethod
-    def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(folder_list,
-                                                                                 alignment_coor_file_suffix_list,
-                                                                                 scaling_factor,
-                                                                                 num_of_copies,
-                                                                                 molecule_type
-                                                                                 ):
+    def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
+             folder_list,
+             alignment_coor_file_suffix_list,
+             scaling_factor,
+             num_of_copies,
+             molecule_type,
+             use_representative_points_for_training=True
+             ):
         my_coor_data_obj = coordinates_data_files_list(list_of_dir_of_coor_data_files=folder_list)
         coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
             lambda x: not 'aligned' in x)
@@ -33,6 +36,18 @@ class Sutils(object):
         output_data_set = np.concatenate([item.get_coor_data(scaling_factor) for item in coor_data_obj_output_list]
                                          , axis=1)
         assert (data_set.shape[0] == output_data_set.shape[0])
+        # clustering, pick representative points for training, two purposes:
+        # 1. avoid that training results are too good for densely-sampled regions, but bad for others.
+        # 2. reduce computation cost
+        if use_representative_points_for_training:
+            print ("selecting representative points...")
+            kmeans = KMeans(init='k-means++', n_clusters=500, n_init=10)
+            kmeans.fit(output_data_set)
+            indices_of_representative_points = np.array([np.where(kmeans.labels_ == ii)[0][0]
+                                                         for ii in range(kmeans.n_clusters)])
+            data_set = data_set[indices_of_representative_points]
+            output_data_set = output_data_set[indices_of_representative_points]
+
         # random rotation for data augmentation
         data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
         return data_set, output_data_set
