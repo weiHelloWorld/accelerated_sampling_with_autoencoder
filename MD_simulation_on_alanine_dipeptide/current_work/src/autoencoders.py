@@ -239,21 +239,27 @@ class autoencoder(object):
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
         if force_constant_for_biased is None:
+            if isinstance(molecule_type, Trp_cage):
+                folder_state_coor_file = '../resources/1l2y_coordinates.txt'
+            elif isinstance(molecule_type, Alanine_dipeptide):
+                folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+            else:
+                raise Exception('molecule type error')
+
             if CONFIG_53 == "fixed":
                 force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
             elif CONFIG_53 == "flexible":
-                if isinstance(molecule_type, Trp_cage):
-                    folder_state_coor_file = '../resources/1l2y_coordinates.txt'
-                elif isinstance(molecule_type, Alanine_dipeptide):
-                    folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
-                else:
-                    raise Exception('molecule type error')
-
                 input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
                 PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
                 print("PC_folded_state = %s" % str(PC_folded_state))
                 force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
                                              for item in list_of_potential_center]
+            elif CONFIG_53 == "truncated":
+                input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
+                print("PC_folded_state = %s" % str(PC_folded_state))
+                force_constant_for_biased = [min(2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2,
+                                                 CONFIG_9) for item in list_of_potential_center]
             else:
                 raise Exception("error")
 
