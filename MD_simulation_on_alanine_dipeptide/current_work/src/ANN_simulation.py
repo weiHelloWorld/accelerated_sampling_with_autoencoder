@@ -374,7 +374,7 @@ class iteration(object):
             data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
                 ['../target/' + CONFIG_30], alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
                 molecule_type,
-                use_representative_points_for_training=True
+                use_representative_points_for_training=CONFIG_58
             )
         else:
             raise Exception('error input data type')
