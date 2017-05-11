@@ -82,3 +82,14 @@ class coordinates_data_files_list(object):
                             out_file.write("MODEL" + frame)
 
         return
+
+    def concat_all_pdb_files(self, out_pdb_file):
+        """
+        Why don't I use 'cat' in terminal? since I want to make order consistent with Python sort() function 
+        """
+        with open(out_pdb_file, 'w') as outfile:
+            for fname in self.get_list_of_corresponding_pdb_files():
+                with open(fname) as infile:
+                    outfile.write(infile.read())
+        return
+
