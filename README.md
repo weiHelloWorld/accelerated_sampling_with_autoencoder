@@ -60,6 +60,7 @@ It is **highly recommended** to run tests before running code to make sure packa
 This package uses `nosetest` framework.  To run testing, run
 
 ```bash
+root_dir=accelerated_sampling_with_autoencoder/MD_simulation_on_alanine_dipeptide/current_work
 cd ${root_dir}/tests
 make test
 ```
@@ -67,10 +68,6 @@ make test
 Tests include numerical unit tests (for tests with clear expected results) and figure plots (for others, such as training).
 
 ## 1-minute quick start
-
-Let
-
-`root_dir=accelerated_sampling_with_autoencoder/MD_simulation_on_alanine_dipeptide/current_work`
 
 Go ahead to modify configuration file `${root_dir}/src/config.py`, and run 
 
@@ -120,6 +117,9 @@ ${root_dir}/tests: test source code
 
 ## TODO
 
+## Best practices
+
+TODO
 
 ## Contact
 

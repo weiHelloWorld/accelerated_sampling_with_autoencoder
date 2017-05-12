@@ -333,7 +333,8 @@ class autoencoder(object):
                                                input_data_type='cossin',        # input_data_type could be 'cossin' or 'Cartesian'
                                                scaling_factor=CONFIG_49,       # only works for 'Cartesian'
                                                dihedral_angle_range=[1,2],     # only used fro alanine dipeptide
-                                               starting_index_of_last_few_frames=0        # number of last few frames used in calculation, 0 means to use all frames
+                                               starting_index_of_last_few_frames=0,   # number of last few frames used in calculation, 0 means to use all frames
+                                               ending_index_of_frames = 0     # end index, for FES convergence check
                                                ):
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
@@ -361,14 +362,18 @@ class autoencoder(object):
                 raise Exception('error input_data_type')
 
             temp_coor = temp_coor[starting_index_of_last_few_frames:]
+            if ending_index_of_frames != 0:
+                temp_coor = temp_coor[:ending_index_of_frames]
+
             temp_window_count = temp_coor.shape[0]
             window_counts += [float(temp_window_count)]   # there exists problems if using int
 
             coords += list(temp_coor)
             if isinstance(molecule_type, Alanine_dipeptide):
-                temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
+                temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])[starting_index_of_last_few_frames:]
+                if ending_index_of_frames != 0: temp_angles = temp_angles[:ending_index_of_frames]
                 temp_umbOP = [[a[temp_dihedral_index] for temp_dihedral_index in dihedral_angle_range] for a in temp_angles]
-                assert (temp_window_count == len(temp_umbOP))
+                assert (temp_window_count == len(temp_umbOP)), (temp_window_count, len(temp_umbOP))
                 assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
 
