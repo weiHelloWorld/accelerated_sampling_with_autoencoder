@@ -364,7 +364,8 @@ class autoencoder(object):
                 raise Exception('error input_data_type')
 
             if random_dataset:
-                data_index_list = random.sample(range(temp_coor.shape[0]), int(0.5 * temp_coor.shape[0]))
+                # data_index_list = random.sample(range(temp_coor.shape[0]), int(0.5 * temp_coor.shape[0]))  # nonrepeated
+                data_index_list = [random.choice(range(temp_coor.shape[0])) for _ in range(temp_coor.shape[0])]  # allow repeated data
                 # print "random data_index_list"
             else:
                 data_index_list = np.arange(temp_coor.shape[0])
