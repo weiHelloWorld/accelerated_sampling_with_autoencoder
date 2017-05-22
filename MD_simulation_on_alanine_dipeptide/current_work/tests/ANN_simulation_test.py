@@ -87,10 +87,10 @@ class test_Sutils(object):
         sns.heatmap(hist_matrix_processed, ax=axes[0][1], annot=True, cbar=False)
         sns.heatmap(diff_with_neighbors, ax=axes[1][0], annot=True, cbar=False)
         sns.heatmap(diff_with_neighbors < 0, ax=axes[1][1], annot=False, cbar=False)
-        axes[0][0].set_title('histogram of number of data points')
-        axes[0][1].set_title('histogram after preprocessing using function $p_i = \exp{(-n_i)}$')
-        axes[1][0].set_title('difference of $p_i$ value of a grid with its neighbors')
-        axes[1][1].set_title('location of new potential centers')
+        axes[0][0].set_title('number of data points $n_i$', fontsize=25)
+        axes[0][1].set_title('processing value $p_i = \exp{(-n_i)}$', fontsize=25)
+        axes[1][0].set_title('difference of $p_i$ with its neighbors', fontsize=25)
+        axes[1][1].set_title('location of new potential centers', fontsize=25)
         fig.savefig('diagram_of_finding_boundary.pdf', format='pdf', bbox_inches='tight')
         return
 
