@@ -329,19 +329,28 @@ class autoencoder(object):
         kmeans.fit(data_points)
         return kmeans.cluster_centers_
 
-    def generate_mat_file_for_WHAM_reweighting(self, directory_containing_coor_files,
-                                               folder_to_store_files='./standard_WHAM/', dimensionality=2, 
-                                               input_data_type='cossin',        # input_data_type could be 'cossin' or 'Cartesian'
-                                               scaling_factor=CONFIG_49,       # only works for 'Cartesian'
-                                               dihedral_angle_range=[1,2],     # only used for alanine dipeptide
-                                               starting_index_of_last_few_frames=0,   # number of last few frames used in calculation, 0 means to use all frames
-                                               ending_index_of_frames = 0,     # end index, for FES convergence check
-                                               random_dataset = False       # pick random dataset to estimate variance
+    def generate_mat_file_for_WHAM_reweighting(self,
+                                               directory_containing_coor_files,
+                                               mode="Bayes",  # mode = "standard" or "Bayes"
+                                               folder_to_store_files='./standard_WHAM/', dimensionality=2,
+                                               input_data_type='cossin',  # input_data_type could be 'cossin' or 'Cartesian'
+                                               scaling_factor=CONFIG_49,  # only works for 'Cartesian'
+                                               dihedral_angle_range=[1,2],  # only used for alanine dipeptide
+                                               starting_index_of_last_few_frames=0,  # number of last few frames used in calculation, 0 means to use all frames
+                                               ending_index_of_frames = 0,  # end index, for FES convergence check
+                                               random_dataset = False  # pick random dataset to estimate variance
                                                ):
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
             subprocess.check_output(['mkdir', folder_to_store_files])
+
+        if mode == "Bayes":
+            for item in ['bias', 'hist', 'traj', 'traj_proj']:
+                directory = folder_to_store_files + item
+                subprocess.check_output(['mkdir', '-p', directory])
+                assert (os.path.exists(directory))
+        else: pass
 
         list_of_coor_data_files = coordinates_data_files_list(
             [directory_containing_coor_files])._list_of_coor_data_files
@@ -385,131 +394,75 @@ class autoencoder(object):
                 assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
 
-        max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))
-        min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, list(zip(*coords))))
-        interval = 0.1
+        if mode == "standard":
+            max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))
+            min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, list(zip(*coords))))
+            interval = 0.1
 
-        window_counts = np.array(window_counts)
-        sciio.savemat(folder_to_store_files + 'WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
-                                                                            'force_constants': force_constants,
-                                                                            'harmonic_centers': harmonic_centers,
-                                                                            'coords': coords, 'dim': dimensionality,
-                                                                            'temperature': 300.0,
-                                                                            'periodicity': [[0.0] * dimensionality],
-                                                                            'dF_tol': 0.001,
-                                                                            'min_gap_max_ORIG': [
-                                                                                [min_of_coor[item_2], interval,
-                                                                                 max_of_coor[item_2]] for item_2 in range(dimensionality)]
-                                                                            })
-        sciio.savemat(folder_to_store_files + 'umbrella_OP.mat',
-                      {'umbOP': umbOP
-                       })
-        return
+            window_counts = np.array(window_counts)
+            sciio.savemat(folder_to_store_files + 'WHAM_nD__preprocessor.mat', {'window_counts': window_counts,
+                                                                                'force_constants': force_constants,
+                                                                                'harmonic_centers': harmonic_centers,
+                                                                                'coords': coords, 'dim': dimensionality,
+                                                                                'temperature': 300.0,
+                                                                                'periodicity': [[0.0] * dimensionality],
+                                                                                'dF_tol': 0.001,
+                                                                                'min_gap_max_ORIG': [
+                                                                                    [min_of_coor[item_2], interval,
+                                                                                     max_of_coor[item_2]] for item_2 in range(dimensionality)]
+                                                                                })
+            sciio.savemat(folder_to_store_files + 'umbrella_OP.mat',
+                          {'umbOP': umbOP
+                           })
 
-    def generate_files_for_Bayes_WHAM(self, directory_containing_coor_files, folder_to_store_files='./wham_files/',
-                                      dimensionality=2,
-                                      input_data_type='Cartesian',  # input_data_type could be 'cossin' or 'Cartesian'
-                                      scaling_factor=CONFIG_49,  # only works for 'Cartesian'
-                                      dihedral_angle_range=[1, 2],  # only used for alanine dipeptide
-                                      starting_index_of_last_few_frames=0,
-                                      ending_index_of_frames=0,  # end index, for FES convergence check
-                                      random_dataset=False
-                                      ):
-        list_of_coor_data_files = coordinates_data_files_list(
-            [directory_containing_coor_files])._list_of_coor_data_files
-        for item in ['bias', 'hist', 'traj', 'traj_proj']:
-            directory = folder_to_store_files + item
-            subprocess.check_output(['mkdir', '-p', directory])
-            assert (os.path.exists(directory))
+        elif mode == "Bayes":
+            # write info into files
+            # 1st: bias potential info
+            with open(folder_to_store_files + 'bias/harmonic_biases.txt', 'w') as f_out:
+                for item in range(len(force_constants)):
+                    temp = '%d\t%f\t%f\t%f\t%f\n' % (item + 1, harmonic_centers[item][0], harmonic_centers[item][1],
+                                                     force_constants[item][0], force_constants[item][1])
+                    f_out.write(temp)
 
-        force_constants = []
-        harmonic_centers = []
-        window_counts = []
-        coords = []
-        umbOP = []
-        for item in list_of_coor_data_files:
-            # print('processing %s' %item)
-            temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
-            force_constants += [[temp_force_constant] * dimensionality]
-            temp_harmonic_center_string = item.split('_pc_[')[1].split(']')[0]
-            harmonic_centers += [[float(item_1) for item_1 in temp_harmonic_center_string.split(',')]]
-            if input_data_type == 'cossin':
-                temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
-            elif input_data_type == 'Cartesian':
-                temp_coor = self.get_PCs(Sutils.remove_translation(np.loadtxt(item) / scaling_factor))
-            else:
-                raise Exception('error input_data_type')
+            # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
+            num_of_bins = 40
+            binEdges = np.array([np.linspace(-1, 1), np.linspace(-1, 1, num_of_bins)])
+            with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
+                for row in binEdges:
+                    for item in row:
+                        f_out.write('%f\t' % item)
+                    f_out.write('\n')
 
-            if random_dataset:
-                # data_index_list = random.sample(range(temp_coor.shape[0]), int(0.5 * temp_coor.shape[0]))  # nonrepeated
-                data_index_list = [random.choice(range(temp_coor.shape[0])) for _ in
-                                   range(temp_coor.shape[0])]  # allow repeated data
-                # print "random data_index_list"
-            else:
-                data_index_list = np.arange(temp_coor.shape[0])
-                data_index_list = data_index_list[starting_index_of_last_few_frames:]
-                if ending_index_of_frames != 0: data_index_list = data_index_list[:ending_index_of_frames]
+            binEdges_proj = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
+            with open(folder_to_store_files + 'hist/hist_binEdges_proj.txt', 'w') as f_out:
+                for row in binEdges_proj:
+                    for item in row:
+                        f_out.write('%f\t' % item)
+                    f_out.write('\n')
 
-            temp_coor = temp_coor[data_index_list]
-            assert len(temp_coor) == len(data_index_list)
-            temp_window_count = temp_coor.shape[0]
-            window_counts += [float(temp_window_count)]  # there exists problems if using int
+            end_index = 0
+            for item, count in enumerate(window_counts):
+                start_index = int(end_index)
+                end_index = int(start_index + count)
+                with open(folder_to_store_files + 'traj/traj_%d.txt' % (item + 1), 'w') as f_out_1, \
+                        open(folder_to_store_files + 'traj_proj/traj_%d.txt' % (item + 1), 'w') as f_out_2, \
+                        open(folder_to_store_files + 'hist/hist_%d.txt' % (item + 1), 'w') as f_out_3:
+                    for line in coords[start_index:end_index]:
+                        temp = '%f\t%f\n' % (line[0], line[1])
+                        f_out_1.write(temp)
 
-            coords += list(temp_coor)
-            if isinstance(molecule_type, Alanine_dipeptide):
-                temp_angles = np.array(molecule_type.get_many_dihedrals_from_coordinates_in_file([item]))[
-                    data_index_list]
-                temp_umbOP = [[a[temp_dihedral_index] for temp_dihedral_index in dihedral_angle_range] for a in
-                              temp_angles]
-                assert (temp_window_count == len(temp_umbOP)), (temp_window_count, len(temp_umbOP))
-                assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
-                umbOP += temp_umbOP
+                    for line in umbOP[start_index:end_index]:
+                        temp = '%f\t%f\n' % (line[0], line[1])
+                        f_out_2.write(temp)
 
-        # write info into files
-        # 1st: bias potential info
-        with open(folder_to_store_files + 'bias/harmonic_biases.txt', 'w') as f_out:
-            for item in range(len(force_constants)):
-                temp = '%d\t%f\t%f\t%f\t%f\n' % (item + 1, harmonic_centers[item][0], harmonic_centers[item][1],
-                                                 force_constants[item][0], force_constants[item][1])
-                f_out.write(temp)
-
-        # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
-        num_of_bins = 40
-        binEdges = np.array([np.linspace(-1, 1), np.linspace(-1, 1, num_of_bins)])
-        with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
-            for row in binEdges:
-                for item in row:
-                    f_out.write('%f\t' % item)
-                f_out.write('\n')
-
-        binEdges_proj = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
-        with open(folder_to_store_files + 'hist/hist_binEdges_proj.txt', 'w') as f_out:
-            for row in binEdges_proj:
-                for item in row:
-                    f_out.write('%f\t' % item)
-                f_out.write('\n')
-
-        end_index = 0
-        for item, count in enumerate(window_counts):
-            start_index = int(end_index)
-            end_index = int(start_index + count)
-            with open(folder_to_store_files + 'traj/traj_%d.txt' % (item + 1), 'w') as f_out_1, \
-                    open(folder_to_store_files + 'traj_proj/traj_%d.txt' % (item + 1), 'w') as f_out_2, \
-                    open(folder_to_store_files + 'hist/hist_%d.txt' % (item + 1), 'w') as f_out_3:
-                for line in coords[start_index:end_index]:
-                    temp = '%f\t%f\n' % (line[0], line[1])
-                    f_out_1.write(temp)
-
-                for line in umbOP[start_index:end_index]:
-                    temp = '%f\t%f\n' % (line[0], line[1])
-                    f_out_2.write(temp)
-
-                x = [item[0] for item in coords[start_index:end_index]]
-                y = [item[1] for item in coords[start_index:end_index]]
-                temp_hist, _, _ = np.histogram2d(x, y, bins=(binEdges[0], binEdges[1]))
-                for row in temp_hist:
-                    for _1 in row:
-                        f_out_3.write('%d\t' % _1)
+                    x = [item[0] for item in coords[start_index:end_index]]
+                    y = [item[1] for item in coords[start_index:end_index]]
+                    temp_hist, _, _ = np.histogram2d(x, y, bins=(binEdges[0], binEdges[1]))
+                    for row in temp_hist:
+                        for _1 in row:
+                            f_out_3.write('%d\t' % _1)
+        else:
+            raise Exception("error mode!")
 
         return
 
