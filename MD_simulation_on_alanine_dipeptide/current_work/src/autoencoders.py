@@ -406,7 +406,15 @@ class autoencoder(object):
                        })
         return
 
-    def generate_files_for_Bayes_WHAM(self, directory_containing_coor_files, folder_to_store_files='./wham_files/'):
+    def generate_files_for_Bayes_WHAM(self, directory_containing_coor_files, folder_to_store_files='./wham_files/',
+                                      dimensionality=2,
+                                      input_data_type='Cartesian',  # input_data_type could be 'cossin' or 'Cartesian'
+                                      scaling_factor=CONFIG_49,  # only works for 'Cartesian'
+                                      dihedral_angle_range=[1, 2],  # only used for alanine dipeptide
+                                      starting_index_of_last_few_frames=0,
+                                      ending_index_of_frames=0,  # end index, for FES convergence check
+                                      random_dataset=False
+                                      ):
         list_of_coor_data_files = coordinates_data_files_list(
             [directory_containing_coor_files])._list_of_coor_data_files
         for item in ['bias', 'hist', 'traj', 'traj_proj']:
@@ -422,20 +430,40 @@ class autoencoder(object):
         for item in list_of_coor_data_files:
             # print('processing %s' %item)
             temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
-            force_constants += [[temp_force_constant, temp_force_constant]]
+            force_constants += [[temp_force_constant] * dimensionality]
             temp_harmonic_center_string = item.split('_pc_[')[1].split(']')[0]
             harmonic_centers += [[float(item_1) for item_1 in temp_harmonic_center_string.split(',')]]
-            temp_window_count = float(
-                subprocess.check_output(['wc', '-l', item]).split()[0])  # there would be some problems if using int
-            window_counts += [temp_window_count]
-            temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
-            assert (temp_window_count == len(temp_coor))  # ensure the number of coordinates is window_count
+            if input_data_type == 'cossin':
+                temp_coor = self.get_PCs(molecule_type.get_many_cossin_from_coordinates_in_list_of_files([item]))
+            elif input_data_type == 'Cartesian':
+                temp_coor = self.get_PCs(Sutils.remove_translation(np.loadtxt(item) / scaling_factor))
+            else:
+                raise Exception('error input_data_type')
+
+            if random_dataset:
+                # data_index_list = random.sample(range(temp_coor.shape[0]), int(0.5 * temp_coor.shape[0]))  # nonrepeated
+                data_index_list = [random.choice(range(temp_coor.shape[0])) for _ in
+                                   range(temp_coor.shape[0])]  # allow repeated data
+                # print "random data_index_list"
+            else:
+                data_index_list = np.arange(temp_coor.shape[0])
+                data_index_list = data_index_list[starting_index_of_last_few_frames:]
+                if ending_index_of_frames != 0: data_index_list = data_index_list[:ending_index_of_frames]
+
+            temp_coor = temp_coor[data_index_list]
+            assert len(temp_coor) == len(data_index_list)
+            temp_window_count = temp_coor.shape[0]
+            window_counts += [float(temp_window_count)]  # there exists problems if using int
+
             coords += list(temp_coor)
-            temp_angles = molecule_type.get_many_dihedrals_from_coordinates_in_file([item])
-            temp_umbOP = [a[1:3] for a in temp_angles]
-            assert (temp_window_count == len(temp_umbOP))
-            assert (2 == len(temp_umbOP[0]))
-            umbOP += temp_umbOP
+            if isinstance(molecule_type, Alanine_dipeptide):
+                temp_angles = np.array(molecule_type.get_many_dihedrals_from_coordinates_in_file([item]))[
+                    data_index_list]
+                temp_umbOP = [[a[temp_dihedral_index] for temp_dihedral_index in dihedral_angle_range] for a in
+                              temp_angles]
+                assert (temp_window_count == len(temp_umbOP)), (temp_window_count, len(temp_umbOP))
+                assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
+                umbOP += temp_umbOP
 
         # write info into files
         # 1st: bias potential info
@@ -447,7 +475,7 @@ class autoencoder(object):
 
         # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
         num_of_bins = 40
-        binEdges = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
+        binEdges = np.array([np.linspace(-1, 1), np.linspace(-1, 1, num_of_bins)])
         with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
             for row in binEdges:
                 for item in row:
@@ -478,7 +506,7 @@ class autoencoder(object):
 
                 x = [item[0] for item in coords[start_index:end_index]]
                 y = [item[1] for item in coords[start_index:end_index]]
-                temp_hist, _, _ = np.histogram2d(y, x, bins=(binEdges[0], binEdges[1]))
+                temp_hist, _, _ = np.histogram2d(x, y, bins=(binEdges[0], binEdges[1]))
                 for row in temp_hist:
                     for _1 in row:
                         f_out_3.write('%d\t' % _1)
