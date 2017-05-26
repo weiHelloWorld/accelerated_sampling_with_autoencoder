@@ -41,7 +41,7 @@ class Sutils(object):
         # 2. reduce computation cost
         if use_representative_points_for_training:
             print ("selecting representative points...")
-            kmeans = KMeans(init='k-means++', n_clusters=CONFIG_59, n_init=10)
+            kmeans = KMeans(init='k-means++', n_clusters=min(CONFIG_59, data_set.shape[0]), n_init=10)
             kmeans.fit(output_data_set)
             indices_of_representative_points = np.array([np.where(kmeans.labels_ == ii)[0][0]
                                                          for ii in range(kmeans.n_clusters)])
