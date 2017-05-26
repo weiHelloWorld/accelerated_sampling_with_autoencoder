@@ -121,6 +121,20 @@ ${root_dir}/tests: test source code
 
 TODO
 
+## Extensions
+
+- How to apply this framework to new molecules?
+
+1. Create a subclass of `Sutils` for the molecule and implement corresponding methods.
+
+2. Include molecule-specific information in the configuration file `${root_dir}/src/config.py`, and modify corresponding configuration settings.
+
+- How to apply a new network structure or switch to a new training backend?
+
+1. Create a subclass of `autoencoder` for the new structure/backend and do implementation.  Note that all abstract methods (`@abc.abstractmethod`) must be implemented.
+
+2. Include new network information in the configuration file `${root_dir}/src/config.py`.
+
 ## Contact
 
 For any questions, feel free to contact weichen9@illinois.edu or open a github issue.
