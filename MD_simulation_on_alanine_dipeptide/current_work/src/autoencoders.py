@@ -338,8 +338,15 @@ class autoencoder(object):
                                                dihedral_angle_range=[1,2],  # only used for alanine dipeptide
                                                starting_index_of_last_few_frames=0,  # number of last few frames used in calculation, 0 means to use all frames
                                                ending_index_of_frames = 0,  # end index, for FES convergence check
-                                               random_dataset = False  # pick random dataset to estimate variance
+                                               random_dataset = False,  # pick random dataset to estimate variance
+                                               num_of_bins = 20
                                                ):
+        """
+        note: 
+        dihedral_angle_range, starting_index_of_last_few_frames, ending_index_of_frames, random_dataset 
+        may not work for Bayes mode
+        num_of_bins only works for Bayes mode
+        """
         if folder_to_store_files[-1] != '/':
             folder_to_store_files += '/'
         if not os.path.exists(folder_to_store_files):
@@ -420,20 +427,25 @@ class autoencoder(object):
             # 1st: bias potential info
             with open(folder_to_store_files + 'bias/harmonic_biases.txt', 'w') as f_out:
                 for item in range(len(force_constants)):
-                    temp = '%d\t%f\t%f\t%f\t%f\n' % (item + 1, harmonic_centers[item][0], harmonic_centers[item][1],
-                                                     force_constants[item][0], force_constants[item][1])
-                    f_out.write(temp)
+                    f_out.write('%d\t' % (item + 1))
+                    for write_item in harmonic_centers[item]:
+                        f_out.write('%f\t' % write_item)
+                    for write_item in force_constants[item]:
+                        f_out.write('%f\t' % write_item)
+                    f_out.write("\n")
 
             # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
-            num_of_bins = 40
-            binEdges = np.array([np.linspace(-1, 1), np.linspace(-1, 1, num_of_bins)])
+            num_of_bins = num_of_bins
+            binEdges = np.linspace(-1, 1, num_of_bins)
             with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
-                for row in binEdges:
-                    for item in row:
+                for _ in range(dimensionality):
+                    for item in binEdges:
                         f_out.write('%f\t' % item)
                     f_out.write('\n')
 
-            binEdges_proj = np.array([np.linspace(-np.pi, np.pi, num_of_bins), np.linspace(-np.pi, np.pi, num_of_bins)])
+            num_of_bins_proj = 40
+            binEdges_proj = np.array([np.linspace(-np.pi, np.pi, num_of_bins_proj),
+                                      np.linspace(-np.pi, np.pi, num_of_bins_proj)])
             with open(folder_to_store_files + 'hist/hist_binEdges_proj.txt', 'w') as f_out:
                 for row in binEdges_proj:
                     for item in row:
@@ -448,19 +460,21 @@ class autoencoder(object):
                         open(folder_to_store_files + 'traj_proj/traj_%d.txt' % (item + 1), 'w') as f_out_2, \
                         open(folder_to_store_files + 'hist/hist_%d.txt' % (item + 1), 'w') as f_out_3:
                     for line in coords[start_index:end_index]:
-                        temp = '%f\t%f\n' % (line[0], line[1])
-                        f_out_1.write(temp)
+                        for item_1 in line:
+                            f_out_1.write('%f\t' % item_1)
+
+                        f_out_1.write("\n")
 
                     for line in umbOP[start_index:end_index]:
-                        temp = '%f\t%f\n' % (line[0], line[1])
-                        f_out_2.write(temp)
+                        for item_1 in line:
+                            f_out_2.write('%f\t' % item_1)
 
-                    x = [item[0] for item in coords[start_index:end_index]]
-                    y = [item[1] for item in coords[start_index:end_index]]
-                    temp_hist, _, _ = np.histogram2d(x, y, bins=(binEdges[0], binEdges[1]))
-                    for row in temp_hist:
-                        for _1 in row:
-                            f_out_3.write('%d\t' % _1)
+                        f_out_2.write("\n")
+
+                    temp_hist, _ = np.histogramdd(np.array(coords[start_index:end_index]),
+                                                     bins=[binEdges.tolist()] * dimensionality)
+                    for _1 in temp_hist.flatten():
+                        f_out_3.write('%d\t' % _1)
         else:
             raise Exception("error mode!")
 
