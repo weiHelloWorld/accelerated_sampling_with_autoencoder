@@ -125,9 +125,15 @@ TODO
 
 - How to apply this framework to new molecules?
 
-1. Create a subclass of `Sutils` for the molecule and implement corresponding methods.
+1. Create a subclass of `Sutils` for the molecule and implement corresponding methods in `${root_dir}/src/molecule_spec_sutils.py`.
 
 2. Include molecule-specific information in the configuration file `${root_dir}/src/config.py`, and modify corresponding configuration settings.
+
+3. Create a new biased simulation file for the new molecule (you may use `${root_dir}/src/biased_simulation_Trp_cage.py` as a template).
+
+4. Add molecule-related statements to `${root_dir}/src/ANN_simulation.py` and `${root_dir}/src/autoencoders.py` whenever `Trp_cage` appears.
+
+5. Include new molecule in `${root_dir}/src/generate_coordinates.py`
 
 - How to apply a new network structure or switch to a new training backend?
 
