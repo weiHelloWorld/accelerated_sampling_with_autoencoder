@@ -10,7 +10,7 @@ ANN_Force biasing force package: https://github.com/weiHelloWorld/ANN_Force
 
 Keras: https://github.com/fchollet/keras
 
-PyBrain (for backward compatibility): https://github.com/pybrain/pybrain
+PyBrain (for backward compatibility): https://github.com/weiHelloWorld/pybrain.git
 
 MDAnalysis: https://github.com/MDAnalysis/mdanalysis
 
@@ -41,13 +41,20 @@ conda install mdanalysis
 echo "installing OpenMM"
 conda install -c omnia openmm
 
+echo "installing theano"
+pip install theano==0.8.2
+
 echo "installing Keras"
-pip install keras
+pip install keras==1.2.2
 
 echo "installing coverage (for nosetests)"
 pip install coverage
-```
 
+echo "installing PyBrain"
+git clone https://github.com/weiHelloWorld/pybrain.git
+cd pybrain
+python setup.py install
+```
 
 ## Installation and preparation
 
