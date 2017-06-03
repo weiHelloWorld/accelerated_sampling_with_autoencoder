@@ -159,6 +159,28 @@ class autoencoder(object):
             f_out.write(expression)
         return
 
+    def get_expression_script_for_plumed(self):
+        plumed_script = ''
+        plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
+
+        activation_function_list = ['tanh', 'tanh']
+        for layer_index in [1, 2]:
+            for item in range(self._node_num[layer_index]):
+                plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
+                plumed_script += "%s" % \
+                                 str(self._connection_between_layers_coeffs[layer_index - 1][
+                                     item * self._node_num[layer_index - 1]:(item + 1) * self._node_num[
+                                         layer_index - 1]].tolist())[1:-1].replace(' ', '')
+                plumed_script += ',%f' % self._connection_with_bias_layers_coeffs[layer_index - 1][item]
+                plumed_script += " ARG="
+                for _1 in range(self._node_num[layer_index - 1]):
+                    plumed_script += 'l_%d_out_%d,' % (layer_index - 1, _1)
+
+                plumed_script += 'bias_const\n'
+                plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=%s(x) PERIODIC=NO\n' % (
+                    layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
+        return plumed_script
+
     def write_coefficients_of_connections_into_file(self, out_file=None):
         if out_file is None: out_file = self._autoencoder_info_file
 

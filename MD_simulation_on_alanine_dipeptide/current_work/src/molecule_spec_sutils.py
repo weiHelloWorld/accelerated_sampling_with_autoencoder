@@ -471,6 +471,22 @@ class Alanine_dipeptide(Sutils):
             expression_for_input_of_this_molecule += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
         return expression_for_input_of_this_molecule
 
+    @staticmethod
+    def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
+        index_of_backbone_atoms = CONFIG_57[0]
+        plumed_script = ""
+        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
+        plumed_script += "p_com: POSITION ATOM=com_1\n"
+
+        for item in range(len(index_of_backbone_atoms)):
+            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
+        # following remove translation using p_com
+        for item in range(len(index_of_backbone_atoms)):
+            for _1, _2 in enumerate(['.x', '.y', '.z']):
+                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
+                                 % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor, # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
+                                    item, _2, _2)
+        return plumed_script
 
 class Trp_cage(Sutils):
     """docstring for Trp_cage"""
