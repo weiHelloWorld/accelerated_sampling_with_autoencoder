@@ -117,7 +117,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
         modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = 'Cl-')   # By default, addSolvent() creates TIP3P water molecules
         modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
-        system = forcefield.createSystem(modeller.topology, nonbondedMethod=Ewald, nonbondedCutoff=1.0 * nanometers,
+        system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
         forcefield = ForceField(force_field_file, implicit_solvent_force_field)
