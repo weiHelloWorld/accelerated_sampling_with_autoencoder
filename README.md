@@ -136,7 +136,7 @@ TODO
 
 2. Include molecule-specific information in the configuration file `${root_dir}/src/config.py`, and modify corresponding configuration settings.
 
-3. Create a new biased simulation file for the new molecule (you may use `${root_dir}/src/biased_simulation_Trp_cage.py` as a template).
+3. Modify biased simulation file (`${root_dir}/src/biased_simulation_general.py`) for the new molecule.
 
 4. Add molecule-related statements to `${root_dir}/src/ANN_simulation.py` and `${root_dir}/src/autoencoders.py` whenever `Trp_cage` appears.
 
