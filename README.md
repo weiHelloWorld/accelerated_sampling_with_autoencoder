@@ -10,7 +10,7 @@ ANN_Force biasing force package: https://github.com/weiHelloWorld/ANN_Force
 
 Keras: https://github.com/fchollet/keras
 
-PyBrain (for backward compatibility): https://github.com/pybrain/pybrain
+PyBrain (for backward compatibility): https://github.com/weiHelloWorld/pybrain.git
 
 MDAnalysis: https://github.com/MDAnalysis/mdanalysis
 
@@ -41,13 +41,20 @@ conda install mdanalysis
 echo "installing OpenMM"
 conda install -c omnia openmm
 
+echo "installing theano"
+pip install theano==0.8.2
+
 echo "installing Keras"
-pip install keras
+pip install keras==1.2.2
 
 echo "installing coverage (for nosetests)"
 pip install coverage
-```
 
+echo "installing PyBrain"
+git clone https://github.com/weiHelloWorld/pybrain.git
+cd pybrain
+python setup.py install
+```
 
 ## Installation and preparation
 
@@ -125,9 +132,15 @@ TODO
 
 - How to apply this framework to new molecules?
 
-1. Create a subclass of `Sutils` for the molecule and implement corresponding methods.
+1. Create a subclass of `Sutils` for the molecule and implement corresponding methods in `${root_dir}/src/molecule_spec_sutils.py`.
 
 2. Include molecule-specific information in the configuration file `${root_dir}/src/config.py`, and modify corresponding configuration settings.
+
+3. Modify biased simulation file (`${root_dir}/src/biased_simulation_general.py`) for the new molecule.
+
+4. Add molecule-related statements to `${root_dir}/src/ANN_simulation.py` and `${root_dir}/src/autoencoders.py` whenever `Trp_cage` appears.
+
+5. Include new molecule in `${root_dir}/src/generate_coordinates.py`
 
 - How to apply a new network structure or switch to a new training backend?
 

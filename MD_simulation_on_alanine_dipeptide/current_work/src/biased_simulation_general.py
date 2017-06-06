@@ -10,6 +10,7 @@ from config import *
 ############################ PARAMETERS BEGIN ###############################################################
 
 parser = argparse.ArgumentParser()
+parser.add_argument("molecule", type=str, help="type of molecule for the simulation")
 parser.add_argument("record_interval", type=int, help="interval to take snapshots")
 parser.add_argument("total_num_of_steps", type=int, help="total number of simulation steps")
 parser.add_argument("force_constant", type=float, help="force constants")
@@ -20,7 +21,7 @@ parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to a
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
-parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--starting_pdb_file", type=str, default='auto', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
@@ -72,9 +73,10 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     assert(os.path.exists(folder_to_store_output_files))
 
-    input_pdb_file_of_molecule = args.starting_pdb_file
-    force_field_file = 'amber03.xml'
-    water_field_file = 'tip4pew.xml'
+    force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml'}[args.molecule]
+    water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml'}[args.molecule]
+    water_model = {'Trp_cage': 'tip4pew', '2src': 'tip3p'}[args.molecule]
+    ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
@@ -84,12 +86,17 @@ def run_simulation(force_constant, number_of_simulation_steps):
     if args.fast_equilibration:
         checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
 
-    if args.starting_pdb_file != '../resources/1l2y.pdb':
+    if args.starting_pdb_file == 'auto':
+        input_pdb_file_of_molecule = {'Trp_cage': '../resources/1l2y.pdb',
+                                      '2src': '../resources/2src.pdb'}[args.molecule]
+    else:
+        input_pdb_file_of_molecule = args.starting_pdb_file
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
                                 args.starting_pdb_file.split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_sf_%s.txt' % \
                                 args.starting_pdb_file.split('.pdb')[0].split('/')[-1]
 
+    print "start_pdb = %s" % input_pdb_file_of_molecule
     if args.starting_frame != 0:
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_ff_%d.txt' % args.starting_frame
@@ -101,10 +108,10 @@ def run_simulation(force_constant, number_of_simulation_steps):
         os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
 
     flag_random_seed = 0 # whether we need to fix this random seed
-    box_size = 4.5    # in nm
+    box_size = {'Trp_cage': 4.5, '2src': 8.0}[args.molecule]
     time_step = CONFIG_22       # simulation time step, in ps
 
-    index_of_backbone_atoms = CONFIG_57[1]
+    index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1], '2src': 'TODO'}[args.molecule]  # TODO
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
@@ -112,21 +119,24 @@ def run_simulation(force_constant, number_of_simulation_steps):
     pdb = PDBFile(input_pdb_file_of_molecule)
     modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
 
-    if args.whether_to_add_water_mol_opt == 'explicit':    # if we need to add water molecules in the simulation
+    if args.whether_to_add_water_mol_opt == 'explicit':
         forcefield = ForceField(force_field_file, water_field_file)
-
-        modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = 'Cl-')   # By default, addSolvent() creates TIP3P water molecules
-        modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
-        system = forcefield.createSystem(modeller.topology, nonbondedMethod=Ewald, nonbondedCutoff=1.0 * nanometers,
+        modeller.addHydrogens(forcefield)
+        modeller.addSolvent(forcefield, model=water_model, boxSize=Vec3(box_size, box_size, box_size)*nanometers,
+                            ionicStrength=ionic_strength)
+        modeller.addExtraParticles(forcefield)
+        system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
         forcefield = ForceField(force_field_file, implicit_solvent_force_field)
+        modeller.addHydrogens(forcefield)
+        modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(pdb.topology,nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=5 * nanometers,
                                          constraints=simulation_constraints, rigidWater=True, removeCMMotion=True)
 
     elif args.whether_to_add_water_mol_opt == 'no_water' or args.whether_to_add_water_mol_opt == 'water_already_included':
         forcefield = ForceField(force_field_file, water_field_file)
-
+        modeller.addHydrogens(forcefield)
         modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff,nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints)
@@ -272,9 +282,7 @@ if __name__ == '__main__':
                     print "removing previous results..."
                 except:
                     pass
-            pdb_file = run_simulation(force_constant)
+            pdb_file = run_simulation(force_constant, total_number_of_steps)
             distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
             force_constant += args.fc_step
             print "distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center
-
-
