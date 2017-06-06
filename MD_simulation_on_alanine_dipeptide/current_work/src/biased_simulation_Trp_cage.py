@@ -75,6 +75,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml'}[args.molecule]
     water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml'}[args.molecule]
+    water_model = {'Trp_cage': 'tip4pew', '2src': 'tip3p'}[args.molecule]
+    ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
@@ -120,7 +122,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
     if args.whether_to_add_water_mol_opt == 'explicit':    # if we need to add water molecules in the simulation
         forcefield = ForceField(force_field_file, water_field_file)
         modeller.addHydrogens(forcefield)
-        modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers)
+        modeller.addSolvent(forcefield, model=water_model, boxSize=Vec3(box_size, box_size, box_size)*nanometers,
+                            ionicStrength=ionic_strength)
         modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
