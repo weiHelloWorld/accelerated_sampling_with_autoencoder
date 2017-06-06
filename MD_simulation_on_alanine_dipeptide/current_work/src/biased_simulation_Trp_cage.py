@@ -73,8 +73,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     assert(os.path.exists(folder_to_store_output_files))
 
-    force_field_file = 'amber03.xml'
-    water_field_file = 'tip4pew.xml'
+    force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml'}[args.molecule]
+    water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml'}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
@@ -106,10 +106,10 @@ def run_simulation(force_constant, number_of_simulation_steps):
         os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
 
     flag_random_seed = 0 # whether we need to fix this random seed
-    box_size = 4.5    # in nm
+    box_size = {'Trp_cage': 4.5, '2src': 8.0}[args.molecule]
     time_step = CONFIG_22       # simulation time step, in ps
 
-    index_of_backbone_atoms = CONFIG_57[1]
+    index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1], '2src': 'TODO'}[args.molecule]  # TODO
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
@@ -119,19 +119,20 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     if args.whether_to_add_water_mol_opt == 'explicit':    # if we need to add water molecules in the simulation
         forcefield = ForceField(force_field_file, water_field_file)
-
-        modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers, negativeIon = 'Cl-')   # By default, addSolvent() creates TIP3P water molecules
+        modeller.addHydrogens(forcefield)
+        modeller.addSolvent(forcefield, boxSize=Vec3(box_size, box_size, box_size)*nanometers)
         modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
         forcefield = ForceField(force_field_file, implicit_solvent_force_field)
+        modeller.addHydrogens(forcefield)
         system = forcefield.createSystem(pdb.topology,nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=5 * nanometers,
                                          constraints=simulation_constraints, rigidWater=True, removeCMMotion=True)
 
     elif args.whether_to_add_water_mol_opt == 'no_water' or args.whether_to_add_water_mol_opt == 'water_already_included':
         forcefield = ForceField(force_field_file, water_field_file)
-
+        modeller.addHydrogens(forcefield)
         modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff,nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints)
