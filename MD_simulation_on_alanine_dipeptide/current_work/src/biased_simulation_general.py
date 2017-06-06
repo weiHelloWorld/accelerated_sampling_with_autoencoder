@@ -119,17 +119,18 @@ def run_simulation(force_constant, number_of_simulation_steps):
     pdb = PDBFile(input_pdb_file_of_molecule)
     modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
 
-    if args.whether_to_add_water_mol_opt == 'explicit':    # if we need to add water molecules in the simulation
+    if args.whether_to_add_water_mol_opt == 'explicit':
         forcefield = ForceField(force_field_file, water_field_file)
         modeller.addHydrogens(forcefield)
         modeller.addSolvent(forcefield, model=water_model, boxSize=Vec3(box_size, box_size, box_size)*nanometers,
                             ionicStrength=ionic_strength)
-        modeller.addExtraParticles(forcefield)    # no idea what it is doing, but it works?
+        modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
         forcefield = ForceField(force_field_file, implicit_solvent_force_field)
         modeller.addHydrogens(forcefield)
+        modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(pdb.topology,nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=5 * nanometers,
                                          constraints=simulation_constraints, rigidWater=True, removeCMMotion=True)
 
@@ -285,5 +286,3 @@ if __name__ == '__main__':
             distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
             force_constant += args.fc_step
             print "distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center
-
-
