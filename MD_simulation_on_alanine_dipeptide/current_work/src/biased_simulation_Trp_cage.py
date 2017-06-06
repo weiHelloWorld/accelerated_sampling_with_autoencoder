@@ -10,6 +10,7 @@ from config import *
 ############################ PARAMETERS BEGIN ###############################################################
 
 parser = argparse.ArgumentParser()
+parser.add_argument("molecule", type=str, help="type of molecule for the simulation")
 parser.add_argument("record_interval", type=int, help="interval to take snapshots")
 parser.add_argument("total_num_of_steps", type=int, help="total number of simulation steps")
 parser.add_argument("force_constant", type=float, help="force constants")
@@ -20,7 +21,7 @@ parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to a
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
-parser.add_argument("--starting_pdb_file", type=str, default='../resources/1l2y.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--starting_pdb_file", type=str, default='auto', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
@@ -72,7 +73,6 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     assert(os.path.exists(folder_to_store_output_files))
 
-    input_pdb_file_of_molecule = args.starting_pdb_file
     force_field_file = 'amber03.xml'
     water_field_file = 'tip4pew.xml'
     implicit_solvent_force_field = 'amber03_obc.xml'
@@ -84,12 +84,17 @@ def run_simulation(force_constant, number_of_simulation_steps):
     if args.fast_equilibration:
         checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
 
-    if args.starting_pdb_file != '../resources/1l2y.pdb':
+    if args.starting_pdb_file == 'auto':
+        input_pdb_file_of_molecule = {'Trp_cage': '../resources/1l2y.pdb',
+                                      '2src': '../resources/2src.pdb'}[args.molecule]
+    else:
+        input_pdb_file_of_molecule = args.starting_pdb_file
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
                                 args.starting_pdb_file.split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_sf_%s.txt' % \
                                 args.starting_pdb_file.split('.pdb')[0].split('/')[-1]
 
+    print "start_pdb = %s" % input_pdb_file_of_molecule
     if args.starting_frame != 0:
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_ff_%d.txt' % args.starting_frame
