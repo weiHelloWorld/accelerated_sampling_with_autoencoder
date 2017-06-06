@@ -314,7 +314,7 @@ class autoencoder(object):
                                   autoencoder_info_file,
                                   'pc_' + str(potential_center).replace(' ', '')[1:-1],
                                   CONFIG_40, CONFIG_51, input_data_type, index % 2)
-                command = "python ../src/biased_simulation_Trp_cage.py %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration 1" % parameter_list
+                command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration 1" % parameter_list
                 if CONFIG_42:
                     command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                         '../resources/Trp_cage/network_%d.pkl' % self._index)
