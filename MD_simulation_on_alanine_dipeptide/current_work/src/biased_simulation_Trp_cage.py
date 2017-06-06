@@ -281,7 +281,7 @@ if __name__ == '__main__':
                     print "removing previous results..."
                 except:
                     pass
-            pdb_file = run_simulation(force_constant)
+            pdb_file = run_simulation(force_constant, total_number_of_steps)
             distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
             force_constant += args.fc_step
             print "distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center
