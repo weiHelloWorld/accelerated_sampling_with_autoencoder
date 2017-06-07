@@ -332,11 +332,13 @@ class autoencoder(object):
 
                 todo_list_of_commands_for_simulations += [command]
         elif bias_method == "MTD":
+            todo_list_of_commands_for_simulations = []
             self.write_expression_script_for_plumed()
             if isinstance(molecule_type, Alanine_dipeptide):
-                parameter_list = ('50', '50000', '0', '../target/Alanine_dipeptide/network_%d/' % self._index, self._autoencoder_info_file)
-                command = "python ../src/biased_simulation.py %s %s %s %s %s pc_0 --data_type_in_input_layer 1 --bias_method MTD" % parameter_list
-                todo_list_of_commands_for_simulations = [command]
+                for mtd_sim_index in range(5):
+                    parameter_list = ('50', '50000', str(mtd_sim_index), '../target/Alanine_dipeptide/network_%d/' % self._index, self._autoencoder_info_file)
+                    command = "python ../src/biased_simulation.py %s %s %s %s %s pc_0,0 --data_type_in_input_layer 1 --bias_method MTD" % parameter_list
+                    todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")
         else:
