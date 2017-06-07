@@ -73,10 +73,10 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     assert(os.path.exists(folder_to_store_output_files))
 
-    force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml'}[args.molecule]
-    water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml'}[args.molecule]
-    water_model = {'Trp_cage': 'tip4pew', '2src': 'tip3p'}[args.molecule]
-    ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar}[args.molecule]
+    force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml', '1y57': 'amber03.xml'}[args.molecule]
+    water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml', '1y57': 'tip3p.xml'}[args.molecule]
+    water_model = {'Trp_cage': 'tip4pew', '2src': 'tip3p', '1y57': 'tip3p'}[args.molecule]
+    ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar, '1y57': 0.5 * .15 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
@@ -88,7 +88,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     if args.starting_pdb_file == 'auto':
         input_pdb_file_of_molecule = {'Trp_cage': '../resources/1l2y.pdb',
-                                      '2src': '../resources/2src.pdb'}[args.molecule]
+                                      '2src': '../resources/2src.pdb',
+                                      '1y57': '../resources/1y57.pdb'}[args.molecule]
     else:
         input_pdb_file_of_molecule = args.starting_pdb_file
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
@@ -108,10 +109,11 @@ def run_simulation(force_constant, number_of_simulation_steps):
         os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
 
     flag_random_seed = 0 # whether we need to fix this random seed
-    box_size = {'Trp_cage': 4.5, '2src': 8.0}[args.molecule]
+    box_size = {'Trp_cage': 4.5, '2src': 8.0, '1y57': 8.0}[args.molecule]
     time_step = CONFIG_22       # simulation time step, in ps
 
-    index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1], '2src': 'TODO'}[args.molecule]  # TODO
+    index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1],
+                               '2src': 'TODO', '1y57': 'TODO'}[args.molecule]  # TODO
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
