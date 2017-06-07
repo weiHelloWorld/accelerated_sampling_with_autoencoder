@@ -1,4 +1,8 @@
-# biased simulation
+"""
+This file is for biased simulation for alanine dipeptide only, it is used as the test for
+more general file biased_simulation_general.py, which could be easily extend to other new
+systems.
+"""
 
 from ANN_simulation import *
 from simtk.openmm.app import *
@@ -26,6 +30,7 @@ parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='dat
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--bias_method", type=str, default='US', help="biasing method for enhanced sampling, US = umbrella sampling, MTD = metadynamics")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -118,41 +123,51 @@ def run_simulation(force_constant):
     system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff,
                                      constraints=AllBonds)
 
-    # add biased force, could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
-
-    if CONFIG_28 == "CustomManyParticleForce":
-        force = CustomManyParticleForce(22, energy_expression)
-        for _ in range(system.getNumParticles()):
-            force.addParticle("",0)  # what kinds of types should we specify here for each atom?
-        system.addForce(force)
-
-    elif CONFIG_28 == "ANN_Force":
-        if force_constant != '0' and force_constant != 0:
-            force = ANN_Force()
-            force.set_layer_types(layer_types)
-            force.set_data_type_in_input_layer(args.data_type_in_input_layer)
-            force.set_list_of_index_of_atoms_forming_dihedrals(list_of_index_of_atoms_forming_dihedrals)
-            force.set_index_of_backbone_atoms(index_of_backbone_atoms)
-            force.set_num_of_nodes(num_of_nodes)
-            force.set_potential_center(
-                potential_center
-                )
-            force.set_force_constant(float(force_constant))
-            force.set_scaling_factor(float(scaling_factor))
-
-            # set coefficient
-            with open(autoencoder_info_file, 'r') as f_in:
-                content = f_in.readlines()
-
-            force.set_coeffients_of_connections(
-                [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
-                                            )
-
-            force.set_values_of_biased_nodes([
-                ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
-                ])
-
+    if args.bias_method == "US":
+        if CONFIG_28 == "CustomManyParticleForce":
+            force = CustomManyParticleForce(22, energy_expression)
+            for _ in range(system.getNumParticles()):
+                force.addParticle("",0)  # what kinds of types should we specify here for each atom?
             system.addForce(force)
+
+        elif CONFIG_28 == "ANN_Force":
+            if force_constant != '0' and force_constant != 0:
+                force = ANN_Force()
+                force.set_layer_types(layer_types)
+                force.set_data_type_in_input_layer(args.data_type_in_input_layer)
+                force.set_list_of_index_of_atoms_forming_dihedrals(list_of_index_of_atoms_forming_dihedrals)
+                force.set_index_of_backbone_atoms(index_of_backbone_atoms)
+                force.set_num_of_nodes(num_of_nodes)
+                force.set_potential_center(
+                    potential_center
+                    )
+                force.set_force_constant(float(force_constant))
+                force.set_scaling_factor(float(scaling_factor))
+
+                # set coefficient
+                with open(autoencoder_info_file, 'r') as f_in:
+                    content = f_in.readlines()
+
+                force.set_coeffients_of_connections(
+                    [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
+                                                )
+
+                force.set_values_of_biased_nodes([
+                    ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
+                    ])
+
+                system.addForce(force)
+    elif args.bias_method == "MTD":
+        from openmmplumed import PlumedForce
+        plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed()
+        with open(autoencoder_info_file, 'r') as f_in:
+            plumed_force_string += f_in.read()
+
+        plumed_force_string += """
+metad: METAD ARG=l_2_out_0,l_2_out_1 PACE=100 HEIGHT=3 SIGMA=0.35,0.35 FILE=HILLS 
+PRINT STRIDE=50 ARG=l_2_out_0,l_2_out_1,metad.bias FILE=temp_MTD_out.txt
+"""
+        system.addForce(PlumedForce(plumed_force_string))
     # end of biased force
 
     integrator = LangevinIntegrator(simulation_temperature*kelvin, 1/picosecond, time_step*picoseconds)
