@@ -30,7 +30,11 @@ parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='dat
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
+# next few options are for metadynamics
 parser.add_argument("--bias_method", type=str, default='US', help="biasing method for enhanced sampling, US = umbrella sampling, MTD = metadynamics")
+parser.add_argument("--MTD_pace", type=int, default=500, help="pace of metadynamics")
+parser.add_argument("--MTD_height", type=float, default=3, help="height of metadynamics")
+parser.add_argument("--MTD_sigma", type=float, default=0.2, help="sigma of metadynamics")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -163,10 +167,15 @@ def run_simulation(force_constant):
         with open(autoencoder_info_file, 'r') as f_in:
             plumed_force_string += f_in.read()
 
+        # note that dimensionality of MTD is determined by potential_center string
+        mtd_output_layer_string = ['l_2_out_%d' % item for item in range(len(potential_center))]
+        mtd_output_layer_string = ','.join(mtd_output_layer_string)
+        mtd_sigma_string = ','.join([str(args.MTD_sigma) for _ in range(len(potential_center))])
         plumed_force_string += """
-metad: METAD ARG=l_2_out_0,l_2_out_1 PACE=500 HEIGHT=3 SIGMA=0.35,0.35 FILE=temp_MTD_hills.txt
-PRINT STRIDE=50 ARG=l_2_out_0,l_2_out_1,metad.bias FILE=temp_MTD_out.txt
-"""
+metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt
+PRINT STRIDE=%d ARG=%s,metad.bias FILE=temp_MTD_out.txt
+""" % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string,
+       record_interval, mtd_output_layer_string)
         system.addForce(PlumedForce(plumed_force_string))
     # end of biased force
 
