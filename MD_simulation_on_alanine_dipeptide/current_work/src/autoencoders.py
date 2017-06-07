@@ -252,83 +252,95 @@ class autoencoder(object):
                                                     num_of_simulation_steps=None,
                                                     autoencoder_info_file=None,
                                                     force_constant_for_biased=None,
+                                                    bias_method="MTD"
                                                     ):
         """this function creates a list of commands for further biased simulations that should be done later,
         either in local machines or on the cluster
         """
-        PCs_of_network = self.get_PCs()
-        if self._hidden_layers_type[1] == CircularLayer:
-            assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
-        else:
-            assert (len(PCs_of_network[0]) == self._node_num[2])
-
-        if list_of_potential_center is None:
-            list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
-        if num_of_simulation_steps is None:
-            num_of_simulation_steps = CONFIG_8
-        if autoencoder_info_file is None:
-            autoencoder_info_file = self._autoencoder_info_file
-        if force_constant_for_biased is None:
-            if isinstance(molecule_type, Trp_cage):
-                folder_state_coor_file = '../resources/1l2y_coordinates.txt'
-            elif isinstance(molecule_type, Alanine_dipeptide):
-                folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+        if bias_method == "US":
+            PCs_of_network = self.get_PCs()
+            if self._hidden_layers_type[1] == CircularLayer:
+                assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
             else:
-                raise Exception('molecule type error')
+                assert (len(PCs_of_network[0]) == self._node_num[2])
 
-            if CONFIG_53 == "fixed":
-                force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
-            elif CONFIG_53 == "flexible":
-                input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
-                PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
-                print("PC_folded_state = %s" % str(PC_folded_state))
-                force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
-                                             for item in list_of_potential_center]
-            elif CONFIG_53 == "truncated":
-                input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
-                PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
-                print("PC_folded_state = %s" % str(PC_folded_state))
-                force_constant_for_biased = [min(2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2,
-                                                 CONFIG_9) for item in list_of_potential_center]
+            if list_of_potential_center is None:
+                list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
+            if num_of_simulation_steps is None:
+                num_of_simulation_steps = CONFIG_8
+            if autoencoder_info_file is None:
+                autoencoder_info_file = self._autoencoder_info_file
+            if force_constant_for_biased is None:
+                if isinstance(molecule_type, Trp_cage):
+                    folder_state_coor_file = '../resources/1l2y_coordinates.txt'
+                elif isinstance(molecule_type, Alanine_dipeptide):
+                    folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+                else:
+                    raise Exception('molecule type error')
+
+                if CONFIG_53 == "fixed":
+                    force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
+                elif CONFIG_53 == "flexible":
+                    input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                    PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
+                    print("PC_folded_state = %s" % str(PC_folded_state))
+                    force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
+                                                 for item in list_of_potential_center]
+                elif CONFIG_53 == "truncated":
+                    input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                    PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
+                    print("PC_folded_state = %s" % str(PC_folded_state))
+                    force_constant_for_biased = [min(2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2,
+                                                     CONFIG_9) for item in list_of_potential_center]
+                else:
+                    raise Exception("error")
+
+            todo_list_of_commands_for_simulations = []
+            if CONFIG_48 == 'Cartesian':
+                input_data_type = 1
+            elif CONFIG_48 == 'cossin':
+                input_data_type = 0
             else:
-                raise Exception("error")
+                raise Exception("error input data type")
 
-        todo_list_of_commands_for_simulations = []
-        if CONFIG_48 == 'Cartesian':
-            input_data_type = 1
-        elif CONFIG_48 == 'cossin':
-            input_data_type = 0
-        else:
-            raise Exception("error input data type")
+            for index, potential_center in enumerate(list_of_potential_center):
+                if isinstance(molecule_type, Alanine_dipeptide):
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                                      '../target/Alanine_dipeptide/network_%d' % self._index,
+                                      autoencoder_info_file,
+                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                      input_data_type
+                                      # need to remove white space, otherwise parsing error
+                                      )
+                    command = "python ../src/biased_simulation.py %s %s %s %s %s %s --data_type_in_input_layer %d" % parameter_list
+                    if CONFIG_42:  # whether the force constant adjustable mode is enabled
+                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
+                            '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
 
-        for index, potential_center in enumerate(list_of_potential_center):
+                elif isinstance(molecule_type, Trp_cage):
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                                      '../target/Trp_cage/network_%d/' % self._index,
+                                      autoencoder_info_file,
+                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                      CONFIG_40, CONFIG_51, input_data_type, index % 2)
+                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration 1" % parameter_list
+                    if CONFIG_42:
+                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                            '../resources/Trp_cage/network_%d.pkl' % self._index)
+                else:
+                    raise Exception("molecule type not defined")
+
+                todo_list_of_commands_for_simulations += [command]
+        elif bias_method == "MTD":
+            self.write_expression_script_for_plumed()
             if isinstance(molecule_type, Alanine_dipeptide):
-                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                  '../target/Alanine_dipeptide/network_%d' % self._index,
-                                  autoencoder_info_file,
-                                  'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  input_data_type
-                                  # need to remove white space, otherwise parsing error
-                                  )
-                command = "python ../src/biased_simulation.py %s %s %s %s %s %s --data_type_in_input_layer %d" % parameter_list
-                if CONFIG_42:  # whether the force constant adjustable mode is enabled
-                    command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
-                        '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
-
-            elif isinstance(molecule_type, Trp_cage):
-                parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                  '../target/Trp_cage/network_%d/' % self._index,
-                                  autoencoder_info_file,
-                                  'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                  CONFIG_40, CONFIG_51, input_data_type, index % 2)
-                command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration 1" % parameter_list
-                if CONFIG_42:
-                    command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
-                        '../resources/Trp_cage/network_%d.pkl' % self._index)
+                parameter_list = ('50', '50000', '0', '../target/Alanine_dipeptide/network_%d/' % self._index, self._autoencoder_info_file)
+                command = "python ../src/biased_simulation.py %s %s %s %s %s pc_0 --data_type_in_input_layer 1 --bias_method MTD" % parameter_list
+                todo_list_of_commands_for_simulations = [command]
             else:
                 raise Exception("molecule type not defined")
-
-            todo_list_of_commands_for_simulations += [command]
+        else:
+            raise Exception("bias method not found")
 
         return todo_list_of_commands_for_simulations
 
