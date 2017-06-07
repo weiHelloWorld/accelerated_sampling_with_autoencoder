@@ -181,6 +181,13 @@ class autoencoder(object):
                     layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
         return plumed_script
 
+    def write_expression_script_for_plumed(self, out_file=None):
+        if out_file is None: out_file = self._autoencoder_info_file
+        expression = self.get_expression_script_for_plumed()
+        with open(out_file, 'w') as f_out:
+            f_out.write(expression)
+        return
+
     def write_coefficients_of_connections_into_file(self, out_file=None):
         if out_file is None: out_file = self._autoencoder_info_file
 

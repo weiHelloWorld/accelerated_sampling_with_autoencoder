@@ -164,7 +164,7 @@ def run_simulation(force_constant):
             plumed_force_string += f_in.read()
 
         plumed_force_string += """
-metad: METAD ARG=l_2_out_0,l_2_out_1 PACE=100 HEIGHT=3 SIGMA=0.35,0.35 FILE=HILLS 
+metad: METAD ARG=l_2_out_0,l_2_out_1 PACE=500 HEIGHT=3 SIGMA=0.35,0.35 FILE=HILLS
 PRINT STRIDE=50 ARG=l_2_out_0,l_2_out_1,metad.bias FILE=temp_MTD_out.txt
 """
         system.addForce(PlumedForce(plumed_force_string))

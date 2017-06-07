@@ -476,6 +476,7 @@ class simulation_with_ANN_main(object):
         self._num_of_iterations = num_of_iterations
         self._initial_iteration = initial_iteration
         self._training_interval = training_interval
+        print "running iterations for system: %s" % CONFIG_30
         return
 
     def run_one_iteration(self, one_iteration):
