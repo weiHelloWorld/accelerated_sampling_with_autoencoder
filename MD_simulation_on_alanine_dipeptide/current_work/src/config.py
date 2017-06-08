@@ -85,7 +85,17 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
-CONFIG_55 = get_mol_param([2,2])       # number of reference configurations used in training
+CONFIG_62 = get_mol_param([
+    ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
+    ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb']
+])                   # list of reference file
+CONFIG_63 = get_mol_param([
+    ['', '_1'],
+    ['', '_1']]
+)                         # suffix for each reference configuration
+CONFIG_61 = ['_aligned%s_coordinates.txt' % item
+             for item in CONFIG_63]  # alignment_coor_file_suffix_list (we use different suffix for aligned files with respect to different references)
+CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
 if CONFIG_48 == 'cossin':
     CONFIG_3 = get_mol_param([
