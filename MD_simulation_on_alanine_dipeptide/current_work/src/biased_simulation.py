@@ -97,12 +97,10 @@ def run_simulation(force_constant):
                                                 [9,15,17,19]]
     index_of_backbone_atoms = CONFIG_57[0]
 
-
-    with open(autoencoder_info_file, 'r') as f_in:
-        energy_expression = f_in.read()
-
     # FIXME: following expression is out-of-date due to the change in API for higher-dimensional cases
     if CONFIG_28 == "CustomManyParticleForce":
+        with open(autoencoder_info_file, 'r') as f_in:
+            energy_expression = f_in.read()
         [xi_1_0, xi_2_0] = potential_center
         if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
             energy_expression = '''
@@ -176,6 +174,17 @@ metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt
 PRINT STRIDE=%d ARG=%s,metad.bias FILE=temp_MTD_out.txt
 """ % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string,
        record_interval, mtd_output_layer_string)
+        system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "SMD":
+        # TODO: this is temporary version
+        from openmmplumed import PlumedForce
+        kappa_string = '1000,1000'
+        plumed_force_string = """
+phi: TORSION ATOMS=5,7,9,15
+psi: TORSION ATOMS=7,9,15,17
+restraint: MOVINGRESTRAINT ARG=phi,psi AT0=-1.5,1.0  STEP0=0 KAPPA0=%s AT1=1.0,-1.0 STEP1=%d KAPPA1=%s
+PRINT STRIDE=10 ARG=* FILE=COLVAR
+""" % (kappa_string, total_number_of_steps, kappa_string)
         system.addForce(PlumedForce(plumed_force_string))
     # end of biased force
 
