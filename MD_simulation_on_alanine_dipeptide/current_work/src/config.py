@@ -95,6 +95,10 @@ CONFIG_63 = get_mol_param([
 )                         # suffix for each reference configuration
 CONFIG_61 = ['_aligned%s_coordinates.txt' % item
              for item in CONFIG_63]  # alignment_coor_file_suffix_list (we use different suffix for aligned files with respect to different references)
+CONFIG_64 = get_mol_param([
+    ['backbone', 'backbone'],
+    ['backbone', 'backbone']
+    ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
 if CONFIG_48 == 'cossin':
@@ -175,12 +179,7 @@ else:
 CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
-##########################################################################
-############   config for cluster_management.py  #########################
-##########################################################################
-
-'''class cluster_management'''
-
+CONFIG_65 = "MTD"          # default biasing method
 CONFIG_8 = get_mol_param([50000, 200000])                  # num of simulation steps
 CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['flexible', 'flexible'])          # use fixed/flexible force constants for biased simulation for each iteration
