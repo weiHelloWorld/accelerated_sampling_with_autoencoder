@@ -355,6 +355,34 @@ class iteration(object):
     #     self._network = current_network
     #     return
 
+    def preprocessing(self):
+        """
+        1. aligned structure
+        2. generate coordinate files
+        """
+        reference_suffix_list = CONFIG_63
+        reference_configs = CONFIG_62
+        atom_selection_list = CONFIG_64
+        assert (len(reference_configs) == len(reference_suffix_list)), (
+        len(reference_configs), len(reference_suffix_list))
+        num_of_reference_configs = len(reference_configs)
+        if isinstance(molecule_type, Trp_cage):
+            for _1 in range(num_of_reference_configs):
+                subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage',
+                                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
+                                         '--atom_selection', atom_selection_list[_1]
+                                         ])
+        elif isinstance(molecule_type, Alanine_dipeptide):
+            for _1 in range(num_of_reference_configs):
+                subprocess.check_output(['python', 'structural_alignment.py', '../target/Alanine_dipeptide',
+                                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
+                                         '--atom_selection', atom_selection_list[_1]
+                                         ])
+        else:
+            raise Exception("molecule type error")
+        molecule_type.generate_coordinates_from_pdb_files()
+        return
+
     def train_network_and_save(self, training_interval=1, num_of_trainings=CONFIG_13):
         """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
@@ -450,27 +478,6 @@ class iteration(object):
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
 
-        reference_suffix_list = CONFIG_63
-        reference_configs = CONFIG_62
-        atom_selection_list = CONFIG_64
-        assert (len(reference_configs) == len(reference_suffix_list)), (len(reference_configs), len(reference_suffix_list))
-        num_of_reference_configs = len(reference_configs)
-        if isinstance(molecule_type, Trp_cage):
-            for _1 in range(num_of_reference_configs):
-                subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage',
-                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
-                         '--atom_selection', atom_selection_list[_1]
-                                         ])
-
-        elif isinstance(molecule_type, Alanine_dipeptide):
-            for _1 in range(num_of_reference_configs):
-                subprocess.check_output(['python', 'structural_alignment.py', '../target/Alanine_dipeptide',
-                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
-                         '--atom_selection', atom_selection_list[_1]
-                                         ])
-        else:
-            raise Exception("molecule type error")
-        molecule_type.generate_coordinates_from_pdb_files()
         return
 
 
@@ -486,6 +493,7 @@ class simulation_with_ANN_main(object):
         return
 
     def run_one_iteration(self, one_iteration):
+        one_iteration.preprocessing()
         if one_iteration is None:
             one_iteration = iteration(1, network=None)
         if one_iteration._network is None:
