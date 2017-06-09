@@ -32,9 +32,9 @@ parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/1
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
 # next few options are for metadynamics
 parser.add_argument("--bias_method", type=str, default='US', help="biasing method for enhanced sampling, US = umbrella sampling, MTD = metadynamics")
-parser.add_argument("--MTD_pace", type=int, default=500, help="pace of metadynamics")
-parser.add_argument("--MTD_height", type=float, default=3, help="height of metadynamics")
-parser.add_argument("--MTD_sigma", type=float, default=0.2, help="sigma of metadynamics")
+parser.add_argument("--MTD_pace", type=int, default=CONFIG_66, help="pace of metadynamics")
+parser.add_argument("--MTD_height", type=float, default=CONFIG_67, help="height of metadynamics")
+parser.add_argument("--MTD_sigma", type=float, default=CONFIG_68, help="sigma of metadynamics")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant

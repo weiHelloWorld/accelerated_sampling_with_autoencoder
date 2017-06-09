@@ -180,16 +180,17 @@ CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the numbe
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 CONFIG_65 = "MTD"          # default biasing method
+CONFIG_16 = get_mol_param([500, 2000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_8 = get_mol_param([50000, 200000])                  # num of simulation steps
+# following: for umbrella sampling
 CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['flexible', 'flexible'])          # use fixed/flexible force constants for biased simulation for each iteration
 CONFIG_54 = 2.47 * get_mol_param([30.0, 15.0])             # max external potential energy allowed (in k_BT)
-CONFIG_16 = get_mol_param([500, 2000])                     # record interval (the frequency of writing system state into the file)
+# following: for metadynamics
+CONFIG_66 = get_mol_param([500, 500])          # pace of metadynamics
+CONFIG_67 = get_mol_param([2, 2])              # height of metadynamics
+CONFIG_68 = get_mol_param([0.1, 0.1])          # sigma of metadynamics
 CONFIG_19 = '48:00:00'                                    # max running time for the sge job
-
-##########################################################################
-############   config for biased_simulation{,_Trp_cage}.py  ##############
-##########################################################################
 
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
@@ -210,4 +211,3 @@ CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "Custo
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)
 CONFIG_34 = 500            # force constant step, the value by which the force constant is increased each time (for force constant adjustable mode)
 CONFIG_35 = 0.1            # distance tolerance, max distance allowed between center of data cloud and potential center (for force_constant_adjustable mode)
-
