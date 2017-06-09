@@ -33,6 +33,11 @@ parser.add_argument("--equilibration_steps", type=int, default=1000, help="numbe
 parser.add_argument("--fast_equilibration", type=int, default=0, help="do fast equilibration by running biased simulation with larger force constant")
 parser.add_argument("--remove_eq_file", type=int, default=1, help="remove equilibration pdb files associated with fast equilibration")
 parser.add_argument("--auto_equilibration", help="enable auto equilibration so that it will run enough equilibration steps", action="store_true")
+# next few options are for metadynamics
+parser.add_argument("--bias_method", type=str, default='US', help="biasing method for enhanced sampling, US = umbrella sampling, MTD = metadynamics")
+parser.add_argument("--MTD_pace", type=int, default=500, help="pace of metadynamics")
+parser.add_argument("--MTD_height", type=float, default=3, help="height of metadynamics")
+parser.add_argument("--MTD_sigma", type=float, default=0.2, help="sigma of metadynamics")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -150,29 +155,49 @@ def run_simulation(force_constant, number_of_simulation_steps):
         system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
 
     # add custom force (only for biased simulation)
-    if float(force_constant) != 0:
-        force = ANN_Force()
+    if args.bias_method == "US":
+        if float(force_constant) != 0:
+            force = ANN_Force()
 
-        force.set_layer_types(layer_types)
-        force.set_data_type_in_input_layer(args.data_type_in_input_layer)
-        force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
-        force.set_index_of_backbone_atoms(index_of_backbone_atoms)
-        force.set_num_of_nodes(CONFIG_3[:3])
-        force.set_potential_center(potential_center)
-        force.set_force_constant(float(force_constant))
-        force.set_scaling_factor(float(scaling_factor))
+            force.set_layer_types(layer_types)
+            force.set_data_type_in_input_layer(args.data_type_in_input_layer)
+            force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
+            force.set_index_of_backbone_atoms(index_of_backbone_atoms)
+            force.set_num_of_nodes(CONFIG_3[:3])
+            force.set_potential_center(potential_center)
+            force.set_force_constant(float(force_constant))
+            force.set_scaling_factor(float(scaling_factor))
 
+            with open(autoencoder_info_file, 'r') as f_in:
+                content = f_in.readlines()
+
+            force.set_coeffients_of_connections(
+                [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]])
+
+            force.set_values_of_biased_nodes([
+                ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
+                ])
+
+            system.addForce(force)
+    elif args.bias_method == "MTD":
+        from openmmplumed import PlumedForce
+        molecule_type = {'Trp_cage': Trp_cage, '2src': None, '1y57': None}[args.molecule]   # TODO
+        plumed_force_string = molecule_type.get_expression_script_for_plumed()
         with open(autoencoder_info_file, 'r') as f_in:
-            content = f_in.readlines()
+            plumed_force_string += f_in.read()
 
-        force.set_coeffients_of_connections(
-            [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]])
-
-        force.set_values_of_biased_nodes([
-            ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
-            ])
-
-        system.addForce(force)
+        # note that dimensionality of MTD is determined by potential_center string
+        mtd_output_layer_string = ['l_2_out_%d' % item for item in range(len(potential_center))]
+        mtd_output_layer_string = ','.join(mtd_output_layer_string)
+        mtd_sigma_string = ','.join([str(args.MTD_sigma) for _ in range(len(potential_center))])
+        plumed_force_string += """
+        metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt
+        PRINT STRIDE=%d ARG=%s,metad.bias FILE=temp_MTD_out.txt
+        """ % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string,
+               record_interval, mtd_output_layer_string)
+        system.addForce(PlumedForce(plumed_force_string))
+    else:
+        raise Exception('bias method error')
     # end add custom force
 
     integrator = VerletIntegrator(time_step*picoseconds)

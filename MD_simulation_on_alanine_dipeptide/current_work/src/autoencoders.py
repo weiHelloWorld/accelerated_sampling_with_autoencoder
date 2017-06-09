@@ -257,19 +257,18 @@ class autoencoder(object):
         """this function creates a list of commands for further biased simulations that should be done later,
         either in local machines or on the cluster
         """
+        if num_of_simulation_steps is None:
+            num_of_simulation_steps = CONFIG_8
+        if autoencoder_info_file is None:
+            autoencoder_info_file = self._autoencoder_info_file
         if bias_method == "US":
             PCs_of_network = self.get_PCs()
             if self._hidden_layers_type[1] == CircularLayer:
                 assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
             else:
                 assert (len(PCs_of_network[0]) == self._node_num[2])
-
             if list_of_potential_center is None:
                 list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
-            if num_of_simulation_steps is None:
-                num_of_simulation_steps = CONFIG_8
-            if autoencoder_info_file is None:
-                autoencoder_info_file = self._autoencoder_info_file
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
                     folder_state_coor_file = '../resources/1l2y_coordinates.txt'
@@ -336,8 +335,15 @@ class autoencoder(object):
             self.write_expression_script_for_plumed()
             if isinstance(molecule_type, Alanine_dipeptide):
                 for mtd_sim_index in range(5):
-                    parameter_list = ('50', '50000', str(mtd_sim_index), '../target/Alanine_dipeptide/network_%d/' % self._index, self._autoencoder_info_file)
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
+                                      '../target/Alanine_dipeptide/network_%d/' % self._index, self._autoencoder_info_file)
                     command = "python ../src/biased_simulation.py %s %s %s %s %s pc_0,0 --data_type_in_input_layer 1 --bias_method MTD" % parameter_list
+                    todo_list_of_commands_for_simulations += [command]
+            elif isinstance(molecule_type, Trp_cage):
+                for mtd_sim_index in range(6):
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
+                                      '../target/Trp_cage/network_%d/' % self._index, self._autoencoder_info_file, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
+                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s pc_0,0 %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
                     todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")

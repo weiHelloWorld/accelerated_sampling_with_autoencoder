@@ -186,6 +186,8 @@ restraint: MOVINGRESTRAINT ARG=phi,psi AT0=-1.5,1.0  STEP0=0 KAPPA0=%s AT1=1.0,-
 PRINT STRIDE=10 ARG=* FILE=COLVAR
 """ % (kappa_string, total_number_of_steps, kappa_string)
         system.addForce(PlumedForce(plumed_force_string))
+    else:
+        raise Exception('bias method error')
     # end of biased force
 
     integrator = LangevinIntegrator(simulation_temperature*kelvin, 1/picosecond, time_step*picoseconds)
