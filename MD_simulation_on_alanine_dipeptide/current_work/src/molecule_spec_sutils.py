@@ -33,8 +33,8 @@ class Sutils(object):
         data_set = coor_data_obj_input.get_coor_data(scaling_factor)
         # remove the center of mass
         data_set = Sutils.remove_translation(data_set)
-        output_data_set = np.concatenate([item.get_coor_data(scaling_factor) for item in coor_data_obj_output_list]
-                                         , axis=1)
+        output_data_set = np.concatenate([Sutils.remove_translation(item.get_coor_data(scaling_factor))
+                                          for item in coor_data_obj_output_list] , axis=1)
         assert (data_set.shape[0] == output_data_set.shape[0])
         # clustering, pick representative points for training, two purposes:
         # 1. avoid that training results are too good for densely-sampled regions, but bad for others.
@@ -130,10 +130,12 @@ class Sutils(object):
         return
 
     @staticmethod
-    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type, remove_translation=True):
-        if remove_translation:
-            data_set = Sutils.remove_translation(data_set)
-            output_data_set = Sutils.remove_translation(output_data_set)
+    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type):
+        """
+        assume that center of mass motion of data_set and output_data_set should be removed.
+        """
+        assert (Sutils.check_center_of_mass_is_at_origin(data_set))
+        assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
 
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
@@ -154,16 +156,20 @@ class Sutils(object):
         return data_set, output_data_set
 
     @staticmethod
+    def check_center_of_mass_is_at_origin(result):
+        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
+                                           np.average(result[item, 2::3])]
+                                          for item in range(result.shape[0])]
+        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
+
+    @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom
         number_of_atoms = coords.shape[1] / 3
         coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
                                      np.average(coords[item, 2::3])] * number_of_atoms
                                     for item in range(coords.shape[0])]
         result = coords - np.array(coords_of_center_of_mass)
-        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
-                                     np.average(result[item, 2::3])] 
-                                    for item in range(result.shape[0])]
-        assert np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
+        assert Sutils.check_center_of_mass_is_at_origin(result)
         return result
 
     @staticmethod
