@@ -33,8 +33,8 @@ class Sutils(object):
         data_set = coor_data_obj_input.get_coor_data(scaling_factor)
         # remove the center of mass
         data_set = Sutils.remove_translation(data_set)
-        output_data_set = np.concatenate([item.get_coor_data(scaling_factor) for item in coor_data_obj_output_list]
-                                         , axis=1)
+        output_data_set = np.concatenate([Sutils.remove_translation(item.get_coor_data(scaling_factor))
+                                          for item in coor_data_obj_output_list] , axis=1)
         assert (data_set.shape[0] == output_data_set.shape[0])
         # clustering, pick representative points for training, two purposes:
         # 1. avoid that training results are too good for densely-sampled regions, but bad for others.
@@ -130,10 +130,12 @@ class Sutils(object):
         return
 
     @staticmethod
-    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type, remove_translation=True):
-        if remove_translation:
-            data_set = Sutils.remove_translation(data_set)
-            output_data_set = Sutils.remove_translation(output_data_set)
+    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type):
+        """
+        assume that center of mass motion of data_set and output_data_set should be removed.
+        """
+        assert (Sutils.check_center_of_mass_is_at_origin(data_set))
+        assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
 
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
@@ -154,16 +156,20 @@ class Sutils(object):
         return data_set, output_data_set
 
     @staticmethod
+    def check_center_of_mass_is_at_origin(result):
+        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
+                                           np.average(result[item, 2::3])]
+                                          for item in range(result.shape[0])]
+        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
+
+    @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom
         number_of_atoms = coords.shape[1] / 3
         coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
                                      np.average(coords[item, 2::3])] * number_of_atoms
                                     for item in range(coords.shape[0])]
         result = coords - np.array(coords_of_center_of_mass)
-        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
-                                     np.average(result[item, 2::3])] 
-                                    for item in range(result.shape[0])]
-        assert np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
+        assert Sutils.check_center_of_mass_is_at_origin(result)
         return result
 
     @staticmethod
@@ -859,3 +865,21 @@ class Trp_cage(Sutils):
                                                 index_of_backbone_atoms[item[2]], index_of_backbone_atoms[item[3]])  # using backbone atoms
 
         return expression_for_input_of_this_molecule
+
+    @staticmethod
+    def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
+        index_of_backbone_atoms = CONFIG_57[1]
+        plumed_script = ""
+        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
+        plumed_script += "p_com: POSITION ATOM=com_1\n"
+
+        for item in range(len(index_of_backbone_atoms)):
+            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
+        # following remove translation using p_com
+        for item in range(len(index_of_backbone_atoms)):
+            for _1, _2 in enumerate(['.x', '.y', '.z']):
+                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
+                                 % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor,
+                                    # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
+                                    item, _2, _2)
+        return plumed_script

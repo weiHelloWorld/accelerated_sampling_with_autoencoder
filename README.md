@@ -18,6 +18,10 @@ Sklearn: https://github.com/scikit-learn/scikit-learn
 
 Nose testing framework: https://github.com/nose-devs/nose
 
+PLUMED: http://www.plumed.org
+
+OpenMM-PLUMED force plugin: https://github.com/peastman/openmm-plumed
+
 Some other Python scientific calculation packages are also needed, it is recommended to install them with Anaconda: https://www.continuum.io/downloads
 
 For Linux/Ubuntu, you may use following script to install most of these packages:
@@ -54,6 +58,8 @@ echo "installing PyBrain"
 git clone https://github.com/weiHelloWorld/pybrain.git
 cd pybrain
 python setup.py install
+
+echo "you may need to install following packages manually: TODO"
 ```
 
 ## Installation and preparation

@@ -355,6 +355,34 @@ class iteration(object):
     #     self._network = current_network
     #     return
 
+    def preprocessing(self):
+        """
+        1. aligned structure
+        2. generate coordinate files
+        """
+        reference_suffix_list = CONFIG_63
+        reference_configs = CONFIG_62
+        atom_selection_list = CONFIG_64
+        assert (len(reference_configs) == len(reference_suffix_list)), (
+        len(reference_configs), len(reference_suffix_list))
+        num_of_reference_configs = len(reference_configs)
+        if isinstance(molecule_type, Trp_cage):
+            for _1 in range(num_of_reference_configs):
+                subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage',
+                                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
+                                         '--atom_selection', atom_selection_list[_1]
+                                         ])
+        elif isinstance(molecule_type, Alanine_dipeptide):
+            for _1 in range(num_of_reference_configs):
+                subprocess.check_output(['python', 'structural_alignment.py', '../target/Alanine_dipeptide',
+                                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
+                                         '--atom_selection', atom_selection_list[_1]
+                                         ])
+        else:
+            raise Exception("molecule type error")
+        molecule_type.generate_coordinates_from_pdb_files()
+        return
+
     def train_network_and_save(self, training_interval=1, num_of_trainings=CONFIG_13):
         """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
@@ -368,7 +396,7 @@ class iteration(object):
             fraction_of_data_to_be_saved = 1
         elif CONFIG_48 == 'Cartesian':
             coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
-            alignment_coor_file_suffix_list = ['_aligned_coordinates.txt', '_aligned_1_coordinates.txt']
+            alignment_coor_file_suffix_list = CONFIG_61
             num_of_copies = CONFIG_52
             fraction_of_data_to_be_saved = 1.0 / num_of_copies
             data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
@@ -450,21 +478,6 @@ class iteration(object):
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
 
-        if isinstance(molecule_type, Trp_cage):
-            subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage'])
-            subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage',
-                                     '--ref', '../resources/Trp_cage_ref_1.pdb', '--suffix', '_1'])
-
-        elif isinstance(molecule_type, Alanine_dipeptide):
-            subprocess.check_output(['python', 'structural_alignment.py','--ref',
-                                    '../resources/alanine_dipeptide.pdb', '../target/Alanine_dipeptide',
-                                    '--atom_selection', 'backbone'])
-            subprocess.check_output(['python', 'structural_alignment.py', '../target/Alanine_dipeptide',
-                                     '--ref', '../resources/alanine_ref_1.pdb', '--suffix', '_1', 
-                                     "--atom_selection", 'backbone'])
-        else:
-            raise Exception("molecule type error")
-        molecule_type.generate_coordinates_from_pdb_files()
         return
 
 
@@ -476,9 +489,11 @@ class simulation_with_ANN_main(object):
         self._num_of_iterations = num_of_iterations
         self._initial_iteration = initial_iteration
         self._training_interval = training_interval
+        print "running iterations for system: %s" % CONFIG_30
         return
 
     def run_one_iteration(self, one_iteration):
+        one_iteration.preprocessing()
         if one_iteration is None:
             one_iteration = iteration(1, network=None)
         if one_iteration._network is None:
