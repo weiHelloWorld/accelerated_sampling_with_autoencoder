@@ -35,8 +35,8 @@ parser.add_argument("--bias_method", type=str, default='US', help="biasing metho
 parser.add_argument("--MTD_pace", type=int, default=CONFIG_66, help="pace of metadynamics")
 parser.add_argument("--MTD_height", type=float, default=CONFIG_67, help="height of metadynamics")
 parser.add_argument("--MTD_sigma", type=float, default=CONFIG_68, help="sigma of metadynamics")
-parser.add_argument("--MTD_WT", type=int, default=0, help="whether to use well-tempered version")
-parser.add_argument("--MTD_biasfactor", type=float, default=15.0, help="biasfactor of well-tempered metadynamics")
+parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to use well-tempered version")
+parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
