@@ -130,7 +130,7 @@ if CONFIG_47:
 
 '''def train_network_and_save'''
 
-CONFIG_13 = get_mol_param([5,3])  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = get_mol_param([3,3])  # num of network trainings we are going to run, and pick the one with least FVE from them
 CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers
 if CONFIG_43:
     raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)

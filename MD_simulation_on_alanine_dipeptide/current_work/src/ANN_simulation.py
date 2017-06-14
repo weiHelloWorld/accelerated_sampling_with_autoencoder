@@ -339,10 +339,12 @@ class iteration(object):
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        autoencoder_filename = subprocess.check_output(
+        temp_output = subprocess.check_output(
             ['python', '../src/train_network_and_save_for_iter.py', str(self._index),
             '--training_interval', str(training_interval),
-            '--num_of_trainings', str(num_of_trainings)]).strip().split()[-1]
+            '--num_of_trainings', str(num_of_trainings)])
+        print temp_output
+        autoencoder_filename = temp_output.strip().split()[-1]
         self._network = Sutils.load_object_from_pkl_file(autoencoder_filename)
         return
 
