@@ -342,7 +342,7 @@ class iteration(object):
         autoencoder_filename = subprocess.check_output(
             ['python', '../src/train_network_and_save_for_iter.py', str(self._index),
             '--training_interval', str(training_interval),
-            '--num_of_trainings', str(num_of_trainings)]).strip()
+            '--num_of_trainings', str(num_of_trainings)]).strip().split()[-1]
         self._network = Sutils.load_object_from_pkl_file(autoencoder_filename)
         return
 
@@ -358,7 +358,7 @@ class iteration(object):
         # print ('in iteration.prepare_simulation: commands = ')
         # print (commands)
         if machine_to_run_simulations == "cluster":
-            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)  # TODO: add GPU support
         elif machine_to_run_simulations == 'local':
             pass
             # TODO
