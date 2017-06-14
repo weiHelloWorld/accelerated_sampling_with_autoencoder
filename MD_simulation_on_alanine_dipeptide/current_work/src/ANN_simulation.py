@@ -334,21 +334,33 @@ class iteration(object):
         molecule_type.generate_coordinates_from_pdb_files()
         return
 
-    def train_network_and_save(self, training_interval=1, num_of_trainings=CONFIG_13):
+    def train_network_and_save(self, machine_to_run_simulations = CONFIG_24,
+                               training_interval=1, num_of_trainings=CONFIG_13):
         """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        temp_output = subprocess.check_output(
-            ['python', '../src/train_network_and_save_for_iter.py', str(self._index),
-            '--training_interval', str(training_interval),
-            '--num_of_trainings', str(num_of_trainings)])
+        command = 'python ../src/train_network_and_save_for_iter.py %d --training_interval %d --num_of_trainings %d' %\
+                  (self._index, training_interval, num_of_trainings)
+        if machine_to_run_simulations == 'local':
+            temp_output = subprocess.check_output(command.strip().split(' '))
+            autoencoder_filename = temp_output.strip().split('\n')[-1]
+        elif machine_to_run_simulations == 'cluster':
+            job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command)
+            output_file, _ = cluster_management.get_output_and_err_with_job_id(job_id=job_id)
+            temp_output = subprocess.check_output(['cat', output_file])
+            assert (temp_output.strip().split('\n')[-1] == 'This job is DONE!')
+            autoencoder_filename = temp_output.strip().split('\n')[-2]
+        else:
+            raise Exception('machine type error')
+
         print temp_output
-        autoencoder_filename = temp_output.strip().split()[-1]
         self._network = Sutils.load_object_from_pkl_file(autoencoder_filename)
         return
 
-    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
+    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24, cuda=None):
+        if cuda is None:
+            cuda = (CONFIG_23 == 'CUDA')
         if CONFIG_28 == "CustomManyParticleForce":
             self._network.write_expression_into_file()
         elif CONFIG_28 == "ANN_Force":
@@ -360,7 +372,8 @@ class iteration(object):
         # print ('in iteration.prepare_simulation: commands = ')
         # print (commands)
         if machine_to_run_simulations == "cluster":
-            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)  # TODO: add GPU support
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
+                                                             run_on_gpu=cuda)
         elif machine_to_run_simulations == 'local':
             pass
             # TODO
@@ -382,9 +395,9 @@ class iteration(object):
                 total_num_failed_jobs += sum(exit_codes)
 
             assert (total_num_failed_jobs < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
+        else:
+            raise Exception('machine type error')
 
-            # TODO: currently they are not run in parallel, fix this later
-        
         # next line only when the jobs are done, check this
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)

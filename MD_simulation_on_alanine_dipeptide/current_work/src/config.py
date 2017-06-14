@@ -137,8 +137,8 @@ if CONFIG_43:
 
 '''def prepare_simulation'''
 CONFIG_24 = 'local'  # machine to run the simulations
-if CONFIG_24 == "cluster":
-    raise Exception("Warning: it has not been tested on the cluster for relatively long time, not recommended!  " + WARNING_INFO)
+# if CONFIG_24 == "cluster":
+#     raise Exception("Warning: it has not been tested on the cluster for relatively long time, not recommended!  " + WARNING_INFO)
 CONFIG_31 = 10        # maximum number of failed simulations allowed in each iteration
 
 '''def run_simulation'''
