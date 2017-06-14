@@ -144,8 +144,7 @@ CONFIG_31 = 10        # maximum number of failed simulations allowed in each ite
 '''def run_simulation'''
 
 CONFIG_56 = get_mol_param([20, 8])    # number of biased simulations running in parallel
-CONFIG_14 = 7  # max number of jobs submitted each time
-CONFIG_15 = 1  # num of running jobs when the program is allowed to stop
+CONFIG_14 = 10  # max number of jobs submitted each time
 CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files
 CONFIG_50 = False   # whether we need to preserve original file if water molecules are removed
 
@@ -179,7 +178,7 @@ else:
 CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
-CONFIG_65 = "MTD"          # default biasing method
+CONFIG_65 = "US"          # default biasing method
 CONFIG_16 = get_mol_param([500, 2000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_8 = get_mol_param([50000, 200000])                  # num of simulation steps
 # following: for umbrella sampling
@@ -205,7 +204,7 @@ if temp_home_directory == "/home/fisiksnju":
 elif temp_home_directory == "/home/weichen9":
     CONFIG_25 = '/home/weichen9/.my_softwares/openmm7/lib/plugins'
 else:
-    raise Exception('unknown user directory: %s' % temp_home_directory)
+    print ('unknown user directory: %s' % temp_home_directory)
 
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)

@@ -103,7 +103,7 @@ exit 0
     @staticmethod
     def submit_a_single_job_and_wait_until_it_finishes(job_sge_file):
         job_id = cluster_management.submit_sge_jobs_and_archive_files([job_sge_file], num=1)[0]
-        while cluster_management.is_job_running_on_cluster(job_id):
+        while cluster_management.is_job_on_cluster(job_id):
             time.sleep(10)
         print "job (id = %s) done!" % job_id
         return job_id
@@ -159,7 +159,7 @@ exit 0
             try:
                 temp_submitted_job_id = cluster_management.submit_new_jobs_if_there_are_too_few_jobs(num)
                 submitted_job_id += temp_submitted_job_id
-                submitted_job_id = list(filter(lambda x: cluster_management.is_job_running_on_cluster(x),
+                submitted_job_id = list(filter(lambda x: cluster_management.is_job_on_cluster(x),
                                                submitted_job_id))   # remove finished id of finished jobs
                 print "submitted_job_id = %s" % str(submitted_job_id)
                 num_of_unsubmitted_jobs = len(cluster_management.get_sge_files_list())
@@ -172,7 +172,7 @@ exit 0
         return
 
     @staticmethod
-    def is_job_running_on_cluster(job_sgefile_name):
+    def is_job_on_cluster(job_sgefile_name):
         output = subprocess.check_output(['qstat', '-r'])
         return job_sgefile_name in output
 
@@ -188,7 +188,7 @@ exit 0
         """
         job_finished_message = 'This job is DONE!'
         # first we check whether the job finishes
-        if cluster_management.is_job_running_on_cluster(job_sgefile_name):
+        if cluster_management.is_job_on_cluster(job_sgefile_name):
             return 3  # not finished
         else:
             all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
