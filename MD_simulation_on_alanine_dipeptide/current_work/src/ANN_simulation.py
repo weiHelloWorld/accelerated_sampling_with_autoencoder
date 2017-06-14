@@ -382,7 +382,8 @@ class iteration(object):
     def run_simulation(self, machine_to_run_simulations = CONFIG_24):
         if machine_to_run_simulations == 'cluster':
             cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
-                                        num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
+                            monitor_mode='normal',
+                            num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
             num_of_simulations_run_in_parallel = CONFIG_56
