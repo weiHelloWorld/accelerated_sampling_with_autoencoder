@@ -263,7 +263,7 @@ class Sutils(object):
 
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
                 for line in f_in:
-                    if not 'HOH' in line and not 'CL' in line:
+                    if not 'HOH' in line and not 'CL' in line and not "NA" in line:
                         f_out.write(line)
 
             if not preserve_original_file:
