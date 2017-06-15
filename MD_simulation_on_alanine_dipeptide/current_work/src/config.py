@@ -85,9 +85,11 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
+CONFIG_71 = True                  # use mixed error function
 CONFIG_62 = get_mol_param([
     ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
     ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb']
+    # ['../resources/1l2y.pdb', '../resources/1l2y.pdb'] # mixed_err
 ])                   # list of reference file
 CONFIG_63 = get_mol_param([
     ['', '_1'],
@@ -98,6 +100,7 @@ CONFIG_61 = ['_aligned%s_coordinates.txt' % item
 CONFIG_64 = get_mol_param([
     ['backbone', 'backbone'],
     ['backbone', 'backbone']
+    # ['backbone and resid 2:8', 'backbone'] # mixed_err
     ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
@@ -111,6 +114,7 @@ elif CONFIG_48 == 'Cartesian':
     CONFIG_3 = get_mol_param([
          [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  # the structure of ANN: number of nodes in each layer
          [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55]
+         # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243] # mixed_err
          ])
 else:
     raise Exception('error input data type')

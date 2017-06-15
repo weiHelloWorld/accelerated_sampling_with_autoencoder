@@ -30,6 +30,12 @@ elif CONFIG_48 == 'Cartesian':
         molecule_type,
         use_representative_points_for_training=CONFIG_58
     )
+    mixed_error_function = CONFIG_71
+    if mixed_error_function:
+        output_data_set_1 = Sutils.remove_translation(output_data_set[:, list(range(9 * 1, 9 * 8))])  # mixed_err
+        output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(180, 360))])
+        output_data_set = np.concatenate([3.0 * output_data_set_1, output_data_set_2], axis=1)
+
     data_set = data_set[::args.training_interval]
     output_data_set = output_data_set[::args.training_interval]
 else:
