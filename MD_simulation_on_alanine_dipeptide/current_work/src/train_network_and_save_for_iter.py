@@ -30,6 +30,8 @@ elif CONFIG_48 == 'Cartesian':
         molecule_type,
         use_representative_points_for_training=CONFIG_58
     )
+    data_set = data_set[::args.training_interval]
+    output_data_set = output_data_set[::args.training_interval]
 else:
     raise Exception('error input data type')
 
