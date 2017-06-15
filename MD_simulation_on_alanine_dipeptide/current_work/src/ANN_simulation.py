@@ -340,7 +340,7 @@ class iteration(object):
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        command = 'python ../src/train_network_and_save_for_iter.py %d --training_interval %d --num_of_trainings %d' %\
+        command = 'OMP_NUM_THREADS=6 python ../src/train_network_and_save_for_iter.py %d --training_interval %d --num_of_trainings %d' %\
                   (self._index, training_interval, num_of_trainings)
         if machine_to_run_simulations == 'local':
             temp_output = subprocess.check_output(command.strip().split(' '))
