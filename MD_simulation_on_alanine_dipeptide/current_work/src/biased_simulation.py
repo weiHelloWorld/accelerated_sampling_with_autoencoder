@@ -192,6 +192,18 @@ restraint: MOVINGRESTRAINT ARG=phi,psi AT0=-1.5,1.0  STEP0=0 KAPPA0=%s AT1=1.0,-
 PRINT STRIDE=10 ARG=* FILE=COLVAR
 """ % (kappa_string, total_number_of_steps, kappa_string)
         system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "TMD":  # targeted MD
+        # TODO: this is temporary version
+        from openmmplumed import PlumedForce
+        kappa_string = '10000'
+        plumed_force_string = """
+phi: TORSION ATOMS=5,7,9,15
+psi: TORSION ATOMS=7,9,15,17
+rmsd: RMSD REFERENCE=../resources/alanine_ref_1_TMD.pdb TYPE=OPTIMAL
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1=%s
+PRINT STRIDE=10 ARG=* FILE=COLVAR
+        """ % (total_number_of_steps, kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')
     # end of biased force
