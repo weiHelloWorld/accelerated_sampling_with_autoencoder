@@ -340,12 +340,14 @@ class iteration(object):
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        command = 'OMP_NUM_THREADS=6 python ../src/train_network_and_save_for_iter.py %d --training_interval %d --num_of_trainings %d' %\
+        command = 'python ../src/train_network_and_save_for_iter.py %d --training_interval %d --num_of_trainings %d' %\
                   (self._index, training_interval, num_of_trainings)
         if machine_to_run_simulations == 'local':
+            print command
             temp_output = subprocess.check_output(command.strip().split(' '))
             autoencoder_filename = temp_output.strip().split('\n')[-1]
         elif machine_to_run_simulations == 'cluster':
+            command = 'OMP_NUM_THREADS=6  ' + command
             job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command)
             output_file, _ = cluster_management.get_output_and_err_with_job_id(job_id=job_id)
             temp_output = subprocess.check_output(['cat', output_file])
