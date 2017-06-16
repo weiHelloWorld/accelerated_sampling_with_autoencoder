@@ -199,7 +199,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
     elif args.bias_method == "TMD":  # targeted MD
         # TODO: this is temporary version
         from openmmplumed import PlumedForce
-        kappa_string = '50000'
+        kappa_string = str(args.force_constant)
         plumed_force_string = """
 rmsd: RMSD REFERENCE=../resources/1y57_TMD.pdb TYPE=OPTIMAL
 restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1=%s

@@ -317,12 +317,13 @@ class autoencoder(object):
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
 
                 elif isinstance(molecule_type, Trp_cage):
+                    fast_equilibration_flag = CONFIG_72
                     parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
                                       '../target/Trp_cage/network_%d/' % self._index,
                                       autoencoder_info_file,
                                       'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2)
-                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration 0" % parameter_list
+                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
+                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
                     if CONFIG_42:
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Trp_cage/network_%d.pkl' % self._index)

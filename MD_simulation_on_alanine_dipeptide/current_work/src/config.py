@@ -140,9 +140,6 @@ if CONFIG_43:
     raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)
 
 '''def prepare_simulation'''
-CONFIG_24 = 'local'  # machine to run the simulations
-# if CONFIG_24 == "cluster":
-#     raise Exception("Warning: it has not been tested on the cluster for relatively long time, not recommended!  " + WARNING_INFO)
 CONFIG_31 = 10        # maximum number of failed simulations allowed in each iteration
 
 '''def run_simulation'''
@@ -185,6 +182,7 @@ CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 CONFIG_65 = "US"          # default biasing method
 CONFIG_16 = get_mol_param([500, 2000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_8 = get_mol_param([50000, 200000])                  # num of simulation steps
+CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
 CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['flexible', 'flexible'])          # use fixed/flexible force constants for biased simulation for each iteration
@@ -204,11 +202,16 @@ CONFIG_23 = get_mol_param(['CPU', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
 if temp_home_directory == "/home/fisiksnju":
+    CONFIG_24 = 'local'  # machine to run the simulations
     CONFIG_25 = '/home/fisiksnju/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
 elif temp_home_directory == "/home/weichen9":
+    CONFIG_24 = 'cluster'  # machine to run the simulations
     CONFIG_25 = '/home/weichen9/.my_softwares/openmm7/lib/plugins'
 else:
     print ('unknown user directory: %s' % temp_home_directory)
+
+# if CONFIG_24 == "cluster":
+#     raise Exception("Warning: it has not been tested on the cluster for relatively long time, not recommended!  " + WARNING_INFO)
 
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
