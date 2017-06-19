@@ -10,6 +10,14 @@ class Sutils(object):
         return
 
     @staticmethod
+    def get_backbone_atom_index_list(pdb_file):
+        temp_universe = Universe(pdb_file)
+        atoms = temp_universe.select_atoms('backbone')
+        index_list = atoms.indices
+        index_list = np.sort(np.concatenate([index_list[::4], index_list[1::4], index_list[2::4]]))  # do not include "O"
+        return index_list
+
+    @staticmethod
     def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
              folder_list,
              alignment_coor_file_suffix_list,
@@ -263,7 +271,7 @@ class Sutils(object):
 
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
                 for line in f_in:
-                    if not 'HOH' in line and not 'CL' in line:
+                    if not 'HOH' in line and not 'CL' in line and not "NA" in line:
                         f_out.write(line)
 
             if not preserve_original_file:
@@ -702,6 +710,21 @@ class Trp_cage(Sutils):
         return np.array(distances_list).flatten()
 
     @staticmethod
+    def metric_chirality(list_of_files, step_interval=1):
+        result = []
+        index = 0
+        for temp_file in list_of_files:
+            temp_universe = Universe(temp_file)
+            for _ in temp_universe.trajectory:
+                if index % step_interval == 0:
+                    atom_list = [temp_universe.select_atoms('name CA and resid %d' % item).positions[0]
+                                 for item in [1, 9, 14, 20]]
+                    result.append(Trp_cage.get_cossin_of_a_dihedral_from_four_atoms(
+                        atom_list[0], atom_list[1], atom_list[2], atom_list[3])[1])
+                index += 1
+        return np.array(result)
+
+    @staticmethod
     def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
         sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
@@ -883,3 +906,6 @@ class Trp_cage(Sutils):
                                     # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
                                     item, _2, _2)
         return plumed_script
+
+# class Src(Sutils):
+#

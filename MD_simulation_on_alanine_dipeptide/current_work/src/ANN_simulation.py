@@ -306,55 +306,6 @@ class iteration(object):
         self._index = index
         self._network = network
 
-    # def train_network_and_save(self, training_interval=None, num_of_trainings = CONFIG_13):
-    #     """num_of_trainings is the number of trainings that we are going to run, and
-    #     then pick one that has the largest Fraction of Variance Explained (FVE),
-    #     by doing this, we might avoid network with very poor quality
-    #     """
-    #     if training_interval is None: training_interval = self._index  # to avoid too much time on training
-    #     my_file_list = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30]).get_list_of_coor_data_files()
-    #     data_set = molecule_type.get_many_cossin_from_coordiantes_in_list_of_files(my_file_list)
-    #
-    #     parallelize_training = CONFIG_43
-    #     if parallelize_training:
-    #         from multiprocessing import Process
-    #         training_and_saving_task = lambda x: neural_network_for_simulation(index=self._index,
-    #                                                                        data_set_for_training=data_set,
-    #                                                                        training_data_interval=training_interval,
-    #                                                                        ).train().save_into_file(x)
-    #         task_list = list(range(num_of_trainings))
-    #         temp_intermediate_result_file_list = ['/tmp/%d.pkl' % item for item in range(num_of_trainings)]
-    #         for item in range(num_of_trainings):
-    #             task_list[item] = Process(target = training_and_saving_task, args = (temp_intermediate_result_file_list[item], ))   # train and save intermediate result in /tmp folder
-    #             task_list[item].start()
-    #
-    #         map(lambda x: x.join(), task_list)
-    #         temp_networks = [Sutils.load_object_from_pkl_file(item) for item in temp_intermediate_result_file_list]
-    #
-    #     else:
-    #         temp_networks = [neural_network_for_simulation(index=self._index,
-    #                                                        data_set_for_training=data_set,
-    #                                                        training_data_interval=training_interval,
-    #                                                        )
-    #                          for _ in range(num_of_trainings)]
-    #         for item in temp_networks:
-    #             item.train()
-    #
-    #     temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_networks]
-    #     max_FVE = max(temp_FVE_list)
-    #     print("temp_FVE_list = %s, max_FVE = %s" % (str(temp_FVE_list), str(max_FVE)))
-    #
-    #     select_network_manually = False
-    #     if select_network_manually:
-    #         network_index = int(raw_input('select a network:'))
-    #         current_network = temp_networks[network_index]
-    #     else:
-    #         current_network = temp_networks[temp_FVE_list.index(max_FVE)]
-    #
-    #     current_network.save_into_file()
-    #     self._network = current_network
-    #     return
-
     def preprocessing(self):
         """
         1. aligned structure
@@ -383,61 +334,35 @@ class iteration(object):
         molecule_type.generate_coordinates_from_pdb_files()
         return
 
-    def train_network_and_save(self, training_interval=1, num_of_trainings=CONFIG_13):
+    def train_network_and_save(self, machine_to_run_simulations = CONFIG_24,
+                               training_interval=1, num_of_trainings=CONFIG_13):
         """num_of_trainings is the number of trainings that we are going to run, and
         then pick one that has the largest Fraction of Variance Explained (FVE),
         by doing this, we might avoid network with very poor quality
         """
-        my_coor_data_obj = coordinates_data_files_list(list_of_dir_of_coor_data_files=['../target/' + CONFIG_30])
-        my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
-        if CONFIG_48 == 'cossin':
-            data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(my_file_list, step_interval=training_interval)
-            output_data_set = None
-            fraction_of_data_to_be_saved = 1
-        elif CONFIG_48 == 'Cartesian':
-            coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
-            alignment_coor_file_suffix_list = CONFIG_61
-            num_of_copies = CONFIG_52
-            fraction_of_data_to_be_saved = 1.0 / num_of_copies
-            data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
-                ['../target/' + CONFIG_30], alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
-                molecule_type,
-                use_representative_points_for_training=CONFIG_58
-            )
+        command = 'python ../src/train_network_and_save_for_iter.py %d --training_interval %d --num_of_trainings %d' %\
+                  (self._index, training_interval, num_of_trainings)
+        if machine_to_run_simulations == 'local':
+            print command
+            temp_output = subprocess.check_output(command.strip().split(' '))
+            autoencoder_filename = temp_output.strip().split('\n')[-1]
+        elif machine_to_run_simulations == 'cluster':
+            command = 'OMP_NUM_THREADS=6  ' + command
+            job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command)
+            output_file, _ = cluster_management.get_output_and_err_with_job_id(job_id=job_id)
+            temp_output = subprocess.check_output(['cat', output_file])
+            assert (temp_output.strip().split('\n')[-1] == 'This job is DONE!')
+            autoencoder_filename = temp_output.strip().split('\n')[-2]
         else:
-            raise Exception('error input data type')
+            raise Exception('machine type error')
 
-        max_FVE = 0
-        current_network = None
-
-        for _ in range(num_of_trainings):
-            if CONFIG_45 == 'pybrain':
-                temp_network = neural_network_for_simulation(index=self._index,
-                                                             data_set_for_training=data_set,
-                                                             training_data_interval=1,
-                                                             )
-            elif CONFIG_45 == 'keras':
-                temp_network = autoencoder_Keras(index=self._index,
-                                                 data_set_for_training=data_set,
-                                                 output_data_set=output_data_set,
-                                                 training_data_interval=1,
-                                                 )
-            else:
-                raise Exception ('this training backend not implemented')
-
-            temp_network.train()
-            print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))
-            if temp_network.get_fraction_of_variance_explained() > max_FVE:
-                max_FVE = temp_network.get_fraction_of_variance_explained()
-                print("max_FVE = %f" % max_FVE)
-                assert (max_FVE > 0)
-                current_network = copy.deepcopy(temp_network)
-
-        current_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
-        self._network = current_network
+        print temp_output
+        self._network = Sutils.load_object_from_pkl_file(autoencoder_filename)
         return
 
-    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24):
+    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24, cuda=None):
+        if cuda is None:
+            cuda = (CONFIG_23 == 'CUDA')
         if CONFIG_28 == "CustomManyParticleForce":
             self._network.write_expression_into_file()
         elif CONFIG_28 == "ANN_Force":
@@ -449,7 +374,8 @@ class iteration(object):
         # print ('in iteration.prepare_simulation: commands = ')
         # print (commands)
         if machine_to_run_simulations == "cluster":
-            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands)
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
+                                                             run_on_gpu=cuda)
         elif machine_to_run_simulations == 'local':
             pass
             # TODO
@@ -458,7 +384,8 @@ class iteration(object):
     def run_simulation(self, machine_to_run_simulations = CONFIG_24):
         if machine_to_run_simulations == 'cluster':
             cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
-                                        num_of_running_jobs_when_allowed_to_stop = CONFIG_15)
+                            monitor_mode='normal',
+                            num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
         elif machine_to_run_simulations == 'local':
             commands = self._network.get_commands_for_further_biased_simulations()
             num_of_simulations_run_in_parallel = CONFIG_56
@@ -471,9 +398,9 @@ class iteration(object):
                 total_num_failed_jobs += sum(exit_codes)
 
             assert (total_num_failed_jobs < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
+        else:
+            raise Exception('machine type error')
 
-            # TODO: currently they are not run in parallel, fix this later
-        
         # next line only when the jobs are done, check this
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)

@@ -196,6 +196,16 @@ def run_simulation(force_constant, number_of_simulation_steps):
         """ % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string,
                record_interval, mtd_output_layer_string)
         system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "TMD":  # targeted MD
+        # TODO: this is temporary version
+        from openmmplumed import PlumedForce
+        kappa_string = str(args.force_constant)
+        plumed_force_string = """
+rmsd: RMSD REFERENCE=../resources/1y57_TMD.pdb TYPE=OPTIMAL
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1=%s
+PRINT STRIDE=500 ARG=* FILE=COLVAR
+            """ % (total_number_of_steps, kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')
     # end add custom force

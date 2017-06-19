@@ -425,13 +425,14 @@ class test_biased_simulation(object):
         return
 
     @staticmethod
-    def test_biased_simulation_alanine_dipeptide_with_metadynamics():
+    def test_biased_simulation_alanine_dipeptide_with_metadynamics(use_well_tempered, biasfactor):
         autoencoder_pkl_file = 'dependency/test_biased_simulation/temp_bias_with_MTD.pkl'
         output_folder = 'temp_output_test_biased_simulation'
         a = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
         a.write_expression_script_for_plumed('temp_info.txt')
-        subprocess.check_output('python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --platform CPU --bias_method MTD'
-                                % output_folder, shell=True)
+        subprocess.check_output(
+'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d'
+                                % (output_folder, biasfactor, use_well_tempered), shell=True)
         subprocess.check_output(['python', '../src/generate_coordinates.py', 'Alanine_dipeptide', '--path', output_folder])
         fig, axes = plt.subplots(1, 3)
         data = np.loadtxt(
@@ -465,8 +466,15 @@ class test_biased_simulation(object):
         ax.set_title('data in phi-psi space')
         fig.colorbar(im, ax=ax)
         fig.set_size_inches((15, 5))
-        fig.savefig('metadynamics_PC_space.png')
+        fig.savefig('metadynamics_biasfactor_%f.png' % biasfactor)
         subprocess.check_output(['rm', '-rf', output_folder])
+        return
+
+    @staticmethod
+    def test_biased_simulation_alanine_dipeptide_with_metadynamics_multiple():
+        test_biased_simulation.test_biased_simulation_alanine_dipeptide_with_metadynamics(0, -1)
+        for item in [5, 20, 100]:
+            test_biased_simulation.test_biased_simulation_alanine_dipeptide_with_metadynamics(1, item)
         return
 
 

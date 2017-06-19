@@ -35,6 +35,8 @@ parser.add_argument("--bias_method", type=str, default='US', help="biasing metho
 parser.add_argument("--MTD_pace", type=int, default=CONFIG_66, help="pace of metadynamics")
 parser.add_argument("--MTD_height", type=float, default=CONFIG_67, help="height of metadynamics")
 parser.add_argument("--MTD_sigma", type=float, default=CONFIG_68, help="sigma of metadynamics")
+parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to use well-tempered version")
+parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -169,10 +171,14 @@ def run_simulation(force_constant):
         mtd_output_layer_string = ['l_2_out_%d' % item for item in range(len(potential_center))]
         mtd_output_layer_string = ','.join(mtd_output_layer_string)
         mtd_sigma_string = ','.join([str(args.MTD_sigma) for _ in range(len(potential_center))])
+        if args.MTD_WT:
+            mtd_well_tempered_string = 'TEMP=%d BIASFACTOR=%f' % (args.temperature, args.MTD_biasfactor)
+        else:
+            mtd_well_tempered_string = ""
         plumed_force_string += """
-metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt
+metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt %s
 PRINT STRIDE=%d ARG=%s,metad.bias FILE=temp_MTD_out.txt
-""" % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string,
+""" % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string, mtd_well_tempered_string,
        record_interval, mtd_output_layer_string)
         system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "SMD":
@@ -185,6 +191,18 @@ psi: TORSION ATOMS=7,9,15,17
 restraint: MOVINGRESTRAINT ARG=phi,psi AT0=-1.5,1.0  STEP0=0 KAPPA0=%s AT1=1.0,-1.0 STEP1=%d KAPPA1=%s
 PRINT STRIDE=10 ARG=* FILE=COLVAR
 """ % (kappa_string, total_number_of_steps, kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "TMD":  # targeted MD
+        # TODO: this is temporary version
+        from openmmplumed import PlumedForce
+        kappa_string = '10000'
+        plumed_force_string = """
+phi: TORSION ATOMS=5,7,9,15
+psi: TORSION ATOMS=7,9,15,17
+rmsd: RMSD REFERENCE=../resources/alanine_ref_1_TMD.pdb TYPE=OPTIMAL
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1=%s
+PRINT STRIDE=10 ARG=* FILE=COLVAR
+        """ % (total_number_of_steps, kappa_string)
         system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')

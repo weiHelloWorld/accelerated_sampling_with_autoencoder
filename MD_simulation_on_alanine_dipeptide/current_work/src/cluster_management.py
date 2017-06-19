@@ -22,6 +22,7 @@ class cluster_management(object):
         else:
             gpu_option_string = ''
 
+        sge_file_list = []
         for item in list_of_commands_to_run:
             item = item.strip()
             if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
@@ -43,6 +44,7 @@ class cluster_management(object):
                 sge_filename = "h_" + temp.hexdigest() + sge_filename[-200:]
 
             sge_filename = folder_to_store_sge_files + sge_filename
+            sge_file_list.append(sge_filename)
 
             content_for_sge_files = '''#!/bin/bash
 
@@ -68,7 +70,7 @@ exit 0
             with open(sge_filename, 'w') as f_out:
                 f_out.write(content_for_sge_files)
                 f_out.write("\n")
-        return
+        return sge_file_list
 
     @staticmethod
     def get_num_of_running_jobs():
@@ -76,7 +78,7 @@ exit 0
         all_entries = output.strip().split('\n')[2:]   # remove header
         all_entries = [item for item in all_entries if (not item.strip().split()[4] == 'dr')]   # remove job in "dr" state
         num_of_running_jobs = len(all_entries)
-        print('checking number of running jobs = %d\n' % num_of_running_jobs)
+        # print('checking number of running jobs = %d\n' % num_of_running_jobs)
         return num_of_running_jobs
 
     @staticmethod
@@ -90,12 +92,35 @@ exit 0
             os.makedirs(dir_to_archive_files)
 
         assert(os.path.exists(dir_to_archive_files))
-
+        sge_job_id_list = []
         for item in job_file_lists[0:num]:
-            subprocess.check_output(['qsub', item])
+            output_info = subprocess.check_output(['qsub', item]).strip()
+            sge_job_id_list.append(output_info.split(' ')[2])
             print('submitting ' + str(item))
             subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
-        return
+        return sge_job_id_list
+
+    @staticmethod
+    def submit_a_single_job_and_wait_until_it_finishes(job_sge_file):
+        job_id = cluster_management.submit_sge_jobs_and_archive_files([job_sge_file], num=1)[0]
+        while cluster_management.is_job_on_cluster(job_id):
+            time.sleep(10)
+        print "job (id = %s) done!" % job_id
+        return job_id
+
+    @staticmethod
+    def run_a_command_and_wait_on_cluster(command):
+        print 'running %s on cluster' % command
+        sge_file = cluster_management.create_sge_files_for_commands([command])[0]
+        id = cluster_management.submit_a_single_job_and_wait_until_it_finishes(sge_file)
+        return id
+
+    @staticmethod
+    def get_output_and_err_with_job_id(job_id):
+        temp_file_list = subprocess.check_output(['ls']).strip().split('\n')
+        out_file = list(filter(lambda x: '.sge.o' + job_id in x, temp_file_list))[0]
+        err_file = list(filter(lambda x: '.sge.e' + job_id in x, temp_file_list))[0]
+        return out_file, err_file
 
     @staticmethod
     def get_sge_files_list():
@@ -107,9 +132,11 @@ exit 0
     def submit_new_jobs_if_there_are_too_few_jobs(num):
         if cluster_management.get_num_of_running_jobs() < num:
             job_list = cluster_management.get_sge_files_list()
-            cluster_management.submit_sge_jobs_and_archive_files(job_list, 
+            job_id_list = cluster_management.submit_sge_jobs_and_archive_files(job_list,
                                     num - cluster_management.get_num_of_running_jobs())
-        return
+        else:
+            job_id_list = []
+        return job_id_list
 
     @staticmethod
     def monitor_status_and_submit_periodically(num,
@@ -123,24 +150,29 @@ exit 0
         else:
             raise Exception('monitor_mode not defined')
 
+        submitted_job_id = []
         num_of_unsubmitted_jobs = len(cluster_management.get_sge_files_list())
         # first check if there are unsubmitted jobs
-        while num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
+        while len(submitted_job_id) > 0 or num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
             time.sleep(10)
             cluster_management.get_sge_dot_e_files_in_current_folder_and_handle_jobs_not_finished_successfully()
             try:
-                cluster_management.submit_new_jobs_if_there_are_too_few_jobs(num)
+                temp_submitted_job_id = cluster_management.submit_new_jobs_if_there_are_too_few_jobs(num)
+                submitted_job_id += temp_submitted_job_id
+                submitted_job_id = list(filter(lambda x: cluster_management.is_job_on_cluster(x),
+                                               submitted_job_id))   # remove finished id of finished jobs
+                print "submitted_job_id = %s" % str(submitted_job_id)
                 num_of_unsubmitted_jobs = len(cluster_management.get_sge_files_list())
             except:
                 print("not able to submit jobs!\n")
 
-        # then check if all jobs are done
+        # then check if all jobs are done (not really, since there could be multiple cluster_management running)
         while cluster_management.get_num_of_running_jobs() > num_of_running_jobs_when_allowed_to_stop:
             time.sleep(10)
         return
 
     @staticmethod
-    def is_job_running_on_cluster(job_sgefile_name):
+    def is_job_on_cluster(job_sgefile_name):
         output = subprocess.check_output(['qstat', '-r'])
         return job_sgefile_name in output
 
@@ -156,7 +188,7 @@ exit 0
         """
         job_finished_message = 'This job is DONE!'
         # first we check whether the job finishes
-        if cluster_management.is_job_running_on_cluster(job_sgefile_name):
+        if cluster_management.is_job_on_cluster(job_sgefile_name):
             return 3  # not finished
         else:
             all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
@@ -230,6 +262,6 @@ exit 0
         sge_e_files = filter(lambda x: '.sge.e' in x, all_files_in_this_dir)
         sge_files = [item.split('.sge')[0] + '.sge' for item in sge_e_files]
         sge_files = list(set(sge_files))
-        print "sge_files = %s" % str(sge_files)
+        # print "sge_files = %s" % str(sge_files)
         cluster_management.handle_jobs_not_finished_successfully_and_archive(sge_files, latest_version)
         return

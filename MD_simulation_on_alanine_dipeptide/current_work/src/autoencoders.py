@@ -317,12 +317,13 @@ class autoencoder(object):
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
 
                 elif isinstance(molecule_type, Trp_cage):
+                    fast_equilibration_flag = CONFIG_72
                     parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
                                       '../target/Trp_cage/network_%d/' % self._index,
                                       autoencoder_info_file,
                                       'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2)
-                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration 0" % parameter_list
+                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
+                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
                     if CONFIG_42:
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Trp_cage/network_%d.pkl' % self._index)
@@ -333,17 +334,21 @@ class autoencoder(object):
         elif bias_method == "MTD":
             todo_list_of_commands_for_simulations = []
             self.write_expression_script_for_plumed()
+            dimensionality = CONFIG_36
+            pc_string = 'pc_' + ','.join(['0' for _ in range(dimensionality)])
             if isinstance(molecule_type, Alanine_dipeptide):
                 for mtd_sim_index in range(5):
                     parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
-                                      '../target/Alanine_dipeptide/network_%d/' % self._index, self._autoencoder_info_file)
-                    command = "python ../src/biased_simulation.py %s %s %s %s %s pc_0,0 --data_type_in_input_layer 1 --bias_method MTD" % parameter_list
+                                      '../target/Alanine_dipeptide/network_%d/' % self._index,
+                                      self._autoencoder_info_file, pc_string)
+                    command = "python ../src/biased_simulation.py %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD" % parameter_list
                     todo_list_of_commands_for_simulations += [command]
             elif isinstance(molecule_type, Trp_cage):
                 for mtd_sim_index in range(6):
                     parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
-                                      '../target/Trp_cage/network_%d/' % self._index, self._autoencoder_info_file, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
-                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s pc_0,0 %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
+                                      '../target/Trp_cage/network_%d/' % self._index, self._autoencoder_info_file,
+                                      pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
+                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
                     todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")
