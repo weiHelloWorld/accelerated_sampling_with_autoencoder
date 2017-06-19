@@ -274,6 +274,8 @@ class autoencoder(object):
                     folder_state_coor_file = '../resources/1l2y_coordinates.txt'
                 elif isinstance(molecule_type, Alanine_dipeptide):
                     folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+                elif isinstance(molecule_type, Src_kinase):
+                    pass
                 else:
                     raise Exception('molecule type error')
 
@@ -327,6 +329,17 @@ class autoencoder(object):
                     if CONFIG_42:
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Trp_cage/network_%d.pkl' % self._index)
+                elif isinstance(molecule_type, Src_kinase):
+                    fast_equilibration_flag = CONFIG_72
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                                      '../target/Src_kinase/network_%d/' % self._index,
+                                      autoencoder_info_file,
+                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
+                    command = "python ../src/biased_simulation_general.py Src_kinase %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
+                    if CONFIG_42:
+                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                            '../resources/Src_kinase/network_%d.pkl' % self._index)
                 else:
                     raise Exception("molecule type not defined")
 

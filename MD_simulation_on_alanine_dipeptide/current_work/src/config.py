@@ -96,12 +96,12 @@ CONFIG_62 = get_mol_param([
     ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
     ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'],
     # ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
-    ['../resources/2src.pdb', '../resources/1y57.pdb']
+    ['../resources/2src.pdb']
 ])                   # list of reference file
 CONFIG_63 = get_mol_param([
     ['', '_1'],
     ['', '_1'],
-    ['', '_1']
+    ['']
     ]
 )                         # suffix for each reference configuration
 CONFIG_61 = ['_aligned%s_coordinates.txt' % item
@@ -110,7 +110,7 @@ CONFIG_64 = get_mol_param([
     ['backbone', 'backbone'],
     ['backbone', 'backbone'],
     # ['backbone and resid 2:8', 'backbone'], # mixed_err
-    ['backbone', 'backbone']
+    ['backbone']
     ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
@@ -191,19 +191,19 @@ CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the numbe
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 CONFIG_65 = "US"          # default biasing method
-CONFIG_16 = get_mol_param([500, 2000, 'TODO'])                     # record interval (the frequency of writing system state into the file)
-CONFIG_8 = get_mol_param([50000, 200000, 'TODO'])                  # num of simulation steps
+CONFIG_16 = get_mol_param([500, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
+CONFIG_8 = get_mol_param([50000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
-CONFIG_9 = get_mol_param([3000, 5000, 'TODO'])                     # force constant for biased simulations
-CONFIG_53 = get_mol_param(['flexible', 'flexible', 'TODO'])          # use fixed/flexible force constants for biased simulation for each iteration
+CONFIG_9 = get_mol_param([3000, 5000, 5000])                     # force constant for biased simulations
+CONFIG_53 = get_mol_param(['flexible', 'flexible', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
 CONFIG_54 = 2.47 * get_mol_param([30.0, 15.0, 15.0])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
-CONFIG_66 = get_mol_param([500, 500, 'TODO'])          # pace of metadynamics
-CONFIG_67 = get_mol_param([2, 2, 'TODO'])              # height of metadynamics
-CONFIG_68 = get_mol_param([0.1, 0.1, 'TODO'])          # sigma of metadynamics
-CONFIG_69 = get_mol_param([0, 0, 'TODO'])             # whether to use well-tempered version
-CONFIG_70 = get_mol_param([15, 15, 'TODO'])           # biasfactor for well-tempered metadynamics
+CONFIG_66 = get_mol_param([500, 500, 500])          # pace of metadynamics
+CONFIG_67 = get_mol_param([2, 2, 2])              # height of metadynamics
+CONFIG_68 = get_mol_param([0.1, 0.1, 0.1])          # sigma of metadynamics
+CONFIG_69 = get_mol_param([0, 0, 0])             # whether to use well-tempered version
+CONFIG_70 = get_mol_param([15, 15, 15])           # biasfactor for well-tempered metadynamics
 CONFIG_19 = '48:00:00'                                    # max running time for the sge job
 
 CONFIG_21 = 300   # simulation temperature
