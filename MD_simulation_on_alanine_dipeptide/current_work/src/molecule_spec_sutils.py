@@ -68,6 +68,8 @@ class Sutils(object):
             return Alanine_dipeptide()
         elif name == "Trp_cage":
             return Trp_cage()
+        elif name == "Src_kinase":
+            return Src_kinase()
         else:
             raise Exception('type name not defined')
 
@@ -152,6 +154,8 @@ class Sutils(object):
             num_of_backbone_atoms = len(CONFIG_57[0])
         elif isinstance(molecule_type, Trp_cage):
             num_of_backbone_atoms = len(CONFIG_57[1])
+        elif isinstance(molecule_type, Src_kinase):
+            num_of_backbone_atoms = len(CONFIG_57[2])
         else:
             raise Exception("error molecule type")
 
@@ -908,9 +912,9 @@ class Trp_cage(Sutils):
                                     item, _2, _2)
         return plumed_script
 
-class Src(Sutils):
+class Src_kinase(Sutils):
     def __init__(self):
-        super(Src, self).__init__()
+        super(Src_kinase, self).__init__()
         return
 
     @staticmethod

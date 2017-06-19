@@ -35,7 +35,7 @@ WARNING_INFO = "Comment out this line to continue."
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
     if molecule_name == "Alanine_dipeptide": return parameter_list[0]
     elif molecule_name == "Trp_cage": return parameter_list[1]
-    elif molecule_name == "Src": return parameter_list[2]
+    elif molecule_name == "Src_kinase": return parameter_list[2]
     else: raise Exception("molecule not defined!")
 
 #######################################################################
@@ -49,7 +49,7 @@ CONFIG_58 = True              # use representative points for training (generate
 CONFIG_59 = 500               # number of representative points
 
 if CONFIG_48 == 'Cartesian':
-    CONFIG_49 = get_mol_param([5.0, 20.0, 'TODO']) # scaling factor for output for Cartesian coordinates
+    CONFIG_49 = get_mol_param([5.0, 20.0, 40.0]) # scaling factor for output for Cartesian coordinates
 
 '''class coordinates_data_files_list:'''
 
@@ -76,7 +76,7 @@ elif CONFIG_45 == 'keras':
     CONFIG_4 = get_mol_param([
         [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
         [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        'TODO'
+        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: temp
         ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
 else:
     raise Exception('training backend not implemented')
@@ -91,7 +91,7 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
-CONFIG_71 = True                  # use mixed error function
+CONFIG_71 = False                  # use mixed error function
 CONFIG_62 = get_mol_param([
     ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
     ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'],
@@ -125,7 +125,7 @@ elif CONFIG_48 == 'Cartesian':
          [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  
          [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55],
          # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
-         [3 * len(CONFIG_57[1]), 'TODO', CONFIG_37, 'TODO', 3 * len(CONFIG_57[1]) * CONFIG_55],
+         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[2]) * CONFIG_55],
          ])  # the structure of ANN: number of nodes in each layer
 else:
     raise Exception('error input data type')
@@ -197,7 +197,7 @@ CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
 CONFIG_9 = get_mol_param([3000, 5000, 'TODO'])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['flexible', 'flexible', 'TODO'])          # use fixed/flexible force constants for biased simulation for each iteration
-CONFIG_54 = 2.47 * get_mol_param([30.0, 15.0, 'TODO'])             # max external potential energy allowed (in k_BT)
+CONFIG_54 = 2.47 * get_mol_param([30.0, 15.0, 15.0])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
 CONFIG_66 = get_mol_param([500, 500, 'TODO'])          # pace of metadynamics
 CONFIG_67 = get_mol_param([2, 2, 'TODO'])              # height of metadynamics
