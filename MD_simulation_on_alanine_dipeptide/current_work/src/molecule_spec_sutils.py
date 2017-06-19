@@ -169,7 +169,7 @@ class Sutils(object):
         coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
                                            np.average(result[item, 2::3])]
                                           for item in range(result.shape[0])]
-        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
+        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e-5)
 
     @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom

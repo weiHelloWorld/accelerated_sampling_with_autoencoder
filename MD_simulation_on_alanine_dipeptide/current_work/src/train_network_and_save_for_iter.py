@@ -38,6 +38,8 @@ elif CONFIG_48 == 'Cartesian':
 
     data_set = data_set[::args.training_interval]
     output_data_set = output_data_set[::args.training_interval]
+    assert (Sutils.check_center_of_mass_is_at_origin(data_set))
+    assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
 else:
     raise Exception('error input data type')
 
