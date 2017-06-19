@@ -15,6 +15,7 @@ class Sutils(object):
         atoms = temp_universe.select_atoms('backbone')
         index_list = atoms.indices
         index_list = np.sort(np.concatenate([index_list[::4], index_list[1::4], index_list[2::4]]))  # do not include "O"
+        print "note that index starts from 0"
         return index_list
 
     @staticmethod
@@ -907,5 +908,15 @@ class Trp_cage(Sutils):
                                     item, _2, _2)
         return plumed_script
 
-# class Src(Sutils):
-#
+class Src(Sutils):
+    def __init__(self):
+        super(Src, self).__init__()
+        return
+
+    @staticmethod
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[2]]
+        assert (len(index_of_backbone_atoms) % 3 == 0)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(
+            index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
+        return output_file_list

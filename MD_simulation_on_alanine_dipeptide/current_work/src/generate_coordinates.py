@@ -11,6 +11,8 @@ if args.mol_type == 'Alanine_dipeptide':
     molecule_type = Alanine_dipeptide()
 elif args.mol_type == 'Trp_cage':
     molecule_type = Trp_cage()
+elif args.mol_type == "Src":
+    molecule_type = Src()
 else:
     raise Exception('molecule type error')
 
