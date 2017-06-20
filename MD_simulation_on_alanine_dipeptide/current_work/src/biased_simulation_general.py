@@ -118,7 +118,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
     time_step = CONFIG_22       # simulation time step, in ps
 
     index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1],
-                               '2src': 'TODO', '1y57': 'TODO'}[args.molecule]  # TODO
+                               '2src': CONFIG_57[2], '1y57': CONFIG_57[2]}[args.molecule]
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
@@ -181,7 +181,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
             system.addForce(force)
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
-        molecule_type = {'Trp_cage': Trp_cage, '2src': None, '1y57': None}[args.molecule]   # TODO
+        molecule_type = {'Trp_cage': Trp_cage, '2src': Src_kinase, '1y57': Src_kinase}[args.molecule]
         plumed_force_string = molecule_type.get_expression_script_for_plumed()
         with open(autoencoder_info_file, 'r') as f_in:
             plumed_force_string += f_in.read()

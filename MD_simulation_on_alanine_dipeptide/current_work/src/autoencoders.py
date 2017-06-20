@@ -336,7 +336,7 @@ class autoencoder(object):
                                       autoencoder_info_file,
                                       'pc_' + str(potential_center).replace(' ', '')[1:-1],
                                       CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py Src_kinase %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
+                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
                     if CONFIG_42:
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Src_kinase/network_%d.pkl' % self._index)
