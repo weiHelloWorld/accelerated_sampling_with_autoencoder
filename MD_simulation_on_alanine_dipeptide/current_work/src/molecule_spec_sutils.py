@@ -263,6 +263,23 @@ class Sutils(object):
         return output_file_list
 
     @staticmethod
+    def _get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor):
+        plumed_script = ""
+        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
+        plumed_script += "p_com: POSITION ATOM=com_1\n"
+
+        for item in range(len(index_of_backbone_atoms)):
+            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
+        # following remove translation using p_com
+        for item in range(len(index_of_backbone_atoms)):
+            for _1, _2 in enumerate(['.x', '.y', '.z']):
+                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
+                        % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor,
+                            # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
+                            item, _2, _2)
+        return plumed_script
+
+    @staticmethod
     def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
         """
         This is used to remove water molecule from pdb file, purposes:
@@ -493,19 +510,8 @@ class Alanine_dipeptide(Sutils):
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[0]
-        plumed_script = ""
-        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
-        plumed_script += "p_com: POSITION ATOM=com_1\n"
+        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
 
-        for item in range(len(index_of_backbone_atoms)):
-            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
-        # following remove translation using p_com
-        for item in range(len(index_of_backbone_atoms)):
-            for _1, _2 in enumerate(['.x', '.y', '.z']):
-                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
-                                 % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor, # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
-                                    item, _2, _2)
-        return plumed_script
 
 class Trp_cage(Sutils):
     """docstring for Trp_cage"""
@@ -897,20 +903,8 @@ class Trp_cage(Sutils):
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[1]
-        plumed_script = ""
-        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
-        plumed_script += "p_com: POSITION ATOM=com_1\n"
+        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
 
-        for item in range(len(index_of_backbone_atoms)):
-            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
-        # following remove translation using p_com
-        for item in range(len(index_of_backbone_atoms)):
-            for _1, _2 in enumerate(['.x', '.y', '.z']):
-                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
-                                 % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor,
-                                    # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
-                                    item, _2, _2)
-        return plumed_script
 
 class Src_kinase(Sutils):
     def __init__(self):
@@ -924,3 +918,8 @@ class Src_kinase(Sutils):
         output_file_list = Sutils._generate_coordinates_from_pdb_files(
             index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
         return output_file_list
+
+    @staticmethod
+    def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
+        index_of_backbone_atoms = CONFIG_57[2]
+        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)

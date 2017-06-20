@@ -363,6 +363,13 @@ class autoencoder(object):
                                       pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
                     command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
                     todo_list_of_commands_for_simulations += [command]
+            elif isinstance(molecule_type, Src_kinase):
+                for mtd_sim_index in range(6):
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
+                                      '../target/Src_kinase/network_%d/' % self._index, self._autoencoder_info_file,
+                                      pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
+                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
+                    todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")
         else:
