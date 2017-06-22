@@ -26,7 +26,7 @@ parser.add_argument("--starting_frame", type=int, default=0, help="index of star
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
-parser.add_argument("--device", type=str, default='0', help='device index to run simulation on')
+parser.add_argument("--device", type=str, default='none', help='device index to run simulation on')
 parser.add_argument("--checkpoint", type=int, default=1, help="whether to save checkpoint at the end of the simulation")
 parser.add_argument("--starting_checkpoint", type=str, default="auto", help='starting checkpoint file, to resume simulation ("none" means no starting checkpoint file is provided, "auto" means automatically)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
@@ -49,6 +49,8 @@ parser.add_argument("--distance_tolerance", type=float, default=CONFIG_35, help=
 parser.add_argument("--autoencoder_file", type=str, help="pkl file that stores autoencoder (for force_constant_adjustable mode)")
 parser.add_argument("--remove_previous", help="remove previous outputs while adjusting force constants", action="store_true")
 args = parser.parse_args()
+
+print "start simulation at %s" % datetime.datetime.now()  # to calculate compile time
 
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
@@ -215,7 +217,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     if flag_random_seed:
         integrator.setRandomNumberSeed(1)  # set random seed
 
-    if args.platform == "CUDA":
+    if args.platform == "CUDA" and args.device != 'none':
         properties = {'CudaDeviceIndex': args.device}
         simulation = Simulation(modeller.topology, system, integrator, platform, properties)
     else:
