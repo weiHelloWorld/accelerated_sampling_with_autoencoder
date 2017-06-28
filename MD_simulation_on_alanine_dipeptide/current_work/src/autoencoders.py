@@ -159,31 +159,52 @@ class autoencoder(object):
             f_out.write(expression)
         return
 
-    def get_expression_script_for_plumed(self):
+    def get_expression_script_for_plumed(self, mode="native"):
         plumed_script = ''
-        plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
+        if mode == "native":  # using native implementation by PLUMED (using COMBINE and MATHEVAL)
+            plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
 
-        activation_function_list = ['tanh', 'tanh']
-        for layer_index in [1, 2]:
-            for item in range(self._node_num[layer_index]):
-                plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
-                plumed_script += "%s" % \
-                                 str(self._connection_between_layers_coeffs[layer_index - 1][
-                                     item * self._node_num[layer_index - 1]:(item + 1) * self._node_num[
-                                         layer_index - 1]].tolist())[1:-1].replace(' ', '')
-                plumed_script += ',%f' % self._connection_with_bias_layers_coeffs[layer_index - 1][item]
-                plumed_script += " ARG="
-                for _1 in range(self._node_num[layer_index - 1]):
-                    plumed_script += 'l_%d_out_%d,' % (layer_index - 1, _1)
+            activation_function_list = ['tanh', 'tanh']
+            for layer_index in [1, 2]:
+                for item in range(self._node_num[layer_index]):
+                    plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
+                    plumed_script += "%s" % \
+                                     str(self._connection_between_layers_coeffs[layer_index - 1][
+                                         item * self._node_num[layer_index - 1]:(item + 1) * self._node_num[
+                                             layer_index - 1]].tolist())[1:-1].replace(' ', '')
+                    plumed_script += ',%f' % self._connection_with_bias_layers_coeffs[layer_index - 1][item]
+                    plumed_script += " ARG="
+                    for _1 in range(self._node_num[layer_index - 1]):
+                        plumed_script += 'l_%d_out_%d,' % (layer_index - 1, _1)
 
-                plumed_script += 'bias_const\n'
-                plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=%s(x) PERIODIC=NO\n' % (
-                    layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
+                    plumed_script += 'bias_const\n'
+                    plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=%s(x) PERIODIC=NO\n' % (
+                        layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
+        elif mode == "ANN":  # using ANN class
+            temp_num_of_layers_used = 3
+            temp_input_string = ','.join(['l_0_out_%d' % item for item in range(self._node_num[0])])
+            temp_num_nodes_string = ','.join([str(item) for item in self._node_num[:temp_num_of_layers_used]])
+            temp_layer_type_string = map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2])
+            temp_layer_type_string = ','.join(temp_layer_type_string)
+            temp_coeff_string = ''
+            temp_bias_string = ''
+            for _1, item_coeff in enumerate(self._connection_between_layers_coeffs[:temp_num_of_layers_used - 1]):
+                temp_coeff_string += ' COEFFICIENTS_OF_CONNECTIONS%d=%s' % \
+                                     (_1, ','.join([str(item) for item in item_coeff]))
+            for _1, item_bias in enumerate(self._connection_with_bias_layers_coeffs[:temp_num_of_layers_used - 1]):
+                temp_bias_string += ' VALUES_OF_BIASED_NODES%d=%s' % \
+                                     (_1, ','.join([str(item) for item in item_bias]))
+
+            plumed_script += "ann_force: ANN ARG=%s NUM_OF_NODES=%s LAYER_TYPES=%s %s %s" % \
+                (temp_input_string, temp_num_nodes_string, temp_layer_type_string,
+                 temp_coeff_string, temp_bias_string)
+        else:
+            raise Exception("mode error")
         return plumed_script
 
-    def write_expression_script_for_plumed(self, out_file=None):
+    def write_expression_script_for_plumed(self, out_file=None, mode="native"):
         if out_file is None: out_file = self._autoencoder_info_file
-        expression = self.get_expression_script_for_plumed()
+        expression = self.get_expression_script_for_plumed(mode=mode)
         with open(out_file, 'w') as f_out:
             f_out.write(expression)
         return
