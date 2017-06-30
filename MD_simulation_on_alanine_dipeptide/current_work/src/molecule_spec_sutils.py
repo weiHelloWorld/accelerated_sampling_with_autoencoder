@@ -417,6 +417,60 @@ class Sutils(object):
 
         return optimal_num, x_data, y_data_left, y_data_right
 
+    @staticmethod
+    def get_RMSD_after_alignment(position_1, position_2):
+        return rmsd(position_1, position_2, center=True, superposition=True)
+
+    @staticmethod
+    def metric_RMSD_of_atoms(list_of_files, ref_file='../resources/1l2y.pdb', atom_selection_statement="name CA",
+                             step_interval=1):
+        """
+        :param atom_selection_statement:  could be either
+         - "name CA" for alpha-carbon atoms only
+         - "protein" for all atoms
+         - "backbone" for backbone atoms
+         - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
+        """
+        ref = Universe(ref_file)
+        ref_atom_selection = ref.select_atoms(atom_selection_statement)
+        result_rmsd_of_atoms = []
+        index = 0
+
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection_statement)
+
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    result_rmsd_of_atoms.append(Sutils.get_RMSD_after_alignment(ref_atom_selection.positions,
+                                                                    sample_atom_selection.positions))
+
+                index += 1
+
+        return result_rmsd_of_atoms
+
+    @staticmethod
+    def get_residue_relative_position_list(sample_file):
+        sample = Universe(sample_file)
+        temp_heavy_atoms = sample.select_atoms('not name H*')
+        temp_CA_atoms = sample.select_atoms('name CA')
+        residue_relative_position_list = []
+
+        for _ in sample.trajectory:
+            temp_residue_relative_position_list = []
+            for temp_residue_index in sample.residues.resnums:
+                temp_residue_relative_position_list.append(
+                    temp_heavy_atoms[temp_heavy_atoms.resnums == temp_residue_index].positions \
+                    - temp_CA_atoms[temp_CA_atoms.resnums == temp_residue_index].positions)
+            residue_relative_position_list.append(temp_residue_relative_position_list)
+        return residue_relative_position_list
+
+    @staticmethod
+    def get_rmsd_of_relative_position_of_a_residue(sample_file, ref_file):
+        sample_residue_relative_position_list = Sutils.get_residue_relative_position_list(sample_file)
+        ref_residue_relative_position_list = Sutils.get_residue_relative_position_list(ref_file)
+        # TODO
+
 
 class Alanine_dipeptide(Sutils):
     """docstring for Alanine_dipeptide"""
@@ -743,37 +797,6 @@ class Trp_cage(Sutils):
         result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
                      sample)
         return result
-
-    @staticmethod
-    def get_RMSD_after_alignment(position_1, position_2):
-        return rmsd(position_1, position_2, center=True, superposition=True)
-
-    @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', atom_selection_statement ="name CA", step_interval = 1):
-        """
-        :param atom_selection_statement:  could be either
-         - "name CA" for alpha-carbon atoms only
-         - "protein" for all atoms
-         - "backbone" for backbone atoms
-         - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
-        """
-        ref = Universe(ref_file)
-        ref_atom_selection = ref.select_atoms(atom_selection_statement)
-        result_rmsd_of_atoms = []
-        index = 0
-
-        for sample_file in list_of_files:
-            sample = Universe(sample_file)
-            sample_atom_selection = sample.select_atoms(atom_selection_statement)
-
-            for _ in sample.trajectory:
-                if index % step_interval == 0:
-                    result_rmsd_of_atoms.append(Trp_cage.get_RMSD_after_alignment(ref_atom_selection.positions,
-                                                                                  sample_atom_selection.positions))
-
-                index += 1
-
-        return result_rmsd_of_atoms
 
     @staticmethod
     def metric_radius_of_gyration(list_of_files, step_interval = 1, atom_selection_statement = "name CA"):
