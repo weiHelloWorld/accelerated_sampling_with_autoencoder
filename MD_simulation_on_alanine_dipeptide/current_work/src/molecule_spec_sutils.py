@@ -450,6 +450,22 @@ class Sutils(object):
         return result_rmsd_of_atoms
 
     @staticmethod
+    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
+        distances_list = []
+        index = 0
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms("name CA")
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    distances_list.append(
+                        distance_array(sample_atom_selection.positions, sample_atom_selection.positions))
+
+                index += 1
+
+        return np.array(distances_list)
+
+    @staticmethod
     def get_residue_relative_position_list(sample_file):
         sample = Universe(sample_file)
         temp_heavy_atoms = sample.select_atoms('not name H*')
@@ -720,21 +736,6 @@ class Trp_cage(Sutils):
         return np.array(distances_list)
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
-        distances_list = []
-        index = 0
-        for sample_file in list_of_files:
-            sample = Universe(sample_file)
-            sample_atom_selection = sample.select_atoms("name CA")
-            for _ in sample.trajectory:
-                if index % step_interval == 0:
-                    distances_list.append(distance_array(sample_atom_selection.positions, sample_atom_selection.positions))
-
-                index += 1
-
-        return np.array(distances_list)
-
-    @staticmethod
     def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval = 1):
         """each element in this result is a list, not a matrix"""
         dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
@@ -946,3 +947,30 @@ class Src_kinase(Sutils):
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[2]
         return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
+
+    @staticmethod
+    def metric_salt_bridge_switching(list_of_files, step_interval=1):
+        """this function measures (distance between E310-R409) - (distance between E310-K295),
+        this is a good metric showing switching between two salt bridges
+        """
+
+        dis_310_409 = []
+        dis_310_295 = []
+        index = 0
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            # note that we only simulate residue 260-521
+            temp_atom_310 = sample.select_atoms('resid 51 and name CD')
+            temp_atom_409 = sample.select_atoms('resid 150 and name CZ')
+            temp_atom_295 = sample.select_atoms('resid 36 and name NZ')
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    dis_310_409.append(
+                        distance_array(temp_atom_310.positions, temp_atom_409.positions))
+                    dis_310_295.append(
+                        distance_array(temp_atom_310.positions, temp_atom_295.positions))
+
+                index += 1
+
+        return np.array(dis_310_409) - np.array(dis_310_295)
+
