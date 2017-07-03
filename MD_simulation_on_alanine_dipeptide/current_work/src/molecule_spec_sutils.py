@@ -972,5 +972,5 @@ class Src_kinase(Sutils):
 
                 index += 1
 
-        return np.array(dis_310_409) - np.array(dis_310_295)
+        return np.array(dis_310_409).flatten() - np.array(dis_310_295).flatten()
 
