@@ -15,6 +15,7 @@ class Sutils(object):
         atoms = temp_universe.select_atoms('backbone')
         index_list = atoms.indices
         index_list = np.sort(np.concatenate([index_list[::4], index_list[1::4], index_list[2::4]]))  # do not include "O"
+        print "note that index starts from 0"
         return index_list
 
     @staticmethod
@@ -67,6 +68,8 @@ class Sutils(object):
             return Alanine_dipeptide()
         elif name == "Trp_cage":
             return Trp_cage()
+        elif name == "Src_kinase":
+            return Src_kinase()
         else:
             raise Exception('type name not defined')
 
@@ -151,6 +154,8 @@ class Sutils(object):
             num_of_backbone_atoms = len(CONFIG_57[0])
         elif isinstance(molecule_type, Trp_cage):
             num_of_backbone_atoms = len(CONFIG_57[1])
+        elif isinstance(molecule_type, Src_kinase):
+            num_of_backbone_atoms = len(CONFIG_57[2])
         else:
             raise Exception("error molecule type")
 
@@ -168,7 +173,7 @@ class Sutils(object):
         coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
                                            np.average(result[item, 2::3])]
                                           for item in range(result.shape[0])]
-        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e5)
+        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e-5)
 
     @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom
@@ -256,6 +261,23 @@ class Sutils(object):
 
         print("Done generating coordinates files\n")
         return output_file_list
+
+    @staticmethod
+    def _get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor):
+        plumed_script = ""
+        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
+        plumed_script += "p_com: POSITION ATOM=com_1\n"
+
+        for item in range(len(index_of_backbone_atoms)):
+            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
+        # following remove translation using p_com
+        for item in range(len(index_of_backbone_atoms)):
+            for _1, _2 in enumerate(['.x', '.y', '.z']):
+                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
+                        % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor,
+                            # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
+                            item, _2, _2)
+        return plumed_script
 
     @staticmethod
     def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
@@ -395,6 +417,76 @@ class Sutils(object):
 
         return optimal_num, x_data, y_data_left, y_data_right
 
+    @staticmethod
+    def get_RMSD_after_alignment(position_1, position_2):
+        return rmsd(position_1, position_2, center=True, superposition=True)
+
+    @staticmethod
+    def metric_RMSD_of_atoms(list_of_files, ref_file='../resources/1l2y.pdb', atom_selection_statement="name CA",
+                             step_interval=1):
+        """
+        :param atom_selection_statement:  could be either
+         - "name CA" for alpha-carbon atoms only
+         - "protein" for all atoms
+         - "backbone" for backbone atoms
+         - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
+        """
+        ref = Universe(ref_file)
+        ref_atom_selection = ref.select_atoms(atom_selection_statement)
+        result_rmsd_of_atoms = []
+        index = 0
+
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection_statement)
+
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    result_rmsd_of_atoms.append(Sutils.get_RMSD_after_alignment(ref_atom_selection.positions,
+                                                                    sample_atom_selection.positions))
+
+                index += 1
+
+        return result_rmsd_of_atoms
+
+    @staticmethod
+    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
+        distances_list = []
+        index = 0
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms("name CA")
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    distances_list.append(
+                        distance_array(sample_atom_selection.positions, sample_atom_selection.positions))
+
+                index += 1
+
+        return np.array(distances_list)
+
+    @staticmethod
+    def get_residue_relative_position_list(sample_file):
+        sample = Universe(sample_file)
+        temp_heavy_atoms = sample.select_atoms('not name H*')
+        temp_CA_atoms = sample.select_atoms('name CA')
+        residue_relative_position_list = []
+
+        for _ in sample.trajectory:
+            temp_residue_relative_position_list = []
+            for temp_residue_index in sample.residues.resnums:
+                temp_residue_relative_position_list.append(
+                    temp_heavy_atoms[temp_heavy_atoms.resnums == temp_residue_index].positions \
+                    - temp_CA_atoms[temp_CA_atoms.resnums == temp_residue_index].positions)
+            residue_relative_position_list.append(temp_residue_relative_position_list)
+        return residue_relative_position_list
+
+    @staticmethod
+    def get_rmsd_of_relative_position_of_a_residue(sample_file, ref_file):
+        sample_residue_relative_position_list = Sutils.get_residue_relative_position_list(sample_file)
+        ref_residue_relative_position_list = Sutils.get_residue_relative_position_list(ref_file)
+        # TODO
+
 
 class Alanine_dipeptide(Sutils):
     """docstring for Alanine_dipeptide"""
@@ -488,19 +580,8 @@ class Alanine_dipeptide(Sutils):
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[0]
-        plumed_script = ""
-        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
-        plumed_script += "p_com: POSITION ATOM=com_1\n"
+        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
 
-        for item in range(len(index_of_backbone_atoms)):
-            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
-        # following remove translation using p_com
-        for item in range(len(index_of_backbone_atoms)):
-            for _1, _2 in enumerate(['.x', '.y', '.z']):
-                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
-                                 % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor, # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
-                                    item, _2, _2)
-        return plumed_script
 
 class Trp_cage(Sutils):
     """docstring for Trp_cage"""
@@ -655,21 +736,6 @@ class Trp_cage(Sutils):
         return np.array(distances_list)
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
-        distances_list = []
-        index = 0
-        for sample_file in list_of_files:
-            sample = Universe(sample_file)
-            sample_atom_selection = sample.select_atoms("name CA")
-            for _ in sample.trajectory:
-                if index % step_interval == 0:
-                    distances_list.append(distance_array(sample_atom_selection.positions, sample_atom_selection.positions))
-
-                index += 1
-
-        return np.array(distances_list)
-
-    @staticmethod
     def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval = 1):
         """each element in this result is a list, not a matrix"""
         dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
@@ -732,37 +798,6 @@ class Trp_cage(Sutils):
         result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
                      sample)
         return result
-
-    @staticmethod
-    def get_RMSD_after_alignment(position_1, position_2):
-        return rmsd(position_1, position_2, center=True, superposition=True)
-
-    @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file ='../resources/1l2y.pdb', atom_selection_statement ="name CA", step_interval = 1):
-        """
-        :param atom_selection_statement:  could be either
-         - "name CA" for alpha-carbon atoms only
-         - "protein" for all atoms
-         - "backbone" for backbone atoms
-         - others: see more information here: https://pythonhosted.org/MDAnalysis/documentation_pages/selections.html
-        """
-        ref = Universe(ref_file)
-        ref_atom_selection = ref.select_atoms(atom_selection_statement)
-        result_rmsd_of_atoms = []
-        index = 0
-
-        for sample_file in list_of_files:
-            sample = Universe(sample_file)
-            sample_atom_selection = sample.select_atoms(atom_selection_statement)
-
-            for _ in sample.trajectory:
-                if index % step_interval == 0:
-                    result_rmsd_of_atoms.append(Trp_cage.get_RMSD_after_alignment(ref_atom_selection.positions,
-                                                                                  sample_atom_selection.positions))
-
-                index += 1
-
-        return result_rmsd_of_atoms
 
     @staticmethod
     def metric_radius_of_gyration(list_of_files, step_interval = 1, atom_selection_statement = "name CA"):
@@ -892,20 +927,50 @@ class Trp_cage(Sutils):
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[1]
-        plumed_script = ""
-        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
-        plumed_script += "p_com: POSITION ATOM=com_1\n"
+        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
 
-        for item in range(len(index_of_backbone_atoms)):
-            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
-        # following remove translation using p_com
-        for item in range(len(index_of_backbone_atoms)):
-            for _1, _2 in enumerate(['.x', '.y', '.z']):
-                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
-                                 % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor,
-                                    # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
-                                    item, _2, _2)
-        return plumed_script
 
-# class Src(Sutils):
-#
+class Src_kinase(Sutils):
+    def __init__(self):
+        super(Src_kinase, self).__init__()
+        return
+
+    @staticmethod
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[2]]
+        assert (len(index_of_backbone_atoms) % 3 == 0)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(
+            index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
+        return output_file_list
+
+    @staticmethod
+    def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
+        index_of_backbone_atoms = CONFIG_57[2]
+        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
+
+    @staticmethod
+    def metric_salt_bridge_switching(list_of_files, step_interval=1):
+        """this function measures (distance between E310-R409) - (distance between E310-K295),
+        this is a good metric showing switching between two salt bridges
+        """
+
+        dis_310_409 = []
+        dis_310_295 = []
+        index = 0
+        for sample_file in list_of_files:
+            sample = Universe(sample_file)
+            # note that we only simulate residue 260-521
+            temp_atom_310 = sample.select_atoms('resid 51 and name CD')
+            temp_atom_409 = sample.select_atoms('resid 150 and name CZ')
+            temp_atom_295 = sample.select_atoms('resid 36 and name NZ')
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    dis_310_409.append(
+                        distance_array(temp_atom_310.positions, temp_atom_409.positions))
+                    dis_310_295.append(
+                        distance_array(temp_atom_310.positions, temp_atom_295.positions))
+
+                index += 1
+
+        return np.array(dis_310_409).flatten() - np.array(dis_310_295).flatten()
+

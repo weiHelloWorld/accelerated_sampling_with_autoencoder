@@ -318,19 +318,19 @@ class iteration(object):
         len(reference_configs), len(reference_suffix_list))
         num_of_reference_configs = len(reference_configs)
         if isinstance(molecule_type, Trp_cage):
-            for _1 in range(num_of_reference_configs):
-                subprocess.check_output(['python', 'structural_alignment.py', '../target/Trp_cage',
-                                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
-                                         '--atom_selection', atom_selection_list[_1]
-                                         ])
+            temp_target_folder = '../target/Trp_cage'
         elif isinstance(molecule_type, Alanine_dipeptide):
-            for _1 in range(num_of_reference_configs):
-                subprocess.check_output(['python', 'structural_alignment.py', '../target/Alanine_dipeptide',
-                                         '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
-                                         '--atom_selection', atom_selection_list[_1]
-                                         ])
+            temp_target_folder = '../target/Alanine_dipeptide'
+        elif isinstance(molecule_type, Src_kinase):
+            temp_target_folder = '../target/Src_kinase'
         else:
             raise Exception("molecule type error")
+
+        for _1 in range(num_of_reference_configs):
+            subprocess.check_output(['python', 'structural_alignment.py', temp_target_folder,
+                                     '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
+                                     '--atom_selection', atom_selection_list[_1]
+                                     ])
         molecule_type.generate_coordinates_from_pdb_files()
         return
 

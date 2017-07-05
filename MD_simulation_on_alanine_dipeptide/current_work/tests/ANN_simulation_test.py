@@ -115,6 +115,22 @@ class test_Sutils(object):
         assert_almost_equal(expected, actual)
         return
 
+    @staticmethod
+    def test_get_backbone_atom_index_list():
+        atom_index = Sutils.get_backbone_atom_index_list('../resources/1l2y.pdb')
+        expected = [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95,
+    117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184,
+    185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252,
+    253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
+        assert np.all(atom_index + 1 == np.array(expected))
+        return
+
+    @staticmethod
+    def test__get_expression_script_for_plumed():
+        with open('temp_plumed_script.txt', 'w') as my_f:
+            my_f.write(Trp_cage.get_expression_script_for_plumed())
+        return
+
 
 class test_Alanine_dipeptide(object):
     @staticmethod
@@ -425,7 +441,7 @@ class test_biased_simulation(object):
         return
 
     @staticmethod
-    def test_biased_simulation_alanine_dipeptide_with_metadynamics(use_well_tempered, biasfactor):
+    def test_biased_simulation_alanine_dipeptide_with_metadynamics(use_well_tempered=0, biasfactor=-1):
         autoencoder_pkl_file = 'dependency/test_biased_simulation/temp_bias_with_MTD.pkl'
         output_folder = 'temp_output_test_biased_simulation'
         a = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)

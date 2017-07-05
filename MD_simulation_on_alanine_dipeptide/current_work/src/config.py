@@ -29,12 +29,13 @@ it configures all default values/global parameters for constructors/functions
 #######################################################################
 
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
-CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying, Alanine_dipeptide, or Trp_cage
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
     if molecule_name == "Alanine_dipeptide": return parameter_list[0]
     elif molecule_name == "Trp_cage": return parameter_list[1]
+    elif molecule_name == "Src_kinase": return parameter_list[2]
     else: raise Exception("molecule not defined!")
 
 #######################################################################
@@ -48,7 +49,7 @@ CONFIG_58 = True              # use representative points for training (generate
 CONFIG_59 = 500               # number of representative points
 
 if CONFIG_48 == 'Cartesian':
-    CONFIG_49 = get_mol_param([5.0, 20.0]) # scaling factor for output for Cartesian coordinates
+    CONFIG_49 = get_mol_param([5.0, 20.0, 40.0]) # scaling factor for output for Cartesian coordinates
 
 '''class coordinates_data_files_list:'''
 
@@ -60,7 +61,11 @@ CONFIG_57 = [
     [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95,
     117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184,
     185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252,
-    253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
+    253, 265, 266, 267, 279, 280, 281, 293, 294, 295],
+    [1, 5, 7, 27, 29, 31, 42, 44, 46, 61, 62, 64, 75, 77, 79, 99, 101, 103, 114, 116, 118, 125, 127, 129, 144, 146, 148, 168, 170, 172, 187, 189, 191, 202, 204, 206, 218, 220, 222, 240, 242, 244, 259, 261, 264, 266, 268, 270, 283, 285, 288, 290, 292, 294, 301, 303, 305, 321, 323, 326, 328, 330, 332, 343, 345, 347, 359, 361, 363, 383, 385, 387, 400, 402, 405, 407, 409, 411, 421, 423, 425, 445, 447, 449, 459, 461, 464, 466, 468, 470, 480, 482, 484, 494, 496, 498, 518, 520, 522, 534, 536, 538, 544, 546, 548, 563, 565, 567, 585, 587, 589, 599, 601, 603, 618, 620, 622, 640, 641, 643, 654, 656, 659, 661, 663, 665, 675, 677, 679, 692, 694, 696, 703, 704, 706, 717, 719, 721, 732, 734, 736, 742, 744, 746, 762, 764, 766, 781, 783, 785, 798, 800, 802, 813, 815, 817, 823, 825, 827, 840, 842, 844, 856, 858, 860, 873, 875, 877, 895, 897, 899, 917, 919, 921, 936, 938, 940, 960, 962, 964, 977, 979, 981, 992, 994, 996, 1014, 1016, 1018, 1033, 1035, 1037, 1049, 1051, 1053, 1066, 1068, 1070, 1085, 1087, 1089, 1106, 1108, 1110, 1116, 1118, 1120, 1132, 1134, 1136, 1148, 1150, 1152, 1159, 1161, 1163, 1174, 1176, 1178, 1189, 1190, 1192, 1203, 1205, 1207, 1222, 1224, 1226, 1243, 1245, 1247, 1262, 1264, 1266, 1278, 1280, 
+    1282, 1292, 1294, 1296, 1307, 1309, 1311, 1328, 1330, 1332, 1345, 1347, 1349, 1356, 1358, 1360, 1378, 1380, 1383, 1385, 1387, 1389, 1396, 1398, 1400, 1415, 1417, 1419, 1434, 1436, 1438, 1446, 1448, 1450, 1466, 1468, 1470, 1485, 1487, 1489, 1507, 1509, 1512, 1514, 1516, 1518, 1529, 1531, 1533, 1543, 1545, 1548, 1550, 1552, 1554, 1572, 1574, 1576, 1593, 1595, 1597, 1612, 1614, 1616, 1636, 1638, 1640, 1655, 1656, 1658, 1669, 1671, 1673, 1686, 1688, 1690, 1705, 1707, 1709, 1721, 1723, 1725, 1733, 1735, 1737, 1750, 1752, 1754, 1760, 1762, 1764, 1770, 1772, 1774, 1787, 1789, 1791, 1806, 1808, 1810, 1816, 1818, 1820, 1827, 1829, 1832, 1834, 1836, 1838, 1851, 1853, 1855, 1861, 1863, 1865, 1882, 1884, 1886, 1898, 1900, 1902, 1913, 1915, 1917, 1937, 1939, 1941, 1954, 1956, 1958, 1968, 1970, 1972, 1989, 1991, 1993, 2005, 2007, 2009, 2022, 2024, 2026, 2046, 2048, 2050, 
+    2058, 2060, 2062, 2077, 2079, 2081, 2101, 2103, 2105, 2111, 2113, 2115, 2121, 2123, 2125, 2135, 2137, 2139, 2154, 2156, 2158, 2173, 2175, 2177, 2189, 2191, 2194, 2196, 2198, 2200, 2211, 2213, 2215, 2225, 2227, 2229, 2244, 2246, 2248, 2260, 2262, 2264, 2271, 2273, 2275, 2293, 2295, 2297, 2309, 2311, 2313, 2319, 2321, 2323, 2331, 2333, 2335, 2351, 2353, 2356, 2358, 2360, 2362, 2377, 2379, 2381, 2387, 2389, 2391, 2411, 2413, 2415, 2430, 2432, 2434, 2449, 2451, 2453, 2464, 2466, 2468, 2476, 2478, 2480, 2490, 2492, 2494, 2505, 2507, 2509, 2526, 2528, 2530, 2540, 2542, 2544, 2550, 2552, 2554, 2574, 2576, 2578, 2591, 2593, 2596, 2598, 2600, 2602, 2608, 2610, 2612, 2630, 2632, 2634, 2650, 2651, 2653, 2664, 2666, 2668, 2683, 2685, 2687, 2705, 2707, 2709, 2729, 2731, 2733, 2743, 2745, 2747, 2753, 2754, 2756, 2767, 2769, 2771, 2782, 2784, 2786, 2792, 2794, 2796, 2802, 2804, 2806, 2821, 2823, 2825, 2842, 2844, 2847, 2849, 2851, 2853, 2873, 2875, 2877, 2893, 2895, 2897, 2907, 2909, 2911, 2926, 2928, 2930, 2948, 2950, 2952, 2959, 2961, 2963, 2971, 2973, 2975, 2987, 2989, 2991, 3011, 3013, 3015, 3022, 3024, 3026, 3042, 3044, 3047, 3049, 3051, 3053, 3068, 3070, 3072, 3087, 3089, 3091, 3106, 3108, 3110, 
+    3120, 3122, 3124, 3135, 3137, 3139, 3154, 3156, 3158, 3168, 3170, 3172, 3182, 3184, 3186, 3204, 3206, 3209, 3211, 3213, 3215, 3235, 3237, 3239, 3251, 3252, 3254, 3265, 3267, 3269, 3286, 3287, 3289, 3300, 3302, 3305, 3307, 3309, 3311, 3324, 3326, 3328, 3340, 3342, 3344, 3354, 3356, 3358, 3378, 3380, 3382, 3393, 3395, 3397, 3409, 3411, 3413, 3428, 3430, 3432, 3440, 3442, 3444, 3457, 3459, 3461, 3473, 3475, 3477, 3488, 3490, 3492, 3512, 3514, 3517, 3519, 3521, 3523, 3540, 3542, 3544, 3564, 3566, 3568, 3581, 3582, 3584, 3595, 3597, 3599, 3606, 3607, 3609, 3620, 3621, 3623, 3634, 3636, 3638, 3649, 3651, 3653, 3660, 3661, 3663, 3674, 3676, 3678, 3689, 3691, 3693, 3700, 3702, 3704, 3719, 3721, 3723, 3736, 3738, 3740, 3748, 3750, 3752, 3767, 3769, 3771, 3784, 3786, 3788, 3795, 3797, 3799, 3812, 3814, 3816, 3823, 3825, 3827, 3847, 3849, 3851, 3871, 3873, 3875, 3893, 3895, 3897, 3908, 3909, 3911, 3922, 3924, 3926, 3937, 3939, 3941, 3952, 3954, 3956, 3976, 3977, 3979, 3990, 3992, 3994, 4004, 4006, 4008, 4024, 4026, 4028, 4039, 4041, 4043, 4060, 4062, 4064, 4079, 4081, 4083, 4096, 4098, 4100, 4106, 4108, 4110, 4126, 4128, 4130, 4145, 4147, 4149, 4160, 4162, 4164, 4172, 4174, 4176, 4193, 4195, 4197, 4213, 4215, 4217]
 ]                                          # index of atoms for training and biased simulations
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1     # training data interval
@@ -70,7 +75,8 @@ if CONFIG_45 == 'pybrain':
 elif CONFIG_45 == 'keras':
     CONFIG_4 = get_mol_param([
         [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]]
+        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: temp
         ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
 else:
     raise Exception('training backend not implemented')
@@ -85,22 +91,26 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
-CONFIG_71 = True                  # use mixed error function
+CONFIG_71 = False                  # use mixed error function
 CONFIG_62 = get_mol_param([
     ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
-    ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb']
-    # ['../resources/1l2y.pdb', '../resources/1l2y.pdb'] # mixed_err
+    ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'],
+    # ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
+    ['../resources/2src.pdb']
 ])                   # list of reference file
 CONFIG_63 = get_mol_param([
     ['', '_1'],
-    ['', '_1']]
+    ['', '_1'],
+    ['']
+    ]
 )                         # suffix for each reference configuration
 CONFIG_61 = ['_aligned%s_coordinates.txt' % item
              for item in CONFIG_63]  # alignment_coor_file_suffix_list (we use different suffix for aligned files with respect to different references)
 CONFIG_64 = get_mol_param([
     ['backbone', 'backbone'],
-    ['backbone', 'backbone']
-    # ['backbone and resid 2:8', 'backbone'] # mixed_err
+    ['backbone', 'backbone'],
+    # ['backbone and resid 2:8', 'backbone'], # mixed_err
+    ['backbone']
     ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
@@ -112,10 +122,11 @@ if CONFIG_48 == 'cossin':
     raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
 elif CONFIG_48 == 'Cartesian':
     CONFIG_3 = get_mol_param([
-         [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  # the structure of ANN: number of nodes in each layer
-         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55]
-         # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243] # mixed_err
-         ])
+         [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  
+         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55],
+         # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
+         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[2]) * CONFIG_55],
+         ])  # the structure of ANN: number of nodes in each layer
 else:
     raise Exception('error input data type')
 
@@ -134,7 +145,7 @@ if CONFIG_47:
 
 '''def train_network_and_save'''
 
-CONFIG_13 = get_mol_param([3,3])  # num of network trainings we are going to run, and pick the one with least FVE from them
+CONFIG_13 = get_mol_param([3,3, 3])  # num of network trainings we are going to run, and pick the one with least FVE from them
 CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers
 if CONFIG_43:
     raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)
@@ -144,7 +155,7 @@ CONFIG_31 = 10        # maximum number of failed simulations allowed in each ite
 
 '''def run_simulation'''
 
-CONFIG_56 = get_mol_param([20, 8])    # number of biased simulations running in parallel
+CONFIG_56 = get_mol_param([20, 8, 6])    # number of biased simulations running in parallel
 CONFIG_14 = 6  # max number of jobs submitted each time
 CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files
 CONFIG_50 = False   # whether we need to preserve original file if water molecules are removed
@@ -156,8 +167,8 @@ CONFIG_50 = False   # whether we need to preserve original file if water molecul
 
 '''class Sutils'''
 
-CONFIG_10 = get_mol_param([10,10])   # num of bins for get_boundary_points()
-CONFIG_11 = get_mol_param([15,20])  # num of boundary points
+CONFIG_10 = get_mol_param([10,10, 10])   # num of bins for get_boundary_points()
+CONFIG_11 = get_mol_param([15,20, 15])  # num of boundary points
 
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
 CONFIG_41 = False    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
@@ -180,25 +191,25 @@ CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the numbe
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 CONFIG_65 = "US"          # default biasing method
-CONFIG_16 = get_mol_param([500, 2000])                     # record interval (the frequency of writing system state into the file)
-CONFIG_8 = get_mol_param([50000, 200000])                  # num of simulation steps
+CONFIG_16 = get_mol_param([500, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
+CONFIG_8 = get_mol_param([50000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
-CONFIG_9 = get_mol_param([3000, 5000])                     # force constant for biased simulations
-CONFIG_53 = get_mol_param(['flexible', 'flexible'])          # use fixed/flexible force constants for biased simulation for each iteration
-CONFIG_54 = 2.47 * get_mol_param([30.0, 15.0])             # max external potential energy allowed (in k_BT)
+CONFIG_9 = get_mol_param([3000, 5000, 5000])                     # force constant for biased simulations
+CONFIG_53 = get_mol_param(['flexible', 'flexible', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
+CONFIG_54 = 2.47 * get_mol_param([30.0, 15.0, 15.0])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
-CONFIG_66 = get_mol_param([500, 500])          # pace of metadynamics
-CONFIG_67 = get_mol_param([2, 2])              # height of metadynamics
-CONFIG_68 = get_mol_param([0.1, 0.1])          # sigma of metadynamics
-CONFIG_69 = get_mol_param([0, 0])             # whether to use well-tempered version
-CONFIG_70 = get_mol_param([15, 15])           # biasfactor for well-tempered metadynamics
+CONFIG_66 = get_mol_param([500, 500, 500])          # pace of metadynamics
+CONFIG_67 = get_mol_param([2, 2, 2])              # height of metadynamics
+CONFIG_68 = get_mol_param([0.1, 0.1, 0.1])          # sigma of metadynamics
+CONFIG_69 = get_mol_param([0, 0, 0])             # whether to use well-tempered version
+CONFIG_70 = get_mol_param([15, 15, 15])           # biasfactor for well-tempered metadynamics
 CONFIG_19 = '48:00:00'                                    # max running time for the sge job
 
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
-CONFIG_23 = get_mol_param(['CPU', 'CUDA'])              # simulation platform
+CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
 if temp_home_directory == "/home/fisiksnju":

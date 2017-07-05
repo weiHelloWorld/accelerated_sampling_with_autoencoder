@@ -159,31 +159,52 @@ class autoencoder(object):
             f_out.write(expression)
         return
 
-    def get_expression_script_for_plumed(self):
+    def get_expression_script_for_plumed(self, mode="native"):
         plumed_script = ''
-        plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
+        if mode == "native":  # using native implementation by PLUMED (using COMBINE and MATHEVAL)
+            plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
 
-        activation_function_list = ['tanh', 'tanh']
-        for layer_index in [1, 2]:
-            for item in range(self._node_num[layer_index]):
-                plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
-                plumed_script += "%s" % \
-                                 str(self._connection_between_layers_coeffs[layer_index - 1][
-                                     item * self._node_num[layer_index - 1]:(item + 1) * self._node_num[
-                                         layer_index - 1]].tolist())[1:-1].replace(' ', '')
-                plumed_script += ',%f' % self._connection_with_bias_layers_coeffs[layer_index - 1][item]
-                plumed_script += " ARG="
-                for _1 in range(self._node_num[layer_index - 1]):
-                    plumed_script += 'l_%d_out_%d,' % (layer_index - 1, _1)
+            activation_function_list = ['tanh', 'tanh']
+            for layer_index in [1, 2]:
+                for item in range(self._node_num[layer_index]):
+                    plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
+                    plumed_script += "%s" % \
+                                     str(self._connection_between_layers_coeffs[layer_index - 1][
+                                         item * self._node_num[layer_index - 1]:(item + 1) * self._node_num[
+                                             layer_index - 1]].tolist())[1:-1].replace(' ', '')
+                    plumed_script += ',%f' % self._connection_with_bias_layers_coeffs[layer_index - 1][item]
+                    plumed_script += " ARG="
+                    for _1 in range(self._node_num[layer_index - 1]):
+                        plumed_script += 'l_%d_out_%d,' % (layer_index - 1, _1)
 
-                plumed_script += 'bias_const\n'
-                plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=%s(x) PERIODIC=NO\n' % (
-                    layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
+                    plumed_script += 'bias_const\n'
+                    plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=%s(x) PERIODIC=NO\n' % (
+                        layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
+        elif mode == "ANN":  # using ANN class
+            temp_num_of_layers_used = 3
+            temp_input_string = ','.join(['l_0_out_%d' % item for item in range(self._node_num[0])])
+            temp_num_nodes_string = ','.join([str(item) for item in self._node_num[:temp_num_of_layers_used]])
+            temp_layer_type_string = map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2])
+            temp_layer_type_string = ','.join(temp_layer_type_string)
+            temp_coeff_string = ''
+            temp_bias_string = ''
+            for _1, item_coeff in enumerate(self._connection_between_layers_coeffs[:temp_num_of_layers_used - 1]):
+                temp_coeff_string += ' COEFFICIENTS_OF_CONNECTIONS%d=%s' % \
+                                     (_1, ','.join([str(item) for item in item_coeff]))
+            for _1, item_bias in enumerate(self._connection_with_bias_layers_coeffs[:temp_num_of_layers_used - 1]):
+                temp_bias_string += ' VALUES_OF_BIASED_NODES%d=%s' % \
+                                     (_1, ','.join([str(item) for item in item_bias]))
+
+            plumed_script += "ann_force: ANN ARG=%s NUM_OF_NODES=%s LAYER_TYPES=%s %s %s" % \
+                (temp_input_string, temp_num_nodes_string, temp_layer_type_string,
+                 temp_coeff_string, temp_bias_string)
+        else:
+            raise Exception("mode error")
         return plumed_script
 
-    def write_expression_script_for_plumed(self, out_file=None):
+    def write_expression_script_for_plumed(self, out_file=None, mode="native"):
         if out_file is None: out_file = self._autoencoder_info_file
-        expression = self.get_expression_script_for_plumed()
+        expression = self.get_expression_script_for_plumed(mode=mode)
         with open(out_file, 'w') as f_out:
             f_out.write(expression)
         return
@@ -274,6 +295,8 @@ class autoencoder(object):
                     folder_state_coor_file = '../resources/1l2y_coordinates.txt'
                 elif isinstance(molecule_type, Alanine_dipeptide):
                     folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+                elif isinstance(molecule_type, Src_kinase):
+                    pass
                 else:
                     raise Exception('molecule type error')
 
@@ -327,6 +350,17 @@ class autoencoder(object):
                     if CONFIG_42:
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Trp_cage/network_%d.pkl' % self._index)
+                elif isinstance(molecule_type, Src_kinase):
+                    fast_equilibration_flag = CONFIG_72
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                                      '../target/Src_kinase/network_%d/' % self._index,
+                                      autoencoder_info_file,
+                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
+                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
+                    if CONFIG_42:
+                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                            '../resources/Src_kinase/network_%d.pkl' % self._index)
                 else:
                     raise Exception("molecule type not defined")
 
@@ -349,6 +383,13 @@ class autoencoder(object):
                                       '../target/Trp_cage/network_%d/' % self._index, self._autoencoder_info_file,
                                       pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
                     command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
+                    todo_list_of_commands_for_simulations += [command]
+            elif isinstance(molecule_type, Src_kinase):
+                for mtd_sim_index in range(6):
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
+                                      '../target/Src_kinase/network_%d/' % self._index, self._autoencoder_info_file,
+                                      pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
+                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
                     todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")

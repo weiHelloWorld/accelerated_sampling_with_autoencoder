@@ -10,7 +10,7 @@ ANN_Force biasing force package: https://github.com/weiHelloWorld/ANN_Force
 
 Keras: https://github.com/fchollet/keras
 
-PyBrain (for backward compatibility): https://github.com/weiHelloWorld/pybrain.git
+PyBrain (for backward compatibility): https://github.com/weiHelloWorld/pybrain
 
 MDAnalysis: https://github.com/MDAnalysis/mdanalysis
 
@@ -18,48 +18,40 @@ Sklearn: https://github.com/scikit-learn/scikit-learn
 
 Nose testing framework: https://github.com/nose-devs/nose
 
-PLUMED: http://www.plumed.org
+PLUMED (ANN included): https://github.com/weiHelloWorld/plumed2 
 
 OpenMM-PLUMED force plugin: https://github.com/peastman/openmm-plumed
 
-Some other Python scientific calculation packages are also needed, it is recommended to install them with Anaconda: https://www.continuum.io/downloads
+Some other Python scientific calculation packages (e.g. seaborn, pandas) are also needed, it is recommended to install them with Anaconda: https://www.continuum.io/downloads
 
 For Linux/Ubuntu, you may use following script to install most of these packages:
 
 ```bash
 echo "installing anaconda2 (please install it manually if you want the latest version)"
-wget https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh
-bash Anaconda2-4.3.1-Linux-x86_64.sh
+ANACONDA_INSTALLATION_FILE=Anaconda2-4.4.0-Linux-x86_64.sh
+wget https://repo.continuum.io/archive/${ANACONDA_INSTALLATION_FILE}
+bash ${ANACONDA_INSTALLATION_FILE}
 export PATH="$HOME/.anaconda2/bin:$PATH"
 
-echo "installing seaborn package"
-conda install --channel https://conda.anaconda.org/anaconda seaborn
-
-echo "installing setuptools"
-conda install --channel https://conda.anaconda.org/anaconda setuptools
-
 echo "installing MDAnalysis (including biopython)"
-conda config --add channels MDAnalysis
-conda install mdanalysis
+conda install -c mdanalysis mdanalysis
 
 echo "installing OpenMM"
 conda install -c omnia openmm
 
-echo "installing theano"
-pip install theano==0.8.2
+echo "installing theano (may also use pip install theano==0.8.2)"
+conda install -c conda-forge theano==0.8.2
 
-echo "installing Keras"
-pip install keras==1.2.2
+echo "installing Keras (may also use pip install keras==1.2.2)"
+conda install -c conda-forge keras==1.2.2
 
 echo "installing coverage (for nosetests)"
-pip install coverage
+conda install -c conda-forge coverage
 
 echo "installing PyBrain"
-git clone https://github.com/weiHelloWorld/pybrain.git
-cd pybrain
-python setup.py install
+pip install git+https://github.com/weiHelloWorld/pybrain.git
 
-echo "you may need to install following packages manually: TODO"
+echo "you may need to install following packages manually: PLUMED, OpenMM-plumed, ANN_Force"
 ```
 
 ## Installation and preparation

@@ -26,7 +26,7 @@ parser.add_argument("--starting_frame", type=int, default=0, help="index of star
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
-parser.add_argument("--device", type=str, default='0', help='device index to run simulation on')
+parser.add_argument("--device", type=str, default='none', help='device index to run simulation on')
 parser.add_argument("--checkpoint", type=int, default=1, help="whether to save checkpoint at the end of the simulation")
 parser.add_argument("--starting_checkpoint", type=str, default="auto", help='starting checkpoint file, to resume simulation ("none" means no starting checkpoint file is provided, "auto" means automatically)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
@@ -38,6 +38,8 @@ parser.add_argument("--bias_method", type=str, default='US', help="biasing metho
 parser.add_argument("--MTD_pace", type=int, default=CONFIG_66, help="pace of metadynamics")
 parser.add_argument("--MTD_height", type=float, default=CONFIG_67, help="height of metadynamics")
 parser.add_argument("--MTD_sigma", type=float, default=CONFIG_68, help="sigma of metadynamics")
+parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to use well-tempered version")
+parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -49,6 +51,8 @@ parser.add_argument("--distance_tolerance", type=float, default=CONFIG_35, help=
 parser.add_argument("--autoencoder_file", type=str, help="pkl file that stores autoencoder (for force_constant_adjustable mode)")
 parser.add_argument("--remove_previous", help="remove previous outputs while adjusting force constants", action="store_true")
 args = parser.parse_args()
+
+print "start simulation at %s" % datetime.datetime.now()  # to calculate compile time
 
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
@@ -118,7 +122,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
     time_step = CONFIG_22       # simulation time step, in ps
 
     index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1],
-                               '2src': 'TODO', '1y57': 'TODO'}[args.molecule]  # TODO
+                               '2src': CONFIG_57[2], '1y57': CONFIG_57[2]}[args.molecule]
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
@@ -181,7 +185,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
             system.addForce(force)
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
-        molecule_type = {'Trp_cage': Trp_cage, '2src': None, '1y57': None}[args.molecule]   # TODO
+        molecule_type = {'Trp_cage': Trp_cage, '2src': Src_kinase, '1y57': Src_kinase}[args.molecule]
         plumed_force_string = molecule_type.get_expression_script_for_plumed()
         with open(autoencoder_info_file, 'r') as f_in:
             plumed_force_string += f_in.read()
@@ -190,10 +194,14 @@ def run_simulation(force_constant, number_of_simulation_steps):
         mtd_output_layer_string = ['l_2_out_%d' % item for item in range(len(potential_center))]
         mtd_output_layer_string = ','.join(mtd_output_layer_string)
         mtd_sigma_string = ','.join([str(args.MTD_sigma) for _ in range(len(potential_center))])
+        if args.MTD_WT:
+            mtd_well_tempered_string = 'TEMP=%d BIASFACTOR=%f' % (args.temperature, args.MTD_biasfactor)
+        else:
+            mtd_well_tempered_string = ""
         plumed_force_string += """
-        metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt
+        metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt %s
         PRINT STRIDE=%d ARG=%s,metad.bias FILE=temp_MTD_out.txt
-        """ % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string,
+        """ % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string, mtd_well_tempered_string,
                record_interval, mtd_output_layer_string)
         system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "TMD":  # targeted MD
@@ -215,7 +223,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     if flag_random_seed:
         integrator.setRandomNumberSeed(1)  # set random seed
 
-    if args.platform == "CUDA":
+    if args.platform == "CUDA" and args.device != 'none':
         properties = {'CudaDeviceIndex': args.device}
         simulation = Simulation(modeller.topology, system, integrator, platform, properties)
     else:
