@@ -91,7 +91,7 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
-CONFIG_71 = False                  # use mixed error function
+CONFIG_71 = False                  # use mixed error function (Trp-cage only)
 CONFIG_62 = get_mol_param([
     ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
     ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'],

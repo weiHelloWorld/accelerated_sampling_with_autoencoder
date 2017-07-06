@@ -91,9 +91,6 @@ def run_simulation(force_constant, number_of_simulation_steps):
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
                                                               str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
     state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
-    checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
-    if args.fast_equilibration:
-        checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
 
     if args.starting_pdb_file == 'auto':
         input_pdb_file_of_molecule = {'Trp_cage': '../resources/1l2y.pdb',
@@ -110,6 +107,10 @@ def run_simulation(force_constant, number_of_simulation_steps):
     if args.starting_frame != 0:
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_ff_%d.txt' % args.starting_frame
+
+    checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
+    if args.fast_equilibration:
+        checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
 
     if os.path.isfile(pdb_reporter_file):
         os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
@@ -210,9 +211,9 @@ def run_simulation(force_constant, number_of_simulation_steps):
         kappa_string = str(args.force_constant)
         plumed_force_string = """
 rmsd: RMSD REFERENCE=../resources/1y57_TMD.pdb TYPE=OPTIMAL
-restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1=%s
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=0.4 STEP0=0 KAPPA0=%s AT1=0 STEP1=%d KAPPA1=%s
 PRINT STRIDE=500 ARG=* FILE=COLVAR
-            """ % (total_number_of_steps, kappa_string)
+            """ % (kappa_string, total_number_of_steps, kappa_string)
         system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')
