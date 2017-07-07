@@ -76,7 +76,7 @@ elif CONFIG_45 == 'keras':
     CONFIG_4 = get_mol_param([
         [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
         [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: temp
+        [0.1, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: temp
         ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
 else:
     raise Exception('training backend not implemented')
@@ -110,7 +110,7 @@ CONFIG_64 = get_mol_param([
     ['backbone', 'backbone'],
     ['backbone', 'backbone'],
     # ['backbone and resid 2:8', 'backbone'], # mixed_err
-    ['backbone']
+    ['backbone and (resid 144:170 or resid 44:58)']  # TODO: is it good to combine these two?
     ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
@@ -125,7 +125,7 @@ elif CONFIG_48 == 'Cartesian':
          [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  
          [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55],
          # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
-         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[2]) * CONFIG_55],
+         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 42 * 9],
          ])  # the structure of ANN: number of nodes in each layer
 else:
     raise Exception('error input data type')
