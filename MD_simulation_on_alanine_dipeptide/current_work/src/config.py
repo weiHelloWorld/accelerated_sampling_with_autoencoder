@@ -91,26 +91,24 @@ elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
-CONFIG_71 = False                  # use mixed error function (Trp-cage only)
+CONFIG_71 = False                  # use mixed error function
 CONFIG_62 = get_mol_param([
     ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
-    ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'],
-    # ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
-    ['../resources/2src.pdb']
+    ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'], # ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
+    ['../resources/2src.pdb', '../resources/2src.pdb']
 ])                   # list of reference file
 CONFIG_63 = get_mol_param([
     ['', '_1'],
     ['', '_1'],
-    ['']
+    ['', '_1']
     ]
 )                         # suffix for each reference configuration
 CONFIG_61 = ['_aligned%s_coordinates.txt' % item
              for item in CONFIG_63]  # alignment_coor_file_suffix_list (we use different suffix for aligned files with respect to different references)
 CONFIG_64 = get_mol_param([
     ['backbone', 'backbone'],
-    ['backbone', 'backbone'],
-    # ['backbone and resid 2:8', 'backbone'], # mixed_err
-    ['backbone and (resid 144:170 or resid 44:58)']  # TODO: is it good to combine these two?
+    ['backbone', 'backbone'], # ['backbone and resid 2:8', 'backbone'], # mixed_err
+    ['backbone and resid 144:170', 'backbone and resid 44:58']
     ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
@@ -123,8 +121,7 @@ if CONFIG_48 == 'cossin':
 elif CONFIG_48 == 'Cartesian':
     CONFIG_3 = get_mol_param([
          [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  
-         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55],
-         # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
+         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55], # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
          [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 42 * 9],
          ])  # the structure of ANN: number of nodes in each layer
 else:

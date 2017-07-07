@@ -38,7 +38,7 @@ elif CONFIG_48 == 'Cartesian':
             output_data_set = np.concatenate([3.0 * output_data_set_1, output_data_set_2], axis=1)
         elif CONFIG_30 == "Src_kinase":
             output_data_set_1 = Sutils.remove_translation(output_data_set[:, list(range(9 * 143, 9 * 170))])  # mixed_err
-            output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(9 * 43, 9 * 58))])
+            output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(2358 + 9 * 43, 2358 + 9 * 58))])
             output_data_set = np.concatenate([output_data_set_1, output_data_set_2], axis=1)
 
     data_set = data_set[::args.training_interval]
