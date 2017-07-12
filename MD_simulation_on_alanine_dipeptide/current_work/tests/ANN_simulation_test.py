@@ -258,7 +258,13 @@ class test_cluster_management(object):
                 assert this_command[0] in commands
 
         subprocess.check_output(['rm', '-rf', folder_to_store_sge_files])
+        return
 
+    @staticmethod
+    def test_generate_sge_filename_for_a_command():
+        actual = cluster_management.generate_sge_filename_for_a_command('python main____work.py :::: && -- ../target')
+        expected = 'python_main_work.py_target.sge'
+        assert (actual == expected)
         return
 
 
