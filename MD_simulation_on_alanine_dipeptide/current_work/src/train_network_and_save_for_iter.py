@@ -10,10 +10,26 @@ parser.add_argument("index", type=int, help="index of autoencoder")
 parser.add_argument("--training_interval", type=int, default=1, help="training interval")
 parser.add_argument("--num_of_trainings", type=int, default=CONFIG_13, help="total number of trainings (and pick the best one to save)")
 parser.add_argument("--num_of_copies", type=int, default=CONFIG_52, help="num of copies for data augmentation")
+parser.add_argument("--lr_m", type=str, default=None, help="learning rate and momentum")
+parser.add_argument("--num_PCs", type=int, default=None, help="number of PCs")
+parser.add_argument("--output_file", type=str, default=None, help="file name to save autoencoder")
 args = parser.parse_args()
 
+# used to process additional arguments
+additional_argument_list = {}
+if not args.output_file is None:
+    additional_argument_list['filename_to_save_network'] = args.output_file
+if not args.lr_m is None:
+    temp_lr = float(args.lr_m.strip().split(',')[0])
+    temp_momentum = float(args.lr_m.strip().split(',')[1])
+    additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, [0.00, 0.0000, 0.00, 0.00]]
+if not args.num_PCs is None:
+    temp_node_num = CONFIG_3[:]  # deep copy list
+    temp_node_num[2] = args.num_PCs
+    additional_argument_list['node_num'] = temp_node_num
+
 my_coor_data_obj = coordinates_data_files_list(
-    list_of_dir_of_coor_data_files=['../target/' + CONFIG_30])
+    list_of_dir_of_coor_data_files=['../target/' + CONFIG_30])  # TODO: custom folder list?
 my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
 if CONFIG_48 == 'cossin':
     data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
@@ -62,6 +78,7 @@ for _ in range(args.num_of_trainings):
                                          data_set_for_training=data_set,
                                          output_data_set=output_data_set,
                                          training_data_interval=1,
+                                         **additional_argument_list
                                          )
     else:
         raise Exception ('this training backend not implemented')
