@@ -79,6 +79,7 @@ class Sutils(object):
 
     @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list_for_pdb_file_list(list_of_files, index_list, new_pdb_file_name):
+        print "note that order may not be preserved!"
         remaining_index_list = index_list
         for _1 in list_of_files:
             remaining_index_list = Sutils.write_some_frames_into_a_new_file_based_on_index_list(_1, remaining_index_list, new_pdb_file_name)
