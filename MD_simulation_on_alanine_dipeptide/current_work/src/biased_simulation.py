@@ -31,6 +31,7 @@ parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on
 parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
+parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
 parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
 # next few options are for metadynamics
 parser.add_argument("--bias_method", type=str, default='US', help="biasing method for enhanced sampling, US = umbrella sampling, MTD = metadynamics")
@@ -217,10 +218,17 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
     platform = Platform.getPlatformByName(args.platform)
     platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
-    simulation = Simulation(pdb.topology, system, integrator, platform)
-    simulation.context.setPositions(pdb.positions)
+    simulation = Simulation(modeller.topology, system, integrator, platform)
+    simulation.context.setPositions(modeller.positions)
+    if args.minimize_energy:
+        print('begin Minimizing energy...')
+        print datetime.datetime.now()
+        simulation.minimizeEnergy()
+        print('Done minimizing energy.')
+        print datetime.datetime.now()
+    else:
+        print('energy minimization not required')
 
-    simulation.minimizeEnergy()
     simulation.step(args.equilibration_steps)
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,

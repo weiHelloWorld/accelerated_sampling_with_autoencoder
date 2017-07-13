@@ -31,7 +31,7 @@ class String_method(object):
         coor_data = Sutils.remove_translation(_2.get_coor_data(scaling_factor=scaling_factor))
         expected = PCs[index_list_of_images]; actual =temp_autoencoder.get_PCs(coor_data)
         print actual
-        assert_almost_equal(expected, actual)
+        assert_almost_equal(expected, actual, decimal=4)
         return new_pdb_file_name
 
     def reparametrize(self, folder_containing_data_in_previous_iteration, index, num_images):
@@ -40,6 +40,7 @@ class String_method(object):
                                  '--data_folder', folder_containing_data_in_previous_iteration,
                                  '--num_PCs', '1'
                                  ])
+        print temp_output
         autoencoder_filename = temp_output.strip().split('\n')[-1]
         new_pdb_file_name = self.get_images_and_write_into_a_pdb_file(folder_containing_data_in_previous_iteration,
                                              autoencoder_filename, num_images)
@@ -52,12 +53,13 @@ class String_method(object):
                          '50', '500', '0', output_folder, 'none', 'pc_0,%d' % item,
                          'explicit', 'NPT', '--platform', 'CUDA',
                          '--starting_pdb_file', pdb_file, '--starting_frame', str(item),
-                         '--temperature', '0']
+                         '--temperature', '0', '--equilibration_steps', '0']
             command = ['python', '../src/biased_simulation.py',
                        '50', '500', '0', output_folder, 'none', 'pc_0,%d' % item,
                        '--platform', 'CPU',
                        '--starting_pdb_file', pdb_file, '--starting_frame', str(item),
-                       '--temperature', '0']
+                       '--temperature', '0', '--equilibration_steps', '0']
+            print ' '.join(command)
             command_list.append(command)
             subprocess.check_output(command)
         return
@@ -69,4 +71,4 @@ class String_method(object):
 
 if __name__ == '__main__':
     a = String_method(10)
-    a.run_iteration('../target/Alanine_dipeptide', 1, 5)
+    a.run_iteration('../target/Alanine_dipeptide', 1, 10)
