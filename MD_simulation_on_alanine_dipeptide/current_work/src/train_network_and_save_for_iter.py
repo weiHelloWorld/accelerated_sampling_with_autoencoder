@@ -30,12 +30,12 @@ if not args.num_PCs is None:
     additional_argument_list['node_num'] = temp_node_num
 
 if not args.data_folder is None:
-    temp_list_of_directories_contanining_data = args.data_folder
+    temp_list_of_directories_contanining_data = [args.data_folder]
 else:
     temp_list_of_directories_contanining_data = ['../target/' + CONFIG_30]
 
 my_coor_data_obj = coordinates_data_files_list(
-    list_of_dir_of_coor_data_files=temp_directory_contanining_data)
+    list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
 my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
 if CONFIG_48 == 'cossin':
     data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
