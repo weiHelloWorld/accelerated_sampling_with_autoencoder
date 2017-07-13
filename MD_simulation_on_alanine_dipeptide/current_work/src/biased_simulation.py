@@ -30,6 +30,8 @@ parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='dat
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
+parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
 # next few options are for metadynamics
 parser.add_argument("--bias_method", type=str, default='US', help="biasing method for enhanced sampling, US = umbrella sampling, MTD = metadynamics")
 parser.add_argument("--MTD_pace", type=int, default=CONFIG_66, help="pace of metadynamics")
@@ -123,9 +125,9 @@ def run_simulation(force_constant):
     time_step = CONFIG_22   # simulation time step, in ps
 
     pdb = PDBFile(input_pdb_file_of_molecule)
+    modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
     forcefield = ForceField(force_field_file) # without water
-    system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff,
-                                     constraints=AllBonds)
+    system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=AllBonds)
 
     if args.bias_method == "US":
         if CONFIG_28 == "CustomManyParticleForce":
@@ -219,12 +221,12 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
     simulation.context.setPositions(pdb.positions)
 
     simulation.minimizeEnergy()
-    simulation.step(10000)
+    simulation.step(args.equilibration_steps)
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True,
-                                                  totalSteps=total_number_of_steps,
+                                                  totalSteps=total_number_of_steps + args.equilibration_steps,
                                                   ))
     simulation.step(total_number_of_steps)
 
