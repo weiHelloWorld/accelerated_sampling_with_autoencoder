@@ -93,7 +93,7 @@ elif CONFIG_45 == 'keras':
     CONFIG_4 = get_mol_param([
         [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
         [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        [0.1, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: temp
+        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
         ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
 else:
     raise Exception('training backend not implemented')

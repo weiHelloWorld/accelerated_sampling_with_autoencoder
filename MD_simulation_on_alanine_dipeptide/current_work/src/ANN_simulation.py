@@ -335,7 +335,7 @@ class iteration(object):
             if machine_to_run_simulations == 'local':
                 subprocess.check_output(temp_command_list)
             elif machine_to_run_simulations == 'cluster':
-                temp_command = ' '.join(['"%s"' % item for item in temp_command_list])  # TODO: does it work by adding quotation marks to everything
+                temp_command = ' '.join(['"%s"' % item for item in temp_command_list]) + ' 2> /dev/null '  # TODO: does it work by adding quotation marks to everything
                 cluster_management.run_a_command_and_wait_on_cluster(command=temp_command)
             else:
                 raise Exception('machine type error')

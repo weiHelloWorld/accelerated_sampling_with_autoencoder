@@ -361,6 +361,7 @@ class autoencoder(object):
                     if CONFIG_42:
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Src_kinase/network_%d.pkl' % self._index)
+                    # todo_list_of_commands_for_simulations += [command.replace('2src', '1y57') + ' --starting_pdb_file ../resources/1y57.pdb']
                 else:
                     raise Exception("molecule type not defined")
 
