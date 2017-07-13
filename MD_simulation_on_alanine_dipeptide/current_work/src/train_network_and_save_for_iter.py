@@ -13,6 +13,7 @@ parser.add_argument("--num_of_copies", type=int, default=CONFIG_52, help="num of
 parser.add_argument("--lr_m", type=str, default=None, help="learning rate and momentum")
 parser.add_argument("--num_PCs", type=int, default=None, help="number of PCs")
 parser.add_argument("--output_file", type=str, default=None, help="file name to save autoencoder")
+parser.add_argument('--data_folder', type=str, default=None, help="folder containing training data")
 args = parser.parse_args()
 
 # used to process additional arguments
@@ -28,8 +29,13 @@ if not args.num_PCs is None:
     temp_node_num[2] = args.num_PCs
     additional_argument_list['node_num'] = temp_node_num
 
+if not args.data_folder is None:
+    temp_list_of_directories_contanining_data = args.data_folder
+else:
+    temp_list_of_directories_contanining_data = ['../target/' + CONFIG_30]
+
 my_coor_data_obj = coordinates_data_files_list(
-    list_of_dir_of_coor_data_files=['../target/' + CONFIG_30])  # TODO: custom folder list?
+    list_of_dir_of_coor_data_files=temp_directory_contanining_data)
 my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
 if CONFIG_48 == 'cossin':
     data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
@@ -42,7 +48,7 @@ elif CONFIG_48 == 'Cartesian':
     num_of_copies = args.num_of_copies
     fraction_of_data_to_be_saved = 1.0 / num_of_copies
     data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
-        ['../target/' + CONFIG_30], alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
+        temp_list_of_directories_contanining_data, alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
         molecule_type,
         use_representative_points_for_training=CONFIG_58
     )
