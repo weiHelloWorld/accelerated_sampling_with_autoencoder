@@ -307,7 +307,7 @@ class iteration(object):
         self._network = network
 
     @staticmethod
-    def preprocessing(machine_to_run_simulations = CONFIG_24):
+    def preprocessing(machine_to_run_simulations = CONFIG_24, target_folder=None):
         """
         1. aligned structure
         2. generate coordinate files
@@ -318,14 +318,17 @@ class iteration(object):
         assert (len(reference_configs) == len(reference_suffix_list)), (
         len(reference_configs), len(reference_suffix_list))
         num_of_reference_configs = len(reference_configs)
-        if isinstance(molecule_type, Trp_cage):
-            temp_target_folder = '../target/Trp_cage'
-        elif isinstance(molecule_type, Alanine_dipeptide):
-            temp_target_folder = '../target/Alanine_dipeptide'
-        elif isinstance(molecule_type, Src_kinase):
-            temp_target_folder = '../target/Src_kinase'
+        if not target_folder is None:
+            temp_target_folder = target_folder
         else:
-            raise Exception("molecule type error")
+            if isinstance(molecule_type, Trp_cage):
+                temp_target_folder = '../target/Trp_cage'
+            elif isinstance(molecule_type, Alanine_dipeptide):
+                temp_target_folder = '../target/Alanine_dipeptide'
+            elif isinstance(molecule_type, Src_kinase):
+                temp_target_folder = '../target/Src_kinase'
+            else:
+                raise Exception("molecule type error")
 
         for _1 in range(num_of_reference_configs):
             temp_command_list = ['python', 'structural_alignment.py', temp_target_folder,
@@ -340,7 +343,7 @@ class iteration(object):
             else:
                 raise Exception('machine type error')
 
-        molecule_type.generate_coordinates_from_pdb_files()
+        molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=temp_target_folder)
         return
 
     def train_network_and_save(self, machine_to_run_simulations = CONFIG_24,
