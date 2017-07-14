@@ -53,21 +53,22 @@ class String_method(object):
     def relax_using_multiple_images_contained_in_a_pdb(self, output_folder, pdb_file):
         command_list = []
         for item in range(Universe(pdb_file).trajectory.n_frames):
-            command = ['python', '../src/biased_simulation_general.py', '2src',
-                         '1', '10', '0', output_folder, 'none', 'pc_0,%d' % item,
-                         'explicit', 'NPT', '--platform', 'CUDA',
-                         '--starting_pdb_file', pdb_file, '--starting_frame', str(item),
-                         '--temperature', '0', '--equilibration_steps', '0',
-                         '--minimize_energy', '0']
-            command = ['python', '../src/biased_simulation.py',
-                       '1', '10', '0', output_folder, 'none', 'pc_0,%d' % item,
-                       '--platform', 'CPU',
-                       '--starting_pdb_file', pdb_file, '--starting_frame', str(item),
-                       '--temperature', '0', '--equilibration_steps', '0',
-                       '--minimize_energy', '0']
-            print ' '.join(command)
-            command_list.append(command)
-            subprocess.check_output(command)
+            for temp_index in range(10):
+                command = ['python', '../src/biased_simulation_general.py', '2src',
+                             '1', '10', '0', output_folder, 'none', 'pc_0,%d' % item,
+                             'explicit', 'NPT', '--platform', 'CUDA',
+                             '--starting_pdb_file', pdb_file, '--starting_frame', str(item),
+                             '--temperature', '0', '--equilibration_steps', '0',
+                             '--minimize_energy', '0']
+                command = ['python', '../src/biased_simulation.py',
+                           '2', '50', '0', output_folder, 'none', 'pc_%d,%d' % (item, temp_index),
+                           '--platform', 'CPU',
+                           '--starting_pdb_file', pdb_file, '--starting_frame', str(item),
+                           '--temperature', '0', '--equilibration_steps', '0',
+                           '--minimize_energy', '0']
+                print ' '.join(command)
+                command_list.append(command)
+                subprocess.check_output(command)
         return
 
     def run_iteration(self, data_folder, index, num_images, output_folder=None):
