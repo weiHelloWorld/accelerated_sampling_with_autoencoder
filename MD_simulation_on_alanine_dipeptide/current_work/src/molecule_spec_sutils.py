@@ -930,7 +930,6 @@ class Src_kinase(Sutils):
     @staticmethod
     def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
         index_of_backbone_atoms = [str(item) for item in CONFIG_57[2]]
-        assert (len(index_of_backbone_atoms) % 3 == 0)
         output_file_list = Sutils._generate_coordinates_from_pdb_files(
             index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
         return output_file_list
