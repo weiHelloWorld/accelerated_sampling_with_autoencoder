@@ -10,15 +10,6 @@ class Sutils(object):
         return
 
     @staticmethod
-    def get_backbone_atom_index_list(pdb_file):
-        temp_universe = Universe(pdb_file)
-        atoms = temp_universe.select_atoms('backbone')
-        index_list = atoms.indices
-        index_list = np.sort(np.concatenate([index_list[::4], index_list[1::4], index_list[2::4]]))  # do not include "O"
-        print "note that index starts from 0"
-        return index_list
-
-    @staticmethod
     def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
              folder_list,
              alignment_coor_file_suffix_list,
