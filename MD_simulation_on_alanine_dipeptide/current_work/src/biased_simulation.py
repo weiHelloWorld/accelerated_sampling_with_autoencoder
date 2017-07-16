@@ -40,6 +40,8 @@ parser.add_argument("--MTD_height", type=float, default=CONFIG_67, help="height 
 parser.add_argument("--MTD_sigma", type=float, default=CONFIG_68, help="sigma of metadynamics")
 parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to use well-tempered version")
 parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
+# following is for plumed script
+parser.add_argument("--plumed_file", type=str, default=None, help="plumed script for biasing force, used only when the bias_method == plumed_other")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -206,6 +208,11 @@ rmsd: RMSD REFERENCE=../resources/alanine_ref_1_TMD.pdb TYPE=OPTIMAL
 restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1=%s
 PRINT STRIDE=10 ARG=* FILE=COLVAR
         """ % (total_number_of_steps, kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "plumed_other":
+        from openmmplumed import PlumedForce
+        with open(args.plumed_file, 'r') as f_in:
+            plumed_force_string = f_in.read()
         system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')
