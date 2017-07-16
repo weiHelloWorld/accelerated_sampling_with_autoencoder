@@ -1,6 +1,6 @@
 from ANN_simulation import *
 
-class String_method(object):
+class String_method_1(object):  # with autoencoder approach
     def __init__(self, num_iterations, num_images=None):
         self._num_iterations = num_iterations
         self._num_images = num_images
@@ -93,7 +93,83 @@ class String_method(object):
         return
 
 
+class String_method(object):
+    def __init__(self, selected_atom_indices, ref_pdb):
+        """
+        :param selected_atom_indices: atoms used to define configuration and apply restrained MD
+        :param ref_pdb: reference pdb file for structural alignment
+        """
+        self._selected_atom_indices = selected_atom_indices  # index start from 1
+        self._ref_pdb = ref_pdb
+        return
+
+    def reparametrize_and_get_images_using_interpolation(self, positions_list):
+        temp_cumsum = np.cumsum([np.linalg.norm(positions_list[item + 1] - positions_list[item])
+                   for item in range(len(positions_list) - 1)])
+        temp_cumsum = np.insert(temp_cumsum, 0, 0)
+        arc_length_interval = temp_cumsum[-1] / (len(positions_list) - 1)
+        current_image_param = 0
+        positions_of_images = []
+        for item in range(len(positions_list) - 1):
+            while current_image_param < temp_cumsum[item + 1]:
+                temp_arc_length = temp_cumsum[item + 1] - temp_cumsum[item]
+                weight_0 = (temp_cumsum[item + 1] - current_image_param) / temp_arc_length
+                weight_1 = (current_image_param - temp_cumsum[item]) / temp_arc_length
+                positions_of_images.append(positions_list[item] * weight_0
+                                           + positions_list[item + 1] * weight_1)
+                current_image_param += arc_length_interval
+        positions_of_images.append(positions_list[-1])
+
+        assert (len(positions_of_images) == len(positions_list)), (len(positions_of_images), len(positions_list))
+        return np.array(positions_of_images), temp_cumsum
+
+    def get_node_positions_from_initial_string(self, pdb_file, num_intervals):
+        """note number of images = num_intervals + 1"""
+        subprocess.check_output(['python', '../src/structural_alignment.py',
+                                 pdb_file, '--ref', self._ref_pdb,
+                                 '--atom_selection', 'backbone'
+                                 ])
+        pdb_file_aligned = pdb_file.replace('.pdb', '_aligned.pdb')
+        temp_sample = Universe(pdb_file_aligned)
+        temp_positions = [temp_sample.atoms.positions[np.array(self._selected_atom_indices) - 1].flatten()
+                            for _ in temp_sample.trajectory]
+        assert ((len(temp_positions) - 1) % num_intervals == 0), (len(temp_positions) - 1) % num_intervals
+        step_interval = (len(temp_positions) - 1) / num_intervals
+        result = temp_positions[::step_interval]
+        assert (len(result) == num_intervals + 1), len(result)
+        return result
+
+    def get_plumed_script_for_restrained_MD(self, item_positions, force_constant):
+        plumed_string = ""
+        for item, index in enumerate(self._selected_atom_indices):
+            plumed_string += "p_%d: POSITION ATOM=%d\n" % (item, index)
+        position_string = str(item_positions.flatten().tolist())[1:-1].replace(' ', '')
+        force_constant_string_1 = ','.join([str(force_constant)] * (3 * len(self._selected_atom_indices)))
+        force_constant_string_2 = ','.join(['0'] * (3 * len(self._selected_atom_indices)))
+        argument_string = ','.join(["p_%d.%s" % (_1, _2) for _1 in self._selected_atom_indices
+                                    for _2 in ('x','y','z')])
+        plumed_string += "restraint: MOVINGRESTRAINT ARG=%s AT0=%s STEP0=0 KAPPA0=%s AT1=%s STEP1=5000 KAPPA1=%s\n"\
+                    % (argument_string, position_string, force_constant_string_1, position_string,
+                       force_constant_string_2)
+
+        return plumed_string
+
+    def restrained_MD_with_positions_and_relax(self, positions_list, output_folder, force_constant=1000):
+        for index, item_positions in enumerate(positions_list):
+            plumed_string = self.get_plumed_script_for_restrained_MD(
+                item_positions=item_positions, force_constant=force_constant)
+            plumed_script_file = 'temp_plumed_script_%d.txt' % index
+            with open(plumed_script_file, 'w') as f_out:
+                f_out.write(plumed_string)
+            command = ['python', '../src/biased_simulation.py',
+                       '50', '5000', '0', output_folder, 'none', 'pc_%d' % (index),
+                       '--platform', 'CPU', '--bias_method', 'plumed_other',
+                       '--plumed_file', plumed_script_file]
+            subprocess.check_output(command)
+
+        return
+
+
 if __name__ == '__main__':
-    a = String_method(10, num_images=20)
-    a.run_multiple_iterations('../target/' + CONFIG_30, 1, 10)
+    a = String_method()
 
