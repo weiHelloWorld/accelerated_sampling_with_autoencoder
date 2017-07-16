@@ -63,8 +63,15 @@ CONFIG_57 = [
     [2,5,7,9,15,17,19],
     get_index_list_with_selection_statement('../resources/1l2y.pdb', 'backbone and not name O'),
     # get_index_list_with_selection_statement('../resources/2src.pdb', 'backbone and not name O'),
-    get_index_list_with_selection_statement('../resources/2src.pdb',
-                                            '(resid 144:170 or resid 44:58) and not name H*')
+    # get_index_list_with_selection_statement('../resources/2src.pdb',
+    #                                         '(resid 144:170 or resid 44:58) and not name H*'),
+    [ 694,  704,  714,  719,  729,  734,  744,  760,  764,  771,  783,
+        793,  800,  810,  815,  825,  835,  842,  858,  869,  875,  891,
+        897,  913,  919,  926, 2311, 2321, 2328, 2333, 2349, 2353, 2360,
+       2367, 2379, 2389, 2404, 2413, 2420, 2432, 2451, 2461, 2466, 2473,
+       2478, 2485, 2492, 2502, 2507, 2523, 2528, 2542, 2552, 2567, 2576,
+       2586, 2593, 2600, 2610, 2626, 2632, 2648, 2651, 2661, 2666, 2685,
+       2701, 2707, 2714, 2731]
 ]                                          # index list of atoms for training and biased simulations
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1     # training data interval
