@@ -172,9 +172,11 @@ class String_method(object):
         temp_atoms.write(ref_pdb_for_restrained)
 
         plumed_string = """rmsd: RMSD REFERENCE=%s TYPE=OPTIMAL
-        restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f AT1=0 STEP1=%d KAPPA1=%s
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f STEP2=%d KAPPA2=%s
+PRINT STRIDE=2 ARG=* FILE=COLVAR
         """ % (ref_pdb_for_restrained, force_constant,
-               num_steps_of_equilibration + num_steps_of_restrained_MD, '0')
+               num_steps_of_equilibration + num_steps_of_restrained_MD, force_constant,
+               num_steps_of_equilibration + num_steps_of_restrained_MD + 1, '0')
 
         # plumed_string = "rmsd: RMSD REFERENCE=../resources/alanine_ref_1_TMD.pdb TYPE=OPTIMAL\n"
         # for item, index in enumerate(self._selected_atom_indices):
@@ -232,7 +234,7 @@ class String_method(object):
         positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list)
         np.savetxt('temp_images.txt', positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
-            positions_list, 5000,
+            positions_list, 1000000,
             output_folder='../target/' + CONFIG_30 + '/string_method_%d' % (index))
         return output_pdb_list
 
