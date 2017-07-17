@@ -103,7 +103,13 @@ class String_method(object):
         self._ref_pdb = ref_pdb
         return
 
-    def reparametrize_and_get_images_using_interpolation(self, positions_list):
+    def reparametrize_and_get_images_using_interpolation(self, positions_list,
+                                                         smooth_coeff = 0):
+        # smoothing
+        temp_positions_list = (1 - smooth_coeff) * positions_list[1:-1]\
+                    + smooth_coeff / 2 * (positions_list[:-2] + positions_list[2:])
+        positions_list[1:-1] = temp_positions_list
+        # re-parametrization
         temp_cumsum = np.cumsum([np.linalg.norm(positions_list[item + 1] - positions_list[item])
                    for item in range(len(positions_list) - 1)])
         temp_cumsum = np.insert(temp_cumsum, 0, 0)
@@ -144,7 +150,7 @@ class String_method(object):
         if (len(result) == num_intervals):
             result.append(temp_positions[-1])
         assert (len(result) == num_intervals + 1)
-        return result
+        return np.array(result)
 
     def get_average_node_positions_of_string(self, pdb_file_list, num_snapshots):
         average_positions_list = []
@@ -175,7 +181,6 @@ class String_method(object):
 
         plumed_string = """rmsd: RMSD REFERENCE=%s TYPE=OPTIMAL
 restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f STEP2=%d KAPPA2=%s
-PRINT STRIDE=2 ARG=* FILE=COLVAR
         """ % (ref_pdb_for_restrained, force_constant,
                num_steps_of_equilibration + num_steps_of_restrained_MD, force_constant,
                num_steps_of_equilibration + num_steps_of_restrained_MD + 1, '0')
@@ -204,18 +209,19 @@ PRINT STRIDE=2 ARG=* FILE=COLVAR
                                                ):
         output_pdb_file_list = [output_folder + '/temp_string_%d.pdb' % index
                                 for index in range(len(positions_list))]
+        folder_to_store_plumed_related_files = '../resources/' + CONFIG_30
         for index, item_positions in enumerate(positions_list):
             plumed_string = self.get_plumed_script_for_restrained_MD_and_relax(
                 item_positions=item_positions, force_constant=force_constant,
-                ref_pdb_for_restrained='temp_plumed_ref_%d.pdb' % index,
+                ref_pdb_for_restrained=folder_to_store_plumed_related_files + '/temp_plumed_ref_%d.pdb' % index,
                 num_steps_of_restrained_MD=num_steps_of_restrained_MD,
                 num_steps_of_equilibration=num_steps_of_equilibration
             )
-            plumed_script_file = 'temp_plumed_script_%d.txt' % index
+            plumed_script_file = folder_to_store_plumed_related_files + '/temp_plumed_script_%d.txt' % index
             with open(plumed_script_file, 'w') as f_out:
                 f_out.write(plumed_string)
             command = ['python', '../src/biased_simulation.py',
-                       '2', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                       '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
                        output_folder, 'none', 'pc_0',
                        '--output_pdb', output_pdb_file_list[index],
                        '--platform', 'CPU', '--bias_method', 'plumed_other',
@@ -229,11 +235,11 @@ PRINT STRIDE=2 ARG=* FILE=COLVAR
     def run_iteration(self, index, pdb_file_list, from_initial_string=False):
         if from_initial_string:
             positions_list = self.get_node_positions_from_initial_string(
-                pdb_file_list[0], num_intervals=10)
+                pdb_file_list[0], num_intervals=20)
         else:
             positions_list = self.get_average_node_positions_of_string(
-                pdb_file_list=pdb_file_list, num_snapshots=20)
-        positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list)
+                pdb_file_list=pdb_file_list, num_snapshots=10)
+        positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list, 0.5)
         np.savetxt('temp_images_%d.txt' % index, positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
             positions_list, 1000000,
@@ -254,5 +260,5 @@ PRINT STRIDE=2 ARG=* FILE=COLVAR
 
 if __name__ == '__main__':
     a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
-    a.run_multi_iterations(1, 5,
+    a.run_multi_iterations(1, 10,
         ['../target/Alanine_dipeptide/temp_drag_biased/biased_output_fc_0.000000_pc_[0.0,0.0].pdb'], True)
