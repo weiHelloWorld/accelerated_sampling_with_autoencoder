@@ -148,8 +148,8 @@ class String_method(object):
         average_positions_list = []
         for item_pdb_file in pdb_file_list:
             temp_positions = self.get_aligned_positions_of_selected_atoms_from_pdb_file(item_pdb_file)[-num_snapshots:]
-            temp_average = np.average(temp_positions, axis=1)
-            assert (temp_average.shape[0] == 3 * len(self._selected_atom_indices))
+            temp_average = np.average(temp_positions, axis=0)
+            assert (temp_average.shape[0] == 3 * len(self._selected_atom_indices)), temp_average.shape[0]
             average_positions_list.append(temp_average)
         return np.array(average_positions_list)
 
@@ -238,9 +238,19 @@ PRINT STRIDE=2 ARG=* FILE=COLVAR
             output_folder='../target/' + CONFIG_30 + '/string_method_%d' % (index))
         return output_pdb_list
 
+    def run_multi_iterations(self, start_index, num_iterations, pdb_file_list,
+                             from_initial_string=True):
+        if from_initial_string:
+            output_pdb_list = self.run_iteration(start_index, pdb_file_list, True)
+            self.run_multi_iterations(start_index + 1, num_iterations - 1, pdb_file_list=output_pdb_list,
+                                      from_initial_string=False)
+        else:
+            for item in range(start_index, start_index + num_iterations):
+                pdb_file_list = self.run_iteration(item, pdb_file_list, False)
+        return pdb_file_list
+
 
 if __name__ == '__main__':
     a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
-    a.run_iteration(1,
+    a.run_multi_iterations(1, 5,
         ['../target/Alanine_dipeptide/temp_drag_biased/biased_output_fc_0.000000_pc_[0.0,0.0].pdb'], True)
-
