@@ -23,6 +23,7 @@ parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
+parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
 parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
@@ -85,8 +86,12 @@ def run_simulation(force_constant):
 
     force_field_file = 'amber99sb.xml'
 
-    pdb_reporter_file = '%s/biased_output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
-    state_data_reporter_file = '%s/biased_report_fc_%f_pc_%s.txt' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
+    pdb_reporter_file = '%s/output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
+
+    if not args.output_pdb is None:
+        pdb_reporter_file = args.output_pdb
+
+    state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
 
     # check if the file exist
     if os.path.isfile(pdb_reporter_file):
