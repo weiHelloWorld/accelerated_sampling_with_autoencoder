@@ -154,41 +154,70 @@ class String_method(object):
         return np.array(average_positions_list)
 
     def get_plumed_script_for_restrained_MD_and_relax(self, item_positions, force_constant,
-                                                      num_steps_of_restrained_MD):
-        plumed_string = ""
-        for item, index in enumerate(self._selected_atom_indices):
-            plumed_string += "p_%d: POSITION ATOM=%d\n" % (item, index)
-        position_string = str(item_positions.flatten().tolist())[1:-1].replace(' ', '')
-        force_constant_string_1 = ','.join([str(force_constant)] * (3 * len(self._selected_atom_indices)))
-        force_constant_string_2 = ','.join(['0'] * (3 * len(self._selected_atom_indices)))
-        argument_string = ','.join(["p_%d.%s" % (_1, _2) for _1 in range(len(self._selected_atom_indices))
-                                    for _2 in ('x','y','z')])
-        plumed_string += "restraint: MOVINGRESTRAINT ARG=%s AT0=%s STEP0=0 KAPPA0=%s AT1=%s STEP1=%d KAPPA1=%s\n"\
-                    % (argument_string, position_string,force_constant_string_1,
-                    position_string, num_steps_of_restrained_MD, force_constant_string_2)
+                                                      ref_pdb_for_restrained,
+                                                      num_steps_of_restrained_MD,
+                                                      num_steps_of_equilibration):
+        # write reference pdb file first
+        indices = np.array(self._selected_atom_indices) - 1
+        temp_sample = Universe('../resources/alanine_dipeptide.pdb')
+        temp_atoms = temp_sample.select_atoms('all')
+        item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
+        temp_positions = temp_atoms.positions
+        temp_positions[indices] = item_positions
+        temp_bfactors = np.zeros(22)
+        temp_bfactors[indices] = 1
+        temp_atoms.positions = temp_positions
+        temp_atoms.bfactors = temp_bfactors
+        temp_atoms.occupancies = temp_bfactors
+        temp_atoms.write(ref_pdb_for_restrained)
+
+        plumed_string = """rmsd: RMSD REFERENCE=%s TYPE=OPTIMAL
+        restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f AT1=0 STEP1=%d KAPPA1=%s
+        """ % (ref_pdb_for_restrained, force_constant,
+               num_steps_of_equilibration + num_steps_of_restrained_MD, '0')
+
+        # plumed_string = "rmsd: RMSD REFERENCE=../resources/alanine_ref_1_TMD.pdb TYPE=OPTIMAL\n"
+        # for item, index in enumerate(self._selected_atom_indices):
+        #     plumed_string += "p_%d: POSITION ATOM=%d\n" % (item, index)
+        # # item_positions /= 10.0 # TODO: does it work?
+        # position_string = str(item_positions.flatten().tolist())[1:-1].replace(' ', '')
+        # force_constant_string_1 = ','.join([str(force_constant)] * (3 * len(self._selected_atom_indices)))
+        # force_constant_string_2 = ','.join(['0'] * (3 * len(self._selected_atom_indices)))
+        # argument_string = ','.join(["p_%d.%s" % (_1, _2) for _1 in range(len(self._selected_atom_indices))
+        #                             for _2 in ('x','y','z')])
+        # plumed_string += "restraint: MOVINGRESTRAINT ARG=%s AT0=%s STEP0=0 KAPPA0=%s AT1=%s STEP1=%d KAPPA1=%s\n"\
+        #             % (argument_string, position_string,force_constant_string_1,
+        #                position_string, num_steps_of_restrained_MD + num_steps_of_equilibration,
+        #                force_constant_string_2)
 
         return plumed_string
 
     def restrained_MD_with_positions_and_relax(self, positions_list, force_constant,
                                                output_folder=None,
-                                               num_steps_of_restrained_MD=500,
-                                               num_steps_of_unbiased_MD=20):
+                                               num_steps_of_restrained_MD=100,
+                                               num_steps_of_unbiased_MD=20,
+                                               num_steps_of_equilibration=5000
+                                               ):
         output_pdb_file_list = [output_folder + '/temp_string_%d.pdb' % index
                                 for index in range(len(positions_list))]
         for index, item_positions in enumerate(positions_list):
             plumed_string = self.get_plumed_script_for_restrained_MD_and_relax(
                 item_positions=item_positions, force_constant=force_constant,
-                num_steps_of_restrained_MD=num_steps_of_restrained_MD
+                ref_pdb_for_restrained='temp_plumed_ref_%d.pdb' % index,
+                num_steps_of_restrained_MD=num_steps_of_restrained_MD,
+                num_steps_of_equilibration=num_steps_of_equilibration
             )
             plumed_script_file = 'temp_plumed_script_%d.txt' % index
             with open(plumed_script_file, 'w') as f_out:
                 f_out.write(plumed_string)
             command = ['python', '../src/biased_simulation.py',
-                       '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                       '2', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
                        output_folder, 'none', 'pc_0',
                        '--output_pdb', output_pdb_file_list[index],
                        '--platform', 'CPU', '--bias_method', 'plumed_other',
+                       '--equilibration_steps', str(num_steps_of_equilibration),
                        '--plumed_file', plumed_script_file]
+            print ' '.join(command)
             subprocess.check_output(command)
 
         return output_pdb_file_list
@@ -200,8 +229,10 @@ class String_method(object):
         else:
             positions_list = self.get_average_node_positions_of_string(
                 pdb_file_list=pdb_file_list, num_snapshots=20)
+        positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list)
+        np.savetxt('temp_images.txt', positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
-            positions_list, 1000,
+            positions_list, 5000,
             output_folder='../target/' + CONFIG_30 + '/string_method_%d' % (index))
         return output_pdb_list
 
