@@ -137,10 +137,11 @@ class String_method(object):
     def get_node_positions_from_initial_string(self, pdb_file, num_intervals):
         """note number of images = num_intervals + 1"""
         temp_positions = self.get_aligned_positions_of_selected_atoms_from_pdb_file(pdb_file)
-        assert ((len(temp_positions) - 1) % num_intervals == 0), (len(temp_positions) - 1) % num_intervals
-        step_interval = (len(temp_positions) - 1) / num_intervals
+        step_interval = len(temp_positions) / num_intervals
         result = temp_positions[::step_interval]
-        assert (len(result) == num_intervals + 1), len(result)
+        if (len(result) == num_intervals):
+            result.append(temp_positions[-1])
+        assert (len(result) == num_intervals + 1)
         return result
 
     def get_average_node_positions_of_string(self, pdb_file_list, num_snapshots):
@@ -206,6 +207,7 @@ class String_method(object):
 
 
 if __name__ == '__main__':
-    a = String_method([1, 2], '../resources/alanine_dipeptide.pdb')
-    a.run_iteration(1, ['alanine_dipeptide.pdb'], True)
+    a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
+    a.run_iteration(1,
+        ['../target/Alanine_dipeptide/temp_drag_biased/biased_output_fc_0.000000_pc_[0.0,0.0].pdb'], True)
 
