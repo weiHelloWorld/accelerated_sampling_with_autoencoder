@@ -118,7 +118,9 @@ class String_method(object):
                 positions_of_images.append(positions_list[item] * weight_0
                                            + positions_list[item + 1] * weight_1)
                 current_image_param += arc_length_interval
-        positions_of_images.append(positions_list[-1])
+
+        if len(positions_of_images) == len(positions_list) - 1:  # deal with rounding error at end point
+            positions_of_images.append(positions_list[-1])
 
         assert (len(positions_of_images) == len(positions_list)), (len(positions_of_images), len(positions_list))
         return np.array(positions_of_images), temp_cumsum
@@ -232,7 +234,7 @@ PRINT STRIDE=2 ARG=* FILE=COLVAR
             positions_list = self.get_average_node_positions_of_string(
                 pdb_file_list=pdb_file_list, num_snapshots=20)
         positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list)
-        np.savetxt('temp_images.txt', positions_list)
+        np.savetxt('temp_images_%d.txt' % index, positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
             positions_list, 1000000,
             output_folder='../target/' + CONFIG_30 + '/string_method_%d' % (index))
