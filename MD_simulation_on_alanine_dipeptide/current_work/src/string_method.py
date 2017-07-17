@@ -123,8 +123,7 @@ class String_method(object):
         assert (len(positions_of_images) == len(positions_list)), (len(positions_of_images), len(positions_list))
         return np.array(positions_of_images), temp_cumsum
 
-    def get_node_positions_from_initial_string(self, pdb_file, num_intervals):
-        """note number of images = num_intervals + 1"""
+    def get_aligned_positions_of_selected_atoms_from_pdb_file(self, pdb_file):
         subprocess.check_output(['python', '../src/structural_alignment.py',
                                  pdb_file, '--ref', self._ref_pdb,
                                  '--atom_selection', 'backbone'
@@ -132,44 +131,81 @@ class String_method(object):
         pdb_file_aligned = pdb_file.replace('.pdb', '_aligned.pdb')
         temp_sample = Universe(pdb_file_aligned)
         temp_positions = [temp_sample.atoms.positions[np.array(self._selected_atom_indices) - 1].flatten()
-                            for _ in temp_sample.trajectory]
+                          for _ in temp_sample.trajectory]
+        return temp_positions
+
+    def get_node_positions_from_initial_string(self, pdb_file, num_intervals):
+        """note number of images = num_intervals + 1"""
+        temp_positions = self.get_aligned_positions_of_selected_atoms_from_pdb_file(pdb_file)
         assert ((len(temp_positions) - 1) % num_intervals == 0), (len(temp_positions) - 1) % num_intervals
         step_interval = (len(temp_positions) - 1) / num_intervals
         result = temp_positions[::step_interval]
         assert (len(result) == num_intervals + 1), len(result)
         return result
 
-    def get_plumed_script_for_restrained_MD(self, item_positions, force_constant):
+    def get_average_node_positions_of_string(self, pdb_file_list, num_snapshots):
+        average_positions_list = []
+        for item_pdb_file in pdb_file_list:
+            temp_positions = self.get_aligned_positions_of_selected_atoms_from_pdb_file(item_pdb_file)[-num_snapshots:]
+            temp_average = np.average(temp_positions, axis=1)
+            assert (temp_average.shape[0] == 3 * len(self._selected_atom_indices))
+            average_positions_list.append(temp_average)
+        return np.array(average_positions_list)
+
+    def get_plumed_script_for_restrained_MD_and_relax(self, item_positions, force_constant,
+                                                      num_steps_of_restrained_MD):
         plumed_string = ""
         for item, index in enumerate(self._selected_atom_indices):
             plumed_string += "p_%d: POSITION ATOM=%d\n" % (item, index)
         position_string = str(item_positions.flatten().tolist())[1:-1].replace(' ', '')
         force_constant_string_1 = ','.join([str(force_constant)] * (3 * len(self._selected_atom_indices)))
         force_constant_string_2 = ','.join(['0'] * (3 * len(self._selected_atom_indices)))
-        argument_string = ','.join(["p_%d.%s" % (_1, _2) for _1 in self._selected_atom_indices
+        argument_string = ','.join(["p_%d.%s" % (_1, _2) for _1 in range(len(self._selected_atom_indices))
                                     for _2 in ('x','y','z')])
-        plumed_string += "restraint: MOVINGRESTRAINT ARG=%s AT0=%s STEP0=0 KAPPA0=%s AT1=%s STEP1=5000 KAPPA1=%s\n"\
-                    % (argument_string, position_string, force_constant_string_1, position_string,
-                       force_constant_string_2)
+        plumed_string += "restraint: MOVINGRESTRAINT ARG=%s AT0=%s STEP0=0 KAPPA0=%s AT1=%s STEP1=%d KAPPA1=%s\n"\
+                    % (argument_string, position_string,force_constant_string_1,
+                    position_string, num_steps_of_restrained_MD, force_constant_string_2)
 
         return plumed_string
 
-    def restrained_MD_with_positions_and_relax(self, positions_list, output_folder, force_constant=1000):
+    def restrained_MD_with_positions_and_relax(self, positions_list, force_constant,
+                                               output_folder=None,
+                                               num_steps_of_restrained_MD=500,
+                                               num_steps_of_unbiased_MD=20):
+        output_pdb_file_list = [output_folder + '/temp_string_%d.pdb' % index
+                                for index in range(len(positions_list))]
         for index, item_positions in enumerate(positions_list):
-            plumed_string = self.get_plumed_script_for_restrained_MD(
-                item_positions=item_positions, force_constant=force_constant)
+            plumed_string = self.get_plumed_script_for_restrained_MD_and_relax(
+                item_positions=item_positions, force_constant=force_constant,
+                num_steps_of_restrained_MD=num_steps_of_restrained_MD
+            )
             plumed_script_file = 'temp_plumed_script_%d.txt' % index
             with open(plumed_script_file, 'w') as f_out:
                 f_out.write(plumed_string)
             command = ['python', '../src/biased_simulation.py',
-                       '50', '5000', '0', output_folder, 'none', 'pc_%d' % (index),
+                       '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                       output_folder, 'none', 'pc_0',
+                       '--output_pdb', output_pdb_file_list[index],
                        '--platform', 'CPU', '--bias_method', 'plumed_other',
                        '--plumed_file', plumed_script_file]
             subprocess.check_output(command)
 
-        return
+        return output_pdb_file_list
+
+    def run_iteration(self, index, pdb_file_list, from_initial_string=False):
+        if from_initial_string:
+            positions_list = self.get_node_positions_from_initial_string(
+                pdb_file_list[0], num_intervals=10)
+        else:
+            positions_list = self.get_average_node_positions_of_string(
+                pdb_file_list=pdb_file_list, num_snapshots=20)
+        output_pdb_list = self.restrained_MD_with_positions_and_relax(
+            positions_list, 1000,
+            output_folder='../target/' + CONFIG_30 + '/string_method_%d' % (index))
+        return output_pdb_list
 
 
 if __name__ == '__main__':
-    a = String_method()
+    a = String_method([1, 2], '../resources/alanine_dipeptide.pdb')
+    a.run_iteration(1, ['alanine_dipeptide.pdb'], True)
 
