@@ -175,7 +175,7 @@ class String_method(object):
         item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
         temp_positions = temp_atoms.positions
         temp_positions[indices] = item_positions
-        temp_bfactors = np.zeros(22)
+        temp_bfactors = np.zeros(len(temp_atoms))
         temp_bfactors[indices] = 1
         temp_atoms.positions = temp_positions
         temp_atoms.bfactors = temp_bfactors
