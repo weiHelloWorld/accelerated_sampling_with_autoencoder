@@ -61,6 +61,7 @@ class test_Sutils(object):
         """diagram for the find_boundary algorithm"""
         dimensionality = 2
         fig, axes = plt.subplots(2, 2)
+        fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.3)
         fig.set_size_inches(15, 15)
         # hist_matrix = np.random.randint(1, 10, size=(size_of_grid, size_of_grid))
         hist_matrix = [
@@ -82,15 +83,24 @@ class test_Sutils(object):
                 range(dimensionality)
                 )
         )
-
+        temp_fontsize = 25
         sns.heatmap(hist_matrix, ax=axes[0][0], annot=True, cbar=False)
         sns.heatmap(hist_matrix_processed, ax=axes[0][1], annot=True, cbar=False)
         sns.heatmap(diff_with_neighbors, ax=axes[1][0], annot=True, cbar=False)
         sns.heatmap(diff_with_neighbors < 0, ax=axes[1][1], annot=False, cbar=False)
-        axes[0][0].set_title('number of data points $n_i$', fontsize=25)
-        axes[0][1].set_title('processing value $p_i = \exp{(-n_i)}$', fontsize=25)
-        axes[1][0].set_title('difference of $p_i$ with its neighbors', fontsize=25)
-        axes[1][1].set_title('location of new potential centers', fontsize=25)
+        axes[0][0].set_title(r'number of data points $n_i$', fontsize=temp_fontsize)
+        axes[0][1].set_title(r'$p_i = -\exp{(-n_i)}$', fontsize=temp_fontsize)
+        axes[1][0].text(2, 8.5, r'$v_i = p_i-\frac{1}{| K_i |}\sum_{j \in K_i} p_j$', fontsize=temp_fontsize)
+        axes[1][1].set_title('locations of selected cells', fontsize=temp_fontsize)
+        temp_annotation = ['(a)', '(b)', '(c)', '(d)']
+        index = 0
+        for _1 in axes:
+            for ax in _1:
+                ax.set_xlabel('$\\xi_1$', fontsize=temp_fontsize)
+                ax.set_ylabel('$\\xi_2$', fontsize=temp_fontsize)
+                ax.text(-0.5, 8.4, temp_annotation[index], fontsize=temp_fontsize - 5)
+                index += 1
+                #     fig.tight_layout()
         fig.savefig('diagram_of_finding_boundary.pdf', format='pdf', bbox_inches='tight')
         return
 
