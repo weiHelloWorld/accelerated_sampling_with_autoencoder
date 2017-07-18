@@ -223,6 +223,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                                                ):
         print len(positions_list)
         output_pdb_file_list_list = []
+        command_list = []
         folder_to_store_plumed_related_files = '../resources/' + CONFIG_30
         for index, item_positions in enumerate(positions_list):
             plumed_string = self.get_plumed_script_for_restrained_MD_and_relax(
@@ -237,7 +238,6 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             output_pdb_file_list = [output_folder + '/temp_string_%d_%d.pdb' % (index, item)
                                     for item in range(num_of_simulations_for_each_image)]
             output_pdb_file_list_list.append(output_pdb_file_list)
-            command_list = []
             for _1, item_out_pdb in enumerate(output_pdb_file_list):
                 if isinstance(molecule_type, Alanine_dipeptide):
                     command = ['python', '../src/biased_simulation.py',
@@ -260,8 +260,9 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                     raise Exception('molecule type error')
                 print ' '.join(command)
                 command_list.append(' '.join(command))
-            temp_iteration_object = iteration(index=1447)
-            temp_iteration_object.run_simulation(commands=command_list)
+
+        temp_iteration_object = iteration(index=1447)
+        temp_iteration_object.run_simulation(commands=command_list)
 
         assert len(output_pdb_file_list_list) == len(positions_list), (len(output_pdb_file_list_list), len(positions_list))
         assert len(output_pdb_file_list_list[0]) == num_of_simulations_for_each_image, len(output_pdb_file_list_list[0])
