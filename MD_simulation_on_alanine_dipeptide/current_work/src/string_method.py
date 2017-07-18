@@ -132,6 +132,7 @@ class String_method(object):
         return np.array(positions_of_images), temp_cumsum
 
     def get_aligned_positions_of_selected_atoms_from_pdb_file(self, pdb_file):
+        Sutils.remove_water_mol_and_Cl_from_pdb_file(pdb_file, preserve_original_file=False)
         subprocess.check_output(['python', '../src/structural_alignment.py',
                                  pdb_file, '--ref', self._ref_pdb,
                                  '--atom_selection', 'backbone'
@@ -147,16 +148,18 @@ class String_method(object):
         temp_positions = self.get_aligned_positions_of_selected_atoms_from_pdb_file(pdb_file)
         step_interval = len(temp_positions) / num_intervals
         result = temp_positions[::step_interval]
-        if (len(result) == num_intervals):
+        if len(result) == num_intervals:
             result.append(temp_positions[-1])
         assert (len(result) == num_intervals + 1)
         return np.array(result)
 
-    def get_average_node_positions_of_string(self, pdb_file_list, num_snapshots):
+    def get_average_node_positions_of_string(self, pdb_file_list_list, num_snapshots):
         average_positions_list = []
-        for item_pdb_file in pdb_file_list:
-            temp_positions = self.get_aligned_positions_of_selected_atoms_from_pdb_file(item_pdb_file)[-num_snapshots:]
-            temp_average = np.average(temp_positions, axis=0)
+        for item_pdb_file_list in pdb_file_list_list:
+            temp_average = [np.average(
+                self.get_aligned_positions_of_selected_atoms_from_pdb_file(item_pdb_file)[-num_snapshots:],
+                axis=0) for item_pdb_file in item_pdb_file_list]
+            temp_average = np.average(temp_average, axis=0)
             assert (temp_average.shape[0] == 3 * len(self._selected_atom_indices)), temp_average.shape[0]
             average_positions_list.append(temp_average)
         return np.array(average_positions_list)
@@ -167,7 +170,7 @@ class String_method(object):
                                                       num_steps_of_equilibration):
         # write reference pdb file first
         indices = np.array(self._selected_atom_indices) - 1
-        temp_sample = Universe('../resources/alanine_dipeptide.pdb')
+        temp_sample = Universe(self._ref_pdb)
         temp_atoms = temp_sample.select_atoms('all')
         item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
         temp_positions = temp_atoms.positions
@@ -188,7 +191,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
         # plumed_string = "rmsd: RMSD REFERENCE=../resources/alanine_ref_1_TMD.pdb TYPE=OPTIMAL\n"
         # for item, index in enumerate(self._selected_atom_indices):
         #     plumed_string += "p_%d: POSITION ATOM=%d\n" % (item, index)
-        # # item_positions /= 10.0 # TODO: does it work?
+        # # item_positions /= 10.0 # is this needed?
         # position_string = str(item_positions.flatten().tolist())[1:-1].replace(' ', '')
         # force_constant_string_1 = ','.join([str(force_constant)] * (3 * len(self._selected_atom_indices)))
         # force_constant_string_2 = ','.join(['0'] * (3 * len(self._selected_atom_indices)))
@@ -203,12 +206,13 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
 
     def restrained_MD_with_positions_and_relax(self, positions_list, force_constant,
                                                output_folder=None,
-                                               num_steps_of_restrained_MD=100,
-                                               num_steps_of_unbiased_MD=20,
+                                               num_of_simulations_for_each_image=10,
+                                               num_steps_of_restrained_MD=0,
+                                               num_steps_of_unbiased_MD=100,
                                                num_steps_of_equilibration=5000
                                                ):
-        output_pdb_file_list = [output_folder + '/temp_string_%d.pdb' % index
-                                for index in range(len(positions_list))]
+        print len(positions_list)
+        output_pdb_file_list_list = []
         folder_to_store_plumed_related_files = '../resources/' + CONFIG_30
         for index, item_positions in enumerate(positions_list):
             plumed_string = self.get_plumed_script_for_restrained_MD_and_relax(
@@ -220,25 +224,40 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             plumed_script_file = folder_to_store_plumed_related_files + '/temp_plumed_script_%d.txt' % index
             with open(plumed_script_file, 'w') as f_out:
                 f_out.write(plumed_string)
-            command = ['python', '../src/biased_simulation.py',
-                       '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
-                       output_folder, 'none', 'pc_0',
-                       '--output_pdb', output_pdb_file_list[index],
-                       '--platform', 'CPU', '--bias_method', 'plumed_other',
-                       '--equilibration_steps', str(num_steps_of_equilibration),
-                       '--plumed_file', plumed_script_file]
-            print ' '.join(command)
-            subprocess.check_output(command)
-
-        return output_pdb_file_list
+            output_pdb_file_list = [output_folder + '/temp_string_%d_%d.pdb' % (index, item)
+                                    for item in range(num_of_simulations_for_each_image)]
+            output_pdb_file_list_list.append(output_pdb_file_list)
+            for item_out_pdb in output_pdb_file_list:
+                if isinstance(molecule_type, Alanine_dipeptide):
+                    command = ['python', '../src/biased_simulation.py',
+                               '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                               output_folder, 'none', 'pc_0',
+                               '--output_pdb', item_out_pdb,
+                               '--platform', 'CPU', '--bias_method', 'plumed_other',
+                               '--equilibration_steps', str(num_steps_of_equilibration),
+                               '--plumed_file', plumed_script_file]
+                elif isinstance(molecule_type, Src_kinase):
+                    command = ['python', '../src/biased_simulation_general.py', '2src',
+                                 '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                               output_folder, 'none', 'pc_0', 'explicit', 'NPT',
+                                 '--platform', 'CUDA', '--bias_method', 'plumed_other',
+                                 '--equilibration_steps', str(num_steps_of_equilibration),
+                                 '--plumed_file', plumed_script_file]
+                else:
+                    raise Exception('molecule type error')
+                print ' '.join(command)
+                subprocess.check_output(command)
+        assert len(output_pdb_file_list_list) == len(positions_list), (len(output_pdb_file_list_list), len(positions_list))
+        assert len(output_pdb_file_list_list[0]) == num_of_simulations_for_each_image, len(output_pdb_file_list_list[0])
+        return output_pdb_file_list_list
 
     def run_iteration(self, index, pdb_file_list, from_initial_string=False):
         if from_initial_string:
             positions_list = self.get_node_positions_from_initial_string(
-                pdb_file_list[0], num_intervals=20)
+                pdb_file_list[0], num_intervals=10)
         else:
             positions_list = self.get_average_node_positions_of_string(
-                pdb_file_list=pdb_file_list, num_snapshots=10)
+                pdb_file_list_list=pdb_file_list, num_snapshots=10)
         positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list, 0.5)
         np.savetxt('temp_images_%d.txt' % index, positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
@@ -259,6 +278,12 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
 
 
 if __name__ == '__main__':
-    a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
+    # a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
+    # a.run_multi_iterations(1, 10,
+    #     ['../target/Alanine_dipeptide/temp_drag_biased/biased_output_fc_0.000000_pc_[0.0,0.0].pdb'], True)
+    atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
+                                         '(resid 144:170 or resid 44:58) and not name H*')
+    a = String_method(atom_index, '../resources/2src.pdb')
     a.run_multi_iterations(1, 10,
-        ['../target/Alanine_dipeptide/temp_drag_biased/biased_output_fc_0.000000_pc_[0.0,0.0].pdb'], True)
+    ['../target/Src_kinase/unbiased/output_fc_100000.0_pc_[0.0,0.0]_T_300_explicit_rm_tmp.pdb'],
+                    True)
