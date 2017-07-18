@@ -372,33 +372,27 @@ class iteration(object):
         self._network = Sutils.load_object_from_pkl_file(autoencoder_filename)
         return
 
-    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24, cuda=None):
-        if cuda is None:
-            cuda = (CONFIG_23 == 'CUDA')
+    def prepare_simulation(self):
         if CONFIG_28 == "CustomManyParticleForce":
             self._network.write_expression_into_file()
         elif CONFIG_28 == "ANN_Force":
             self._network.write_coefficients_of_connections_into_file()
         else:
             raise Exception("force type not defined!")
-            
-        commands = self._network.get_commands_for_further_biased_simulations()
-        # print ('in iteration.prepare_simulation: commands = ')
-        # print (commands)
-        if machine_to_run_simulations == "cluster":
-            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
-                                                             run_on_gpu=cuda)
-        elif machine_to_run_simulations == 'local':
-            pass
         return
 
-    def run_simulation(self, machine_to_run_simulations = CONFIG_24):
+    def run_simulation(self, machine_to_run_simulations = CONFIG_24, commands = None, cuda=None):
+        if cuda is None:
+            cuda = (CONFIG_23 == 'CUDA')
+        if commands is None:
+            commands = self._network.get_commands_for_further_biased_simulations()
         if machine_to_run_simulations == 'cluster':
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
+                                                             run_on_gpu=cuda)
             cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
                             monitor_mode='normal',
                             num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
         elif machine_to_run_simulations == 'local':
-            commands = self._network.get_commands_for_further_biased_simulations()
             num_of_simulations_run_in_parallel = CONFIG_56
             total_num_failed_jobs = 0
             for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):
