@@ -131,12 +131,22 @@ class String_method(object):
         assert (len(positions_of_images) == len(positions_list)), (len(positions_of_images), len(positions_list))
         return np.array(positions_of_images), temp_cumsum
 
-    def get_aligned_positions_of_selected_atoms_from_pdb_file(self, pdb_file):
+    def get_aligned_positions_of_selected_atoms_from_pdb_file(self, pdb_file,
+                                                              machine_to_run_simulations=CONFIG_24):
         Sutils.remove_water_mol_and_Cl_from_pdb_file(pdb_file, preserve_original_file=False)
-        subprocess.check_output(['python', '../src/structural_alignment.py',
-                                 pdb_file, '--ref', self._ref_pdb,
-                                 '--atom_selection', 'backbone'
-                                 ])
+        temp_command_list = ['python', '../src/structural_alignment.py',
+                             pdb_file, '--ref', self._ref_pdb,
+                             '--atom_selection', 'backbone'
+                             ]
+        if machine_to_run_simulations == 'local':
+            subprocess.check_output(temp_command_list)
+        elif machine_to_run_simulations == 'cluster':
+            temp_command = ' '.join(['"%s"' % item for item in
+                                     temp_command_list]) + ' 2> /dev/null '
+            cluster_management.run_a_command_and_wait_on_cluster(command=temp_command)
+        else:
+            raise Exception('machine type error')
+
         pdb_file_aligned = pdb_file.replace('.pdb', '_aligned.pdb')
         temp_sample = Universe(pdb_file_aligned)
         temp_positions = [temp_sample.atoms.positions[np.array(self._selected_atom_indices) - 1].flatten()
@@ -227,7 +237,8 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             output_pdb_file_list = [output_folder + '/temp_string_%d_%d.pdb' % (index, item)
                                     for item in range(num_of_simulations_for_each_image)]
             output_pdb_file_list_list.append(output_pdb_file_list)
-            for item_out_pdb in output_pdb_file_list:
+            command_list = []
+            for _1, item_out_pdb in enumerate(output_pdb_file_list):
                 if isinstance(molecule_type, Alanine_dipeptide):
                     command = ['python', '../src/biased_simulation.py',
                                '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
@@ -240,13 +251,18 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                     command = ['python', '../src/biased_simulation_general.py', '2src',
                                  '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
                                output_folder, 'none', 'pc_0', 'explicit', 'NPT',
+                               '--output_pdb', item_out_pdb,
                                  '--platform', 'CUDA', '--bias_method', 'plumed_other',
+                                '--device', str(_1 % 2),
                                  '--equilibration_steps', str(num_steps_of_equilibration),
                                  '--plumed_file', plumed_script_file]
                 else:
                     raise Exception('molecule type error')
                 print ' '.join(command)
-                subprocess.check_output(command)
+                command_list.append(' '.join(command))
+            temp_iteration_object = iteration(index=1447)
+            temp_iteration_object.run_simulation(commands=command_list)
+
         assert len(output_pdb_file_list_list) == len(positions_list), (len(output_pdb_file_list_list), len(positions_list))
         assert len(output_pdb_file_list_list[0]) == num_of_simulations_for_each_image, len(output_pdb_file_list_list[0])
         return output_pdb_file_list_list
