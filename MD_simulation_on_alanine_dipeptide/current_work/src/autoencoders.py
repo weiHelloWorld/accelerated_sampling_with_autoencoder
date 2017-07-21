@@ -455,14 +455,23 @@ class autoencoder(object):
                 assert (os.path.exists(directory))
         else: pass
 
-        list_of_coor_data_files = coordinates_data_files_list(
-            [directory_containing_coor_files])._list_of_coor_data_files
+        temp_coor_file_obj = coordinates_data_files_list([directory_containing_coor_files])
+        list_of_coor_data_files = temp_coor_file_obj.get_list_of_coor_data_files()
         force_constants = []
         harmonic_centers = []
         window_counts = []
         coords = []
         umbOP = []
-        for item in list_of_coor_data_files:
+        if random_dataset:
+            temp_total_num_points = np.sum(temp_coor_file_obj.get_list_of_line_num_of_coor_data_file())
+            temp_total_num_files = len(temp_coor_file_obj.get_list_of_line_num_of_coor_data_file())
+            temp_rand_array = np.random.rand(temp_total_num_files)
+            temp_rand_array *= (temp_total_num_points / np.sum(temp_rand_array))
+            temp_rand_array = temp_rand_array.round()
+            temp_rand_array[0] = temp_total_num_points - np.sum(temp_rand_array[1:])
+            assert (temp_rand_array.sum() == temp_total_num_points)
+            num_of_random_points_to_pick_in_each_file = temp_rand_array.astype(int)
+        for temp_index, item in enumerate(list_of_coor_data_files):
             # print('processing %s' %item)
             temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant] * dimensionality  ]
@@ -477,7 +486,9 @@ class autoencoder(object):
 
             if random_dataset:
                 # data_index_list = random.sample(range(temp_coor.shape[0]), int(0.5 * temp_coor.shape[0]))  # nonrepeated
-                data_index_list = [random.choice(range(temp_coor.shape[0])) for _ in range(temp_coor.shape[0])]  # allow repeated data
+                # bootstrap for error estimation
+                data_index_list = [random.choice(range(temp_coor.shape[0]))
+                                   for _ in range(num_of_random_points_to_pick_in_each_file[temp_index])]
                 # print "random data_index_list"
             else:
                 data_index_list = np.arange(temp_coor.shape[0])
