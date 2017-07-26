@@ -507,6 +507,12 @@ class autoencoder(object):
                 assert (temp_window_count == len(temp_umbOP)), (temp_window_count, len(temp_umbOP))
                 assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
+            elif isinstance(molecule_type, Trp_cage):
+                temp_corresponding_pdb_list = coordinates_data_files_list([item]).get_list_of_corresponding_pdb_files()
+                temp_CA_RMSD = np.array(Trp_cage.metric_RMSD_of_atoms(temp_corresponding_pdb_list))
+                temp_helix_RMSD = np.array(Trp_cage.metric_RMSD_of_atoms(temp_corresponding_pdb_list,
+                                                                atom_selection_statement='resid 2:8 and name CA'))
+                umbOP += list(zip(temp_CA_RMSD[data_index_list], temp_helix_RMSD[data_index_list]))
 
         if mode == "standard":
             max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))
