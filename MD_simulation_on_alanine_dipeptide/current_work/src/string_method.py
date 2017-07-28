@@ -74,7 +74,7 @@ class String_method_1(object):  # with autoencoder approach
     def run_iteration(self, data_folder, index, num_images, output_folder=None):
         new_pdb_file_name = self.reparametrize(data_folder, index=index, num_images=num_images)
         if output_folder is None:
-            output_folder = '../target/' + CONFIG_30 + '/string_method_%d' % (index)
+            output_folder = '../target/' + CONFIG_30 + '/string_method_%04d' % (index)
 
         self.relax_using_multiple_images_contained_in_a_pdb(output_folder, new_pdb_file_name)
         molecule_type.generate_coordinates_from_pdb_files(output_folder)
@@ -228,14 +228,14 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
         for index, item_positions in enumerate(positions_list):
             plumed_string = self.get_plumed_script_for_restrained_MD_and_relax(
                 item_positions=item_positions, force_constant=force_constant,
-                ref_pdb_for_restrained=folder_to_store_plumed_related_files + '/temp_plumed_ref_%d.pdb' % index,
+                ref_pdb_for_restrained=folder_to_store_plumed_related_files + '/temp_plumed_ref_%04d.pdb' % index,
                 num_steps_of_restrained_MD=num_steps_of_restrained_MD,
                 num_steps_of_equilibration=num_steps_of_equilibration
             )
-            plumed_script_file = folder_to_store_plumed_related_files + '/temp_plumed_script_%d.txt' % index
+            plumed_script_file = folder_to_store_plumed_related_files + '/temp_plumed_script_%04d.txt' % index
             with open(plumed_script_file, 'w') as f_out:
                 f_out.write(plumed_string)
-            output_pdb_file_list = [output_folder + '/temp_string_%d_%d.pdb' % (index, item)
+            output_pdb_file_list = [output_folder + '/temp_string_%04d_%04d.pdb' % (index, item)
                                     for item in range(num_of_simulations_for_each_image)]
             output_pdb_file_list_list.append(output_pdb_file_list)
             for _1, item_out_pdb in enumerate(output_pdb_file_list):
@@ -276,10 +276,10 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             positions_list = self.get_average_node_positions_of_string(
                 pdb_file_list_list=pdb_file_list, num_snapshots=10)
         positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list, 0.5)
-        np.savetxt('temp_images_%d.txt' % index, positions_list)
+        np.savetxt('temp_images_%04d.txt' % index, positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
             positions_list, 1000000,
-            output_folder='../target/' + CONFIG_30 + '/string_method_%d' % (index))
+            output_folder='../target/' + CONFIG_30 + '/string_method_%04d' % (index))
         return output_pdb_list
 
     def run_multi_iterations(self, start_index, num_iterations, pdb_file_list,
