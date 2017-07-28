@@ -83,7 +83,8 @@ class Sutils(object):
         return
 
     @staticmethod
-    def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None):
+    def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None,
+                                                              overwrite=False):
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_someframes.pdb'
 
@@ -97,7 +98,8 @@ class Sutils(object):
                                     _2 >= num_of_frames_in_current_file]
             content_to_write = [content[_2] for _2 in index_for_this_file]
 
-        with open(new_pdb_file_name, 'a') as f_out:
+        write_flag = 'w' if overwrite else 'a'
+        with open(new_pdb_file_name, write_flag) as f_out:
             for item in content_to_write:
                 f_out.write("MODEL")
                 f_out.write(item)
