@@ -131,23 +131,12 @@ class String_method(object):
         assert (len(positions_of_images) == len(positions_list)), (len(positions_of_images), len(positions_list))
         return np.array(positions_of_images), temp_cumsum
 
-    def get_aligned_positions_of_selected_atoms_from_pdb_file(self, pdb_file,
-                                                              machine_to_run_simulations=CONFIG_24):
-        Sutils.remove_water_mol_and_Cl_from_pdb_file(pdb_file, preserve_original_file=False)
-        temp_command_list = ['python', '../src/structural_alignment.py',
-                             pdb_file, '--ref', self._ref_pdb,
-                             '--atom_selection', 'backbone'
-                             ]
-        if machine_to_run_simulations == 'local':
-            subprocess.check_output(temp_command_list)
-        elif machine_to_run_simulations == 'cluster':
-            temp_command = ' '.join(['"%s"' % item for item in
-                                     temp_command_list]) + ' 2> /dev/null '
-            cluster_management.run_a_command_and_wait_on_cluster(command=temp_command)
+    def get_aligned_positions_of_selected_atoms_from_pdb_file(self, pdb_file):
+        if not '_aligned.pdb' in pdb_file:
+            pdb_file_aligned = pdb_file.replace('.pdb', '_aligned.pdb')
         else:
-            raise Exception('machine type error')
+            pdb_file_aligned = pdb_file
 
-        pdb_file_aligned = pdb_file.replace('.pdb', '_aligned.pdb')
         temp_sample = Universe(pdb_file_aligned)
         temp_positions = [temp_sample.atoms.positions[np.array(self._selected_atom_indices) - 1].flatten()
                           for _ in temp_sample.trajectory]
@@ -163,6 +152,45 @@ class String_method(object):
         assert (len(result) == num_intervals + 1)
         return np.array(result)
 
+    def get_aligned_pdb_list_list_of_nodes_from_a_folder(self, folder):
+        result = []
+        item = 0
+        temp_result = ['not important']
+        while len(temp_result) != 0:
+            temp_result = subprocess.check_output(
+                ['find', folder, '-name', 'temp_string_%04d*_aligned.pdb' % item]).strip().split()
+            result.append(temp_result)
+            item += 1
+        return result
+
+    def generate_pdb_list_list_from_a_single_pdb_file_containing_string(self, pdb_file, num_intervals,
+                                                                        output_file_folder):
+        """this is used when the string is stored in a single pdb file, it generates pdb files for different nodes.
+        Note that nodes are different from images, nodes are used to generate positions list, which is then used
+        to reparametrize and generate corresponding images,
+        :param output_file_folder: used to store generated files
+        """
+        if not os.path.exists(output_file_folder):
+            subprocess.check_output(['mkdir', output_file_folder])
+
+        num_frames = Universe(pdb_file).trajectory.n_frames
+        num_frames_per_pdb = num_frames / num_intervals
+        print num_frames, num_frames_per_pdb
+        temp_new_pdb_file_names = [output_file_folder + '/temp_string_%04d_%04d.pdb' % (index, 0)
+                                   for index in range(num_intervals + 1)]
+        for index in range(1, num_intervals + 1):
+            Sutils.write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name=pdb_file,
+                    index_list=range((index - 1) * num_frames_per_pdb, index * num_frames_per_pdb),
+                    new_pdb_file_name=temp_new_pdb_file_names[index], overwrite=True)
+        Sutils.write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name=pdb_file,
+                                             index_list=range(10),  # pick first few frames
+                                             new_pdb_file_name=temp_new_pdb_file_names[0],
+                                             overwrite=True
+                                             )
+        print [Universe(item).trajectory.n_frames for item in temp_new_pdb_file_names]
+        self.remove_water_and_align('../target/' + CONFIG_30)
+        return temp_new_pdb_file_names
+
     def get_average_node_positions_of_string(self, pdb_file_list_list, num_snapshots):
         average_positions_list = []
         for item_pdb_file_list in pdb_file_list_list:
@@ -173,6 +201,22 @@ class String_method(object):
             assert (temp_average.shape[0] == 3 * len(self._selected_atom_indices)), temp_average.shape[0]
             average_positions_list.append(temp_average)
         return np.array(average_positions_list)
+
+    def remove_water_and_align(self, target_folder, machine_to_run_simulations=CONFIG_24):
+        Sutils.remove_water_mol_and_Cl_from_pdb_file(target_folder, preserve_original_file=False)
+        temp_command_list = ['python', '../src/structural_alignment.py',
+                             temp_root_target_folder, '--ref', self._ref_pdb,
+                             '--atom_selection', 'backbone'  # TODO: is it good to use backbone?
+                             ]
+        # TODO: refactor following into a function later and include remove water
+        if machine_to_run_simulations == 'local':
+            subprocess.check_output(temp_command_list)
+        elif machine_to_run_simulations == 'cluster':
+            temp_command = ' '.join(['"%s"' % item for item in
+                                     temp_command_list]) + ' 2> /dev/null '
+            cluster_management.run_a_command_and_wait_on_cluster(command=temp_command)
+        else:
+            raise Exception('machine type error')
 
     def get_plumed_script_for_restrained_MD_and_relax(self, item_positions, force_constant,
                                                       ref_pdb_for_restrained,
@@ -221,10 +265,12 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                                                num_steps_of_unbiased_MD=100,
                                                num_steps_of_equilibration=5000
                                                ):
+        temp_root_target_folder = '../target/' + CONFIG_30
+        temp_root_resources_folder = '../resources/' + CONFIG_30
         print len(positions_list)
         output_pdb_file_list_list = []
         command_list = []
-        folder_to_store_plumed_related_files = '../resources/' + CONFIG_30 + '/string_method_%04d' % iter_index
+        folder_to_store_plumed_related_files = temp_root_resources_folder + '/string_method_%04d' % iter_index
         if not os.path.exists(folder_to_store_plumed_related_files):
             subprocess.check_output(['mkdir', folder_to_store_plumed_related_files])
         for index, item_positions in enumerate(positions_list):
@@ -265,18 +311,18 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
 
         temp_iteration_object = iteration(index=1447)
         temp_iteration_object.run_simulation(commands=command_list)
-
+        self.remove_water_and_align(temp_root_target_folder)
         assert len(output_pdb_file_list_list) == len(positions_list), (len(output_pdb_file_list_list), len(positions_list))
         assert len(output_pdb_file_list_list[0]) == num_of_simulations_for_each_image, len(output_pdb_file_list_list[0])
         return output_pdb_file_list_list
 
-    def run_iteration(self, index, pdb_file_list, from_initial_string=False):
-        if from_initial_string:
-            positions_list = self.get_node_positions_from_initial_string(
-                pdb_file_list[0], num_intervals=10)
-        else:
-            positions_list = self.get_average_node_positions_of_string(
-                pdb_file_list_list=pdb_file_list, num_snapshots=10)
+    def run_iteration(self, index, starting_target_folder=None):
+        root_target = '../target/' + CONFIG_30
+        if starting_target_folder is None:
+            starting_target_folder = root_target + '/string_method_%04d' % (index - 1)
+        pdb_file_list = self.get_aligned_pdb_list_list_of_nodes_from_a_folder(starting_target_folder)
+        positions_list = self.get_average_node_positions_of_string(
+            pdb_file_list_list=pdb_file_list, num_snapshots=10)
         positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list, 0.5)
         np.savetxt('temp_images_%04d.txt' % index, positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
@@ -284,25 +330,16 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             output_folder='../target/' + CONFIG_30 + '/string_method_%04d' % index)
         return output_pdb_list
 
-    def run_multi_iterations(self, start_index, num_iterations, pdb_file_list,
-                             from_initial_string=True):
-        if from_initial_string:
-            output_pdb_list = self.run_iteration(start_index, pdb_file_list, True)
-            self.run_multi_iterations(start_index + 1, num_iterations - 1, pdb_file_list=output_pdb_list,
-                                      from_initial_string=False)
-        else:
-            for item in range(start_index, start_index + num_iterations):
-                pdb_file_list = self.run_iteration(item, pdb_file_list, False)
-        return pdb_file_list
+    def run_multi_iterations(self, start_index, num_iterations, starting_target_folder=None):
+        for item in range(start_index, start_index + num_iterations):
+            pdb_file_list = self.run_iteration(item, starting_target_folder=starting_target_folder)
+        return
 
 
 if __name__ == '__main__':
-    # a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
-    # a.run_multi_iterations(1, 10,
-    #     ['../target/Alanine_dipeptide/temp_drag_biased/biased_output_fc_0.000000_pc_[0.0,0.0].pdb'], True)
-    atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
-                                         '(resid 144:170 or resid 44:58) and not name H*')
-    a = String_method(atom_index, '../resources/2src.pdb')
-    a.run_multi_iterations(1, 10,
-    ['../target/Src_kinase/unbiased/output_fc_100000.0_pc_[0.0,0.0]_T_300_explicit_rm_tmp.pdb'],
-                    True)
+    a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
+    a.run_multi_iterations(1, 10)
+    # atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
+    #                                      '(resid 144:170 or resid 44:58) and not name H*')
+    # a = String_method(atom_index, '../resources/2src.pdb')
+    # a.run_multi_iterations(1, 10)
