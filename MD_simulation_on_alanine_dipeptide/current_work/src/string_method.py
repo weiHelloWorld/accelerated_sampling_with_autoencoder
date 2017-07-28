@@ -214,7 +214,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
 
         return plumed_string
 
-    def restrained_MD_with_positions_and_relax(self, positions_list, force_constant,
+    def restrained_MD_with_positions_and_relax(self, iter_index, positions_list, force_constant,
                                                output_folder=None,
                                                num_of_simulations_for_each_image=10,
                                                num_steps_of_restrained_MD=0,
@@ -224,7 +224,9 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
         print len(positions_list)
         output_pdb_file_list_list = []
         command_list = []
-        folder_to_store_plumed_related_files = '../resources/' + CONFIG_30
+        folder_to_store_plumed_related_files = '../resources/' + CONFIG_30 + '/string_method_%04d' % iter_index
+        if not os.path.exists(folder_to_store_plumed_related_files):
+            subprocess.check_output(['mkdir', folder_to_store_plumed_related_files])
         for index, item_positions in enumerate(positions_list):
             plumed_string = self.get_plumed_script_for_restrained_MD_and_relax(
                 item_positions=item_positions, force_constant=force_constant,
@@ -278,8 +280,8 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
         positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list, 0.5)
         np.savetxt('temp_images_%04d.txt' % index, positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
-            positions_list, 1000000,
-            output_folder='../target/' + CONFIG_30 + '/string_method_%04d' % (index))
+            index, positions_list, 1000000,
+            output_folder='../target/' + CONFIG_30 + '/string_method_%04d' % index)
         return output_pdb_list
 
     def run_multi_iterations(self, start_index, num_iterations, pdb_file_list,
