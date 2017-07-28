@@ -284,14 +284,18 @@ class Sutils(object):
         for item in filenames:
             print ('removing water molecules from pdb file: ' + item)
             output_file = item[:-4] + '_rm_tmp.pdb'
-
+            is_line_removed_flag = False
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
                 for line in f_in:
                     if not 'HOH' in line and not 'CL' in line and not "NA" in line:
                         f_out.write(line)
+                    else: is_line_removed_flag = True
 
             if not preserve_original_file:
-                subprocess.check_output(['mv', output_file, item])
+                if is_line_removed_flag:
+                    subprocess.check_output(['mv', output_file, item])
+                else:
+                    subprocess.check_output(['rm', output_file])
 
         print('Done removing water molecules from all pdb files!')
         return
