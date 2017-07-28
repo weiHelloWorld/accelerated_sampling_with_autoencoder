@@ -155,12 +155,13 @@ class String_method(object):
     def get_aligned_pdb_list_list_of_nodes_from_a_folder(self, folder):
         result = []
         item = 0
-        temp_result = ['not important']
-        while len(temp_result) != 0:
+        while True:
             temp_result = subprocess.check_output(
                 ['find', folder, '-name', 'temp_string_%04d*_aligned.pdb' % item]).strip().split()
-            result.append(temp_result)
-            item += 1
+            if len(temp_result) == 0: break
+            else:
+                result.append(temp_result)
+                item += 1
         return result
 
     def generate_pdb_list_list_from_a_single_pdb_file_containing_string(self, pdb_file, num_intervals,
@@ -175,7 +176,6 @@ class String_method(object):
 
         num_frames = Universe(pdb_file).trajectory.n_frames
         num_frames_per_pdb = num_frames / num_intervals
-        print num_frames, num_frames_per_pdb
         temp_new_pdb_file_names = [output_file_folder + '/temp_string_%04d_%04d.pdb' % (index, 0)
                                    for index in range(num_intervals + 1)]
         for index in range(1, num_intervals + 1):
@@ -205,7 +205,7 @@ class String_method(object):
     def remove_water_and_align(self, target_folder, machine_to_run_simulations=CONFIG_24):
         Sutils.remove_water_mol_and_Cl_from_pdb_file(target_folder, preserve_original_file=False)
         temp_command_list = ['python', '../src/structural_alignment.py',
-                             temp_root_target_folder, '--ref', self._ref_pdb,
+                             target_folder, '--ref', self._ref_pdb,
                              '--atom_selection', 'backbone'  # TODO: is it good to use backbone?
                              ]
         # TODO: refactor following into a function later and include remove water
@@ -262,7 +262,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                                                output_folder=None,
                                                num_of_simulations_for_each_image=10,
                                                num_steps_of_restrained_MD=0,
-                                               num_steps_of_unbiased_MD=100,
+                                               num_steps_of_unbiased_MD=20,
                                                num_steps_of_equilibration=5000
                                                ):
         temp_root_target_folder = '../target/' + CONFIG_30
@@ -338,6 +338,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
 
 if __name__ == '__main__':
     a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb')
+    a.remove_water_and_align('../target/' + CONFIG_30)
     a.run_multi_iterations(1, 10)
     # atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
     #                                      '(resid 144:170 or resid 44:58) and not name H*')
