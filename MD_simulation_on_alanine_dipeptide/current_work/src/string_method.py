@@ -357,19 +357,19 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
 
 
 if __name__ == '__main__':
-    a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb',
-                      num_of_simulations_for_each_image=10,
-                      num_steps_of_equilibration=5000,
-                      num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=20,
-                      smooth_coeff=0.5)
-    a.remove_water_and_align('../target/' + CONFIG_30)
-    a.run_multi_iterations(1, 10)
-
-    # atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
-    #                                      '(resid 144:170 or resid 44:58) and not name H*')
-    # a = String_method(atom_index, '../resources/2src.pdb',
-    #                   num_of_simulations_for_each_image=3,
+    # a = String_method([2,5,7,9,15,17,19], '../resources/alanine_dipeptide.pdb',
+    #                   num_of_simulations_for_each_image=10,
     #                   num_steps_of_equilibration=5000,
-    #                   num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=100,
+    #                   num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=20,
     #                   smooth_coeff=0.5)
+    # a.remove_water_and_align('../target/' + CONFIG_30)
     # a.run_multi_iterations(1, 10)
+
+    atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
+                                         '(resid 144:170 or resid 44:58) and not name H*')
+    a = String_method(atom_index, '../resources/2src.pdb',
+                      num_of_simulations_for_each_image=3,
+                      num_steps_of_equilibration=5000,
+                      num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=100,
+                      smooth_coeff=0.5)
+    a.run_multi_iterations(1, 10)
