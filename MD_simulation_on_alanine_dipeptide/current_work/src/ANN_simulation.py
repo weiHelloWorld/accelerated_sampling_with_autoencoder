@@ -306,7 +306,8 @@ class iteration(object):
         self._index = index
         self._network = network
 
-    def preprocessing(self):
+    @staticmethod
+    def preprocessing(machine_to_run_simulations = CONFIG_24, target_folder=None):
         """
         1. aligned structure
         2. generate coordinate files
@@ -317,21 +318,32 @@ class iteration(object):
         assert (len(reference_configs) == len(reference_suffix_list)), (
         len(reference_configs), len(reference_suffix_list))
         num_of_reference_configs = len(reference_configs)
-        if isinstance(molecule_type, Trp_cage):
-            temp_target_folder = '../target/Trp_cage'
-        elif isinstance(molecule_type, Alanine_dipeptide):
-            temp_target_folder = '../target/Alanine_dipeptide'
-        elif isinstance(molecule_type, Src_kinase):
-            temp_target_folder = '../target/Src_kinase'
+        if not target_folder is None:
+            temp_target_folder = target_folder
         else:
-            raise Exception("molecule type error")
+            if isinstance(molecule_type, Trp_cage):
+                temp_target_folder = '../target/Trp_cage'
+            elif isinstance(molecule_type, Alanine_dipeptide):
+                temp_target_folder = '../target/Alanine_dipeptide'
+            elif isinstance(molecule_type, Src_kinase):
+                temp_target_folder = '../target/Src_kinase'
+            else:
+                raise Exception("molecule type error")
 
         for _1 in range(num_of_reference_configs):
-            subprocess.check_output(['python', 'structural_alignment.py', temp_target_folder,
-                                     '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
-                                     '--atom_selection', atom_selection_list[_1]
-                                     ])
-        molecule_type.generate_coordinates_from_pdb_files()
+            temp_command_list = ['python', 'structural_alignment.py', temp_target_folder,
+                                 '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
+                                 '--atom_selection', atom_selection_list[_1]
+                                 ]
+            if machine_to_run_simulations == 'local':
+                subprocess.check_output(temp_command_list)
+            elif machine_to_run_simulations == 'cluster':
+                temp_command = ' '.join(['"%s"' % item for item in temp_command_list]) + ' 2> /dev/null '  # TODO: does it work by adding quotation marks to everything
+                cluster_management.run_a_command_and_wait_on_cluster(command=temp_command)
+            else:
+                raise Exception('machine type error')
+
+        molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=temp_target_folder)
         return
 
     def train_network_and_save(self, machine_to_run_simulations = CONFIG_24,
@@ -360,34 +372,27 @@ class iteration(object):
         self._network = Sutils.load_object_from_pkl_file(autoencoder_filename)
         return
 
-    def prepare_simulation(self, machine_to_run_simulations = CONFIG_24, cuda=None):
-        if cuda is None:
-            cuda = (CONFIG_23 == 'CUDA')
+    def prepare_simulation(self):
         if CONFIG_28 == "CustomManyParticleForce":
             self._network.write_expression_into_file()
         elif CONFIG_28 == "ANN_Force":
             self._network.write_coefficients_of_connections_into_file()
         else:
             raise Exception("force type not defined!")
-            
-        commands = self._network.get_commands_for_further_biased_simulations()
-        # print ('in iteration.prepare_simulation: commands = ')
-        # print (commands)
-        if machine_to_run_simulations == "cluster":
-            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
-                                                             run_on_gpu=cuda)
-        elif machine_to_run_simulations == 'local':
-            pass
-            # TODO
         return
 
-    def run_simulation(self, machine_to_run_simulations = CONFIG_24):
+    def run_simulation(self, machine_to_run_simulations = CONFIG_24, commands = None, cuda=None):
+        if cuda is None:
+            cuda = (CONFIG_23 == 'CUDA')
+        if commands is None:
+            commands = self._network.get_commands_for_further_biased_simulations()
         if machine_to_run_simulations == 'cluster':
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
+                                                             run_on_gpu=cuda)
             cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
                             monitor_mode='normal',
                             num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
         elif machine_to_run_simulations == 'local':
-            commands = self._network.get_commands_for_further_biased_simulations()
             num_of_simulations_run_in_parallel = CONFIG_56
             total_num_failed_jobs = 0
             for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):

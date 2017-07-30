@@ -19,6 +19,7 @@ parser.add_argument("autoencoder_info_file", type=str, help="file to store autoe
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
+parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
 parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='auto', help='the input pdb file to start simulation')
@@ -40,6 +41,8 @@ parser.add_argument("--MTD_height", type=float, default=CONFIG_67, help="height 
 parser.add_argument("--MTD_sigma", type=float, default=CONFIG_68, help="sigma of metadynamics")
 parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to use well-tempered version")
 parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
+# following is for plumed script
+parser.add_argument("--plumed_file", type=str, default=None, help="plumed script for biasing force, used only when the bias_method == plumed_other")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -90,10 +93,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
                                                               str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
-    state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
-    checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
-    if args.fast_equilibration:
-        checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
+
 
     if args.starting_pdb_file == 'auto':
         input_pdb_file_of_molecule = {'Trp_cage': '../resources/1l2y.pdb',
@@ -111,6 +111,15 @@ def run_simulation(force_constant, number_of_simulation_steps):
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
         state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_ff_%d.txt' % args.starting_frame
 
+    if not args.output_pdb is None:
+        pdb_reporter_file = args.output_pdb
+
+    state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
+    checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
+    if args.fast_equilibration:
+        checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
+
+    # check existence
     if os.path.isfile(pdb_reporter_file):
         os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
 
@@ -210,9 +219,14 @@ def run_simulation(force_constant, number_of_simulation_steps):
         kappa_string = str(args.force_constant)
         plumed_force_string = """
 rmsd: RMSD REFERENCE=../resources/1y57_TMD.pdb TYPE=OPTIMAL
-restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1=%s
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=0.4 STEP0=0 KAPPA0=%s AT1=0 STEP1=%d KAPPA1=%s
 PRINT STRIDE=500 ARG=* FILE=COLVAR
-            """ % (total_number_of_steps, kappa_string)
+            """ % (kappa_string, total_number_of_steps, kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "plumed_other":
+        from openmmplumed import PlumedForce
+        with open(args.plumed_file, 'r') as f_in:
+            plumed_force_string = f_in.read()
         system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')

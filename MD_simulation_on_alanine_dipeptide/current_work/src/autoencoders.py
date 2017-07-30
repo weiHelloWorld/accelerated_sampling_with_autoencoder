@@ -361,6 +361,7 @@ class autoencoder(object):
                     if CONFIG_42:
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Src_kinase/network_%d.pkl' % self._index)
+                    # todo_list_of_commands_for_simulations += [command.replace('2src', '1y57') + ' --starting_pdb_file ../resources/1y57.pdb']
                 else:
                     raise Exception("molecule type not defined")
 
@@ -454,14 +455,23 @@ class autoencoder(object):
                 assert (os.path.exists(directory))
         else: pass
 
-        list_of_coor_data_files = coordinates_data_files_list(
-            [directory_containing_coor_files])._list_of_coor_data_files
+        temp_coor_file_obj = coordinates_data_files_list([directory_containing_coor_files])
+        list_of_coor_data_files = temp_coor_file_obj.get_list_of_coor_data_files()
         force_constants = []
         harmonic_centers = []
         window_counts = []
         coords = []
         umbOP = []
-        for item in list_of_coor_data_files:
+        if random_dataset:
+            temp_total_num_points = np.sum(temp_coor_file_obj.get_list_of_line_num_of_coor_data_file())
+            temp_total_num_files = len(temp_coor_file_obj.get_list_of_line_num_of_coor_data_file())
+            temp_rand_array = np.random.rand(temp_total_num_files)
+            temp_rand_array *= (temp_total_num_points / np.sum(temp_rand_array))
+            temp_rand_array = temp_rand_array.round()
+            temp_rand_array[0] = temp_total_num_points - np.sum(temp_rand_array[1:])
+            assert (temp_rand_array.sum() == temp_total_num_points)
+            num_of_random_points_to_pick_in_each_file = temp_rand_array.astype(int)
+        for temp_index, item in enumerate(list_of_coor_data_files):
             # print('processing %s' %item)
             temp_force_constant = float(item.split('output_fc_')[1].split('_pc_')[0])
             force_constants += [[temp_force_constant] * dimensionality  ]
@@ -476,7 +486,9 @@ class autoencoder(object):
 
             if random_dataset:
                 # data_index_list = random.sample(range(temp_coor.shape[0]), int(0.5 * temp_coor.shape[0]))  # nonrepeated
-                data_index_list = [random.choice(range(temp_coor.shape[0])) for _ in range(temp_coor.shape[0])]  # allow repeated data
+                # bootstrap for error estimation
+                data_index_list = [random.choice(range(temp_coor.shape[0]))
+                                   for _ in range(num_of_random_points_to_pick_in_each_file[temp_index])]
                 # print "random data_index_list"
             else:
                 data_index_list = np.arange(temp_coor.shape[0])
@@ -495,6 +507,12 @@ class autoencoder(object):
                 assert (temp_window_count == len(temp_umbOP)), (temp_window_count, len(temp_umbOP))
                 assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
+            elif isinstance(molecule_type, Trp_cage):
+                temp_corresponding_pdb_list = coordinates_data_files_list([item]).get_list_of_corresponding_pdb_files()
+                temp_CA_RMSD = np.array(Trp_cage.metric_RMSD_of_atoms(temp_corresponding_pdb_list))
+                temp_helix_RMSD = np.array(Trp_cage.metric_RMSD_of_atoms(temp_corresponding_pdb_list,
+                                                                atom_selection_statement='resid 2:8 and name CA'))
+                umbOP += list(zip(temp_CA_RMSD[data_index_list], temp_helix_RMSD[data_index_list]))
 
         if mode == "standard":
             max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))

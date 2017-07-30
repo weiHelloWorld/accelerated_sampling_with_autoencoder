@@ -61,6 +61,7 @@ class test_Sutils(object):
         """diagram for the find_boundary algorithm"""
         dimensionality = 2
         fig, axes = plt.subplots(2, 2)
+        fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.3)
         fig.set_size_inches(15, 15)
         # hist_matrix = np.random.randint(1, 10, size=(size_of_grid, size_of_grid))
         hist_matrix = [
@@ -82,15 +83,24 @@ class test_Sutils(object):
                 range(dimensionality)
                 )
         )
-
+        temp_fontsize = 25
         sns.heatmap(hist_matrix, ax=axes[0][0], annot=True, cbar=False)
         sns.heatmap(hist_matrix_processed, ax=axes[0][1], annot=True, cbar=False)
         sns.heatmap(diff_with_neighbors, ax=axes[1][0], annot=True, cbar=False)
         sns.heatmap(diff_with_neighbors < 0, ax=axes[1][1], annot=False, cbar=False)
-        axes[0][0].set_title('number of data points $n_i$', fontsize=25)
-        axes[0][1].set_title('processing value $p_i = \exp{(-n_i)}$', fontsize=25)
-        axes[1][0].set_title('difference of $p_i$ with its neighbors', fontsize=25)
-        axes[1][1].set_title('location of new potential centers', fontsize=25)
+        axes[0][0].set_title(r'number of data points $n_i$', fontsize=temp_fontsize)
+        axes[0][1].set_title(r'$p_i = -\exp{(-n_i)}$', fontsize=temp_fontsize)
+        axes[1][0].text(2, 8.5, r'$v_i = p_i-\frac{1}{| K_i |}\sum_{j \in K_i} p_j$', fontsize=temp_fontsize)
+        axes[1][1].set_title('locations of selected cells', fontsize=temp_fontsize)
+        temp_annotation = ['(a)', '(b)', '(c)', '(d)']
+        index = 0
+        for _1 in axes:
+            for ax in _1:
+                ax.set_xlabel('$\\xi_1$', fontsize=temp_fontsize)
+                ax.set_ylabel('$\\xi_2$', fontsize=temp_fontsize)
+                ax.text(-0.5, 8.4, temp_annotation[index], fontsize=temp_fontsize - 5)
+                index += 1
+                #     fig.tight_layout()
         fig.savefig('diagram_of_finding_boundary.pdf', format='pdf', bbox_inches='tight')
         return
 
@@ -113,16 +123,6 @@ class test_Sutils(object):
         actual = Sutils.rotating_coordinates(data, [0,0,0], [0,0,1], np.pi / 2)
         expected = np.array([data[:, 1], - data[:,0], data[:,2]]).T
         assert_almost_equal(expected, actual)
-        return
-
-    @staticmethod
-    def test_get_backbone_atom_index_list():
-        atom_index = Sutils.get_backbone_atom_index_list('../resources/1l2y.pdb')
-        expected = [1, 2, 3, 17, 18, 19, 36, 37, 38, 57, 58, 59, 76, 77, 78, 93, 94, 95,
-    117, 118, 119, 136, 137, 138, 158, 159, 160, 170, 171, 172, 177, 178, 179, 184,
-    185, 186, 198, 199, 200, 209, 210, 211, 220, 221, 222, 227, 228, 229, 251, 252,
-    253, 265, 266, 267, 279, 280, 281, 293, 294, 295]
-        assert np.all(atom_index + 1 == np.array(expected))
         return
 
     @staticmethod
@@ -258,7 +258,13 @@ class test_cluster_management(object):
                 assert this_command[0] in commands
 
         subprocess.check_output(['rm', '-rf', folder_to_store_sge_files])
+        return
 
+    @staticmethod
+    def test_generate_sge_filename_for_a_command():
+        actual = cluster_management.generate_sge_filename_for_a_command('python main____work.py :::: && -- ../target')
+        expected = 'python_main_work.py_target.sge'
+        assert (actual == expected)
         return
 
 

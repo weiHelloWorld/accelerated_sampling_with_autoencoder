@@ -10,15 +10,6 @@ class Sutils(object):
         return
 
     @staticmethod
-    def get_backbone_atom_index_list(pdb_file):
-        temp_universe = Universe(pdb_file)
-        atoms = temp_universe.select_atoms('backbone')
-        index_list = atoms.indices
-        index_list = np.sort(np.concatenate([index_list[::4], index_list[1::4], index_list[2::4]]))  # do not include "O"
-        print "note that index starts from 0"
-        return index_list
-
-    @staticmethod
     def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
              folder_list,
              alignment_coor_file_suffix_list,
@@ -79,6 +70,7 @@ class Sutils(object):
 
     @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list_for_pdb_file_list(list_of_files, index_list, new_pdb_file_name):
+        print "note that order may not be preserved!"
         remaining_index_list = index_list
         for _1 in list_of_files:
             remaining_index_list = Sutils.write_some_frames_into_a_new_file_based_on_index_list(_1, remaining_index_list, new_pdb_file_name)
@@ -91,7 +83,8 @@ class Sutils(object):
         return
 
     @staticmethod
-    def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None):
+    def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None,
+                                                              overwrite=False):
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_someframes.pdb'
 
@@ -105,7 +98,8 @@ class Sutils(object):
                                     _2 >= num_of_frames_in_current_file]
             content_to_write = [content[_2] for _2 in index_for_this_file]
 
-        with open(new_pdb_file_name, 'a') as f_out:
+        write_flag = 'w' if overwrite else 'a'
+        with open(new_pdb_file_name, write_flag) as f_out:
             for item in content_to_write:
                 f_out.write("MODEL")
                 f_out.write(item)
@@ -290,14 +284,18 @@ class Sutils(object):
         for item in filenames:
             print ('removing water molecules from pdb file: ' + item)
             output_file = item[:-4] + '_rm_tmp.pdb'
-
+            is_line_removed_flag = False
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
                 for line in f_in:
                     if not 'HOH' in line and not 'CL' in line and not "NA" in line:
                         f_out.write(line)
+                    else: is_line_removed_flag = True
 
             if not preserve_original_file:
-                subprocess.check_output(['mv', output_file, item])
+                if is_line_removed_flag:
+                    subprocess.check_output(['mv', output_file, item])
+                else:
+                    subprocess.check_output(['rm', output_file])
 
         print('Done removing water molecules from all pdb files!')
         return
@@ -938,7 +936,6 @@ class Src_kinase(Sutils):
     @staticmethod
     def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
         index_of_backbone_atoms = [str(item) for item in CONFIG_57[2]]
-        assert (len(index_of_backbone_atoms) % 3 == 0)
         output_file_list = Sutils._generate_coordinates_from_pdb_files(
             index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
         return output_file_list

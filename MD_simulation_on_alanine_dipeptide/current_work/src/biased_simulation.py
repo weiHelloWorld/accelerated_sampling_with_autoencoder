@@ -23,6 +23,7 @@ parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
+parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
 parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
@@ -30,6 +31,9 @@ parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='dat
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
+parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
+parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
+parser.add_argument("--equilibration_steps", type=int, default=1000, help="number of steps for the equilibration process")
 # next few options are for metadynamics
 parser.add_argument("--bias_method", type=str, default='US', help="biasing method for enhanced sampling, US = umbrella sampling, MTD = metadynamics")
 parser.add_argument("--MTD_pace", type=int, default=CONFIG_66, help="pace of metadynamics")
@@ -37,6 +41,8 @@ parser.add_argument("--MTD_height", type=float, default=CONFIG_67, help="height 
 parser.add_argument("--MTD_sigma", type=float, default=CONFIG_68, help="sigma of metadynamics")
 parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to use well-tempered version")
 parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
+# following is for plumed script
+parser.add_argument("--plumed_file", type=str, default=None, help="plumed script for biasing force, used only when the bias_method == plumed_other")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -80,8 +86,12 @@ def run_simulation(force_constant):
 
     force_field_file = 'amber99sb.xml'
 
-    pdb_reporter_file = '%s/biased_output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
-    state_data_reporter_file = '%s/biased_report_fc_%f_pc_%s.txt' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
+    pdb_reporter_file = '%s/output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
+
+    if not args.output_pdb is None:
+        pdb_reporter_file = args.output_pdb
+
+    state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
 
     # check if the file exist
     if os.path.isfile(pdb_reporter_file):
@@ -123,9 +133,9 @@ def run_simulation(force_constant):
     time_step = CONFIG_22   # simulation time step, in ps
 
     pdb = PDBFile(input_pdb_file_of_molecule)
+    modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
     forcefield = ForceField(force_field_file) # without water
-    system = forcefield.createSystem(pdb.topology,  nonbondedMethod=NoCutoff,
-                                     constraints=AllBonds)
+    system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=AllBonds)
 
     if args.bias_method == "US":
         if CONFIG_28 == "CustomManyParticleForce":
@@ -204,6 +214,11 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=0 AT1=0 STEP1=%d KAPPA1
 PRINT STRIDE=10 ARG=* FILE=COLVAR
         """ % (total_number_of_steps, kappa_string)
         system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "plumed_other":
+        from openmmplumed import PlumedForce
+        with open(args.plumed_file, 'r') as f_in:
+            plumed_force_string = f_in.read()
+        system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')
     # end of biased force
@@ -215,16 +230,23 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
     platform = Platform.getPlatformByName(args.platform)
     platform.loadPluginsFromDirectory(CONFIG_25)  # load the plugin from specific directory
 
-    simulation = Simulation(pdb.topology, system, integrator, platform)
-    simulation.context.setPositions(pdb.positions)
+    simulation = Simulation(modeller.topology, system, integrator, platform)
+    simulation.context.setPositions(modeller.positions)
+    if args.minimize_energy:
+        print('begin Minimizing energy...')
+        print datetime.datetime.now()
+        simulation.minimizeEnergy()
+        print('Done minimizing energy.')
+        print datetime.datetime.now()
+    else:
+        print('energy minimization not required')
 
-    simulation.minimizeEnergy()
-    simulation.step(10000)
+    simulation.step(args.equilibration_steps)
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True,
-                                                  totalSteps=total_number_of_steps,
+                                                  totalSteps=total_number_of_steps + args.equilibration_steps,
                                                   ))
     simulation.step(total_number_of_steps)
 

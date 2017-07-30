@@ -4,6 +4,7 @@ generate corresponding sge file, and qsub it.
 """
 
 from config import *
+from cluster_management import *
 import argparse, subprocess, os
 
 parser = argparse.ArgumentParser()
@@ -58,7 +59,7 @@ if not os.path.exists(folder_to_store_sge_files):
 
 assert (os.path.exists(folder_to_store_sge_files))
 
-sge_filename = folder_to_store_sge_files + command_in_sge_file.replace(' ', '_').replace('..', '_').replace('/','_').replace('&', '') + '.sge'
+sge_filename = folder_to_store_sge_files + cluster_management.generate_sge_filename_for_a_command(command=command_in_sge_file)
 
 with open(sge_filename, 'w') as sge_file:
     sge_file.write(content_for_sge_file)

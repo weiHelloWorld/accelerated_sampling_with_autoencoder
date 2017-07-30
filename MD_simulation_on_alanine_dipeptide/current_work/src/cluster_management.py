@@ -6,6 +6,18 @@ class cluster_management(object):
         return
 
     @staticmethod
+    def generate_sge_filename_for_a_command(command):
+        sge_filename = command.replace(' ', '_').replace('..', '_').replace('/','_')\
+                .replace('&', '').replace('--', '_').replace('\\','').replace(':', '_') + '.sge'
+        sge_filename = re.sub('_+', '_', sge_filename)
+        if len(sge_filename) > 255:  # max length of file names in Linux
+            temp = hashlib.md5()
+            temp.update(sge_filename)
+            sge_filename = "h_" + temp.hexdigest() + sge_filename[-200:]
+
+        return sge_filename
+
+    @staticmethod
     def create_sge_files_from_a_file_containing_commands(command_file, folder_to_store_sge_files='../sge_files/', run_on_gpu = False):
         with open(command_file, 'r') as commmand_file:
             commands_to_run = commmand_file.readlines()
@@ -34,15 +46,7 @@ class cluster_management(object):
             if not os.path.exists(folder_to_store_sge_files):
                 subprocess.check_output(['mkdir', folder_to_store_sge_files])
 
-            sge_filename = item.replace(' ', '_').replace('..', '_').replace('/','_')\
-                .replace('&', '').replace('--', '_').replace('\\','') + '.sge'
-            sge_filename = re.sub('_+', '_', sge_filename)
-
-            if len(sge_filename) > 255:    # max length of file names in Linux
-                temp = hashlib.md5()
-                temp.update(sge_filename)
-                sge_filename = "h_" + temp.hexdigest() + sge_filename[-200:]
-
+            sge_filename = cluster_management.generate_sge_filename_for_a_command(item)
             sge_filename = folder_to_store_sge_files + sge_filename
             sge_file_list.append(sge_filename)
 
