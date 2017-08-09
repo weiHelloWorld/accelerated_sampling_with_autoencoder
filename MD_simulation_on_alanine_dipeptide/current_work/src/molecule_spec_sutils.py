@@ -10,6 +10,44 @@ class Sutils(object):
         return
 
     @staticmethod
+    def mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_file, out_pdb,
+                                                            atom_index_list, item_positions=None):
+        """
+        :param pdb_file: input pdb
+        :param out_pdb: output reference pdb
+        :param atom_index_list: index list used to calculate RMSD
+        :param item_positions: reference positions of selected atoms, set it None if we do not want to modify positions
+        """
+        indices = np.array(atom_index_list) - 1  # because atom_index_list starts with 1
+        temp_sample = Universe(pdb_file)
+        temp_atoms = temp_sample.select_atoms('all')
+        item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
+        temp_positions = temp_atoms.positions
+        temp_positions[indices] = item_positions
+        temp_bfactors = np.zeros(len(temp_atoms))
+        temp_bfactors[indices] = 1
+        temp_atoms.positions = temp_positions
+        temp_atoms.bfactors = temp_bfactors
+        temp_atoms.occupancies = temp_bfactors
+        temp_atoms.write(out_pdb)
+        return out_pdb
+
+#     @staticmethod
+#     def get_plumed_script_that_generate_a_string_connecting_existing_sequence_of_nodes(pdb_list,
+#                 out_pdb, force_constant):
+#         """
+#         :param pdb_list: define sequence of nodes, we pick the first frame for each pdb file as target configuration
+#         for each segment
+#         :param out_pdb: output pdb file containing string
+#         """
+#         for item in
+#         plumed_script = """rmsd: RMSD REFERENCE=../resources/1y57_TMD.pdb TYPE=OPTIMAL
+# restraint: MOVINGRESTRAINT ARG=rmsd AT0=0.4 STEP0=0 KAPPA0=%s AT1=0 STEP1=%d KAPPA1=%s
+# PRINT STRIDE=500 ARG=* FILE=COLVAR
+# """
+
+
+    @staticmethod
     def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
              folder_list,
              alignment_coor_file_suffix_list,

@@ -235,18 +235,8 @@ class String_method(object):
                                                       num_steps_of_restrained_MD,
                                                       num_steps_of_equilibration):
         # write reference pdb file first
-        indices = np.array(self._selected_atom_indices) - 1
-        temp_sample = Universe(self._ref_pdb)
-        temp_atoms = temp_sample.select_atoms('all')
-        item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
-        temp_positions = temp_atoms.positions
-        temp_positions[indices] = item_positions
-        temp_bfactors = np.zeros(len(temp_atoms))
-        temp_bfactors[indices] = 1
-        temp_atoms.positions = temp_positions
-        temp_atoms.bfactors = temp_bfactors
-        temp_atoms.occupancies = temp_bfactors
-        temp_atoms.write(ref_pdb_for_restrained)
+        Sutils.mark_and_modify_pdb_for_calculating_RMSD_for_plumed(self._ref_pdb, ref_pdb_for_restrained,
+                                              self._selected_atom_indices, item_positions)
 
         plumed_string = """rmsd: RMSD REFERENCE=%s TYPE=OPTIMAL
 restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f STEP2=%d KAPPA2=%s
