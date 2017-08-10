@@ -21,31 +21,37 @@ class Sutils(object):
         indices = np.array(atom_index_list) - 1  # because atom_index_list starts with 1
         temp_sample = Universe(pdb_file)
         temp_atoms = temp_sample.select_atoms('all')
-        item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
-        temp_positions = temp_atoms.positions
-        temp_positions[indices] = item_positions
+        if not item_positions is None:
+            item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
+            temp_positions = temp_atoms.positions
+            temp_positions[indices] = item_positions
+            temp_atoms.positions = temp_positions
+
         temp_bfactors = np.zeros(len(temp_atoms))
         temp_bfactors[indices] = 1
-        temp_atoms.positions = temp_positions
         temp_atoms.bfactors = temp_bfactors
         temp_atoms.occupancies = temp_bfactors
         temp_atoms.write(out_pdb)
         return out_pdb
 
-#     @staticmethod
-#     def get_plumed_script_that_generate_a_string_connecting_existing_sequence_of_nodes(pdb_list,
-#                 out_pdb, force_constant):
-#         """
-#         :param pdb_list: define sequence of nodes, we pick the first frame for each pdb file as target configuration
-#         for each segment
-#         :param out_pdb: output pdb file containing string
-#         """
-#         for item in
-#         plumed_script = """rmsd: RMSD REFERENCE=../resources/1y57_TMD.pdb TYPE=OPTIMAL
-# restraint: MOVINGRESTRAINT ARG=rmsd AT0=0.4 STEP0=0 KAPPA0=%s AT1=0 STEP1=%d KAPPA1=%s
-# PRINT STRIDE=500 ARG=* FILE=COLVAR
-# """
-
+    @staticmethod
+    def get_plumed_script_that_generate_a_segment_connecting_two_configs(
+            pdb_1, pdb_2, atom_selection_statement, num_steps, force_constant):
+        """
+        This function uses targeted MD to generate a segment connecting two configurations
+        :param pdb_1, pdb_2: two ends of segment
+        :param atom_selection_statement: atoms for calculating RMSD in targeted MD
+        """
+        atom_list = get_index_list_with_selection_statement(pdb_1, atom_selection_statement)
+        ref_pdb = pdb_2.replace('.pdb', '_ref.pdb')
+        Sutils.mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_2, ref_pdb, atom_list, None)
+        rmsd_diff = Sutils.metric_RMSD_of_atoms([pdb_1], ref_file=ref_pdb,
+                                                atom_selection_statement=atom_selection_statement, step_interval=100)[0]  # TODO: check units
+        plumed_script = """rmsd: RMSD REFERENCE=%s TYPE=OPTIMAL
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=%f STEP0=0 KAPPA0=%f AT1=0 STEP1=%d KAPPA1=%f
+PRINT STRIDE=500 ARG=* FILE=COLVAR
+""" % (ref_pdb, rmsd_diff, force_constant, num_steps, force_constant)
+        return plumed_script
 
     @staticmethod
     def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
