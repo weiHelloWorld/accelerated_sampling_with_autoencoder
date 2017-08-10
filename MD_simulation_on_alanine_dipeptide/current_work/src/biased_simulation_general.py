@@ -103,13 +103,10 @@ def run_simulation(force_constant, number_of_simulation_steps):
         input_pdb_file_of_molecule = args.starting_pdb_file
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
                                 args.starting_pdb_file.split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
-        state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_sf_%s.txt' % \
-                                args.starting_pdb_file.split('.pdb')[0].split('/')[-1]
 
     print "start_pdb = %s" % input_pdb_file_of_molecule
     if args.starting_frame != 0:
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
-        state_data_reporter_file = state_data_reporter_file.split('.txt')[0] + '_ff_%d.txt' % args.starting_frame
 
     if not args.output_pdb is None:
         pdb_reporter_file = args.output_pdb
