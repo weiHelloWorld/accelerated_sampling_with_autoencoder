@@ -99,6 +99,8 @@ class String_method(object):
                  num_steps_of_unbiased_MD,
                  num_steps_of_restrained_MD,
                  num_steps_of_equilibration,
+                 step_interval,
+                 num_snapshots_for_calculating_average_positions,
                  smooth_coeff=0.5):
         """
         :param selected_atom_indices: atoms used to define configuration and apply restrained MD
@@ -110,6 +112,8 @@ class String_method(object):
         self._num_steps_of_equilibration = num_steps_of_equilibration
         self._num_steps_of_restrained_MD = num_steps_of_restrained_MD
         self._num_of_simulations_for_each_image = num_of_simulations_for_each_image
+        self._num_snapshots_for_calculating_average_positions = num_snapshots_for_calculating_average_positions
+        self._step_interval = step_interval
         self._smooth_coeff = smooth_coeff
         return
 
@@ -299,7 +303,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             for _1, item_out_pdb in enumerate(output_pdb_file_list):
                 if isinstance(molecule_type, Alanine_dipeptide):
                     command = ['python', '../src/biased_simulation.py',
-                               '1', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                               str(self._step_interval), str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
                                output_folder, 'none', 'pc_0',
                                '--output_pdb', item_out_pdb,
                                '--platform', 'CPU', '--bias_method', 'plumed_other',
@@ -307,7 +311,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                                '--plumed_file', plumed_script_file]
                 elif isinstance(molecule_type, Src_kinase):
                     command = ['python', '../src/biased_simulation_general.py', '2src',
-                                 '2', str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                               str(self._step_interval), str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
                                output_folder, 'none', 'pc_0', 'explicit', 'NPT',
                                '--output_pdb', item_out_pdb,
                                  '--platform', 'CUDA', '--bias_method', 'plumed_other',
@@ -332,7 +336,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             starting_target_folder = root_target + '/string_method_%04d' % (index - 1)
         pdb_file_list = self.get_aligned_pdb_list_list_of_nodes_from_a_folder(starting_target_folder)
         positions_list = self.get_average_node_positions_of_string(
-            pdb_file_list_list=pdb_file_list, num_snapshots=10)
+            pdb_file_list_list=pdb_file_list, num_snapshots=self._num_snapshots_for_calculating_average_positions)
         positions_list, _ = self.reparametrize_and_get_images_using_interpolation(positions_list, 0.5)
         np.savetxt('temp_images_%04d.txt' % index, positions_list)
         output_pdb_list = self.restrained_MD_with_positions_and_relax(
@@ -361,5 +365,7 @@ if __name__ == '__main__':
                       num_of_simulations_for_each_image=3,
                       num_steps_of_equilibration=5000,
                       num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=100,
+                      step_interval=2,
+                      num_snapshots_for_calculating_average_positions=10,
                       smooth_coeff=0.5)
     a.run_multi_iterations(1, 10)
