@@ -57,7 +57,7 @@ elif CONFIG_48 == 'Cartesian':
         if CONFIG_30 == "Trp_cage":
             output_data_set_1 = Sutils.remove_translation(output_data_set[:, list(range(9 * 1, 9 * 8))])  # mixed_err
             output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(180, 360))])
-            output_data_set = np.concatenate([3.0 * output_data_set_1, output_data_set_2], axis=1)
+            output_data_set = np.concatenate([3.0 * output_data_set_1, output_data_set_2], axis=1)  # TODO: may modify this relative weight later
         elif CONFIG_30 == "Src_kinase":
             output_data_set_1 = Sutils.remove_translation(output_data_set[:, list(range(9 * 143, 9 * 170))])  # mixed_err
             output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(2358 + 9 * 43, 2358 + 9 * 58))])
