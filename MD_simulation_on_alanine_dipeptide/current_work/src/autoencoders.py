@@ -264,8 +264,17 @@ class autoencoder(object):
             expected_output_data = self._output_data_set
         else:
             expected_output_data = input_data
-
         return np.linalg.norm(expected_output_data - actual_output_data) / sqrt(self._node_num[0] * len(input_data))
+
+    def get_relative_error_for_each_point(self, input_data=None, output_data=None):
+        if input_data is None: input_data = self._data_set
+        if output_data is None:
+            if self._output_data_set is None: output_data = self._data_set
+            else: output_data = self._output_data_set
+        temp_output = self.get_output_data(input_data)
+        relative_err = np.linalg.norm(temp_output - output_data, axis=1) / np.linalg.norm(output_data, axis=1)
+        assert (len(relative_err) == len(input_data)), (len(relative_err), len(input_data))
+        return relative_err
 
     def get_fraction_of_variance_explained(self, num_of_PCs=None):
         """ here num_of_PCs is the same with that in get_training_error() """
