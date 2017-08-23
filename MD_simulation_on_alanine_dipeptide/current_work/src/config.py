@@ -203,7 +203,7 @@ CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
 CONFIG_9 = get_mol_param([3000, 5000, 3000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['flexible', 'flexible', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
-CONFIG_54 = 2.47 * get_mol_param([30.0, 15.0, 15.0])             # max external potential energy allowed (in k_BT)
+CONFIG_54 = 2.50 * get_mol_param([30.0, 15.0, 15.0])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
 CONFIG_66 = get_mol_param([500, 500, 500])          # pace of metadynamics
 CONFIG_67 = get_mol_param([2, 2, 2])              # height of metadynamics

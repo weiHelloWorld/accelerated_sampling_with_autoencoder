@@ -10,6 +10,50 @@ class Sutils(object):
         return
 
     @staticmethod
+    def mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_file, out_pdb,
+                                                            atom_index_list, item_positions=None):
+        """
+        :param pdb_file: input pdb
+        :param out_pdb: output reference pdb
+        :param atom_index_list: index list used to calculate RMSD
+        :param item_positions: reference positions of selected atoms, set it None if we do not want to modify positions
+        """
+        indices = np.array(atom_index_list) - 1  # because atom_index_list starts with 1
+        temp_sample = Universe(pdb_file)
+        temp_atoms = temp_sample.select_atoms('all')
+        if not item_positions is None:
+            item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
+            temp_positions = temp_atoms.positions
+            temp_positions[indices] = item_positions
+            temp_atoms.positions = temp_positions
+
+        temp_bfactors = np.zeros(len(temp_atoms))
+        temp_bfactors[indices] = 1
+        temp_atoms.bfactors = temp_bfactors
+        temp_atoms.occupancies = temp_bfactors
+        temp_atoms.write(out_pdb)
+        return out_pdb
+
+    @staticmethod
+    def get_plumed_script_that_generate_a_segment_connecting_two_configs(
+            pdb_1, pdb_2, atom_selection_statement, num_steps, force_constant):
+        """
+        This function uses targeted MD to generate a segment connecting two configurations
+        :param pdb_1, pdb_2: two ends of segment
+        :param atom_selection_statement: atoms for calculating RMSD in targeted MD
+        """
+        atom_list = get_index_list_with_selection_statement(pdb_1, atom_selection_statement)
+        ref_pdb = pdb_2.replace('.pdb', '_ref.pdb')
+        Sutils.mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_2, ref_pdb, atom_list, None)
+        rmsd_diff = Sutils.metric_RMSD_of_atoms([pdb_1], ref_file=ref_pdb,
+                                                atom_selection_statement=atom_selection_statement, step_interval=100)[0]  # TODO: check units
+        plumed_script = """rmsd: RMSD REFERENCE=%s TYPE=OPTIMAL
+restraint: MOVINGRESTRAINT ARG=rmsd AT0=%f STEP0=0 KAPPA0=%f AT1=0 STEP1=%d KAPPA1=%f
+PRINT STRIDE=500 ARG=* FILE=COLVAR
+""" % (ref_pdb, rmsd_diff, force_constant, num_steps, force_constant)
+        return plumed_script
+
+    @staticmethod
     def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
              folder_list,
              alignment_coor_file_suffix_list,

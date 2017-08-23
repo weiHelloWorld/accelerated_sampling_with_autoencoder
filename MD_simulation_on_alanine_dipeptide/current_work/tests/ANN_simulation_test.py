@@ -458,7 +458,7 @@ class test_biased_simulation(object):
         subprocess.check_output(['python', '../src/generate_coordinates.py', 'Alanine_dipeptide', '--path', output_folder])
         fig, axes = plt.subplots(1, 3)
         data = np.loadtxt(
-            output_folder + '/biased_output_fc_0.000000_pc_[0.0,0.0]_coordinates.txt')
+            output_folder + '/output_fc_0.000000_pc_[0.0,0.0]_coordinates.txt')
         data /= 5.0
         data = Sutils.remove_translation(data)
         PCs = a.get_PCs(data)
