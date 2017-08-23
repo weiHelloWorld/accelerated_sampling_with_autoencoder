@@ -222,6 +222,17 @@ class autoencoder(object):
                 f_out.write(',\n')
         return
 
+    def check_PC_consistency(self, another_autoencoder, input_data = None):
+        from sklearn import linear_model
+        assert (isinstance(another_autoencoder, autoencoder))
+        if input_data is None:  input_data = self._data_set
+        PCs_1 = self.get_PCs(input_data)
+        PCs_2 = another_autoencoder.get_PCs(input_data)
+        temp_regression = linear_model.LinearRegression().fit(PCs_1, PCs_2)
+        predicted_PCs_2 = temp_regression.predict(PCs_1)
+        r_value = temp_regression.score(PCs_1, PCs_2)
+        return PCs_1, PCs_2, predicted_PCs_2, r_value
+
     @abc.abstractmethod
     def get_PCs(self, input_data=None):
         """must be implemented by subclasses"""
