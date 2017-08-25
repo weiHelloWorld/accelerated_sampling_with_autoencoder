@@ -492,6 +492,23 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return result_rmsd_of_atoms
 
     @staticmethod
+    def get_positions_from_index_and_list_of_pdb(pdb_file_list, index):
+        index_for_pdb_file = 0
+        num_frames = Universe(pdb_file_list[index_for_pdb_file]).trajectory.n_frames
+        while index > num_frames - 1:
+            index -= num_frames
+            index_for_pdb_file += 1
+            num_frames = Universe(pdb_file_list[index_for_pdb_file]).trajectory.n_frames
+        temp_pos = Universe(pdb_file_list[index_for_pdb_file]).trajectory[index].positions
+        return temp_pos
+
+    @staticmethod
+    def get_RMSD_between_two_frames_in_list_of_pdb(pdb_file_list, index_1, index_2):
+        temp_pos_1 = Sutils.get_positions_from_index_and_list_of_pdb(pdb_file_list, index_1)
+        temp_pos_2 = Sutils.get_positions_from_index_and_list_of_pdb(pdb_file_list, index_2)
+        return Sutils.get_RMSD_after_alignment(temp_pos_1, temp_pos_2)
+
+    @staticmethod
     def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
         distances_list = []
         index = 0
