@@ -492,21 +492,14 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return result_rmsd_of_atoms
 
     @staticmethod
-    def get_positions_from_index_and_list_of_pdb(pdb_file_list, index):
-        index_for_pdb_file = 0
-        num_frames = Universe(pdb_file_list[index_for_pdb_file]).trajectory.n_frames
-        while index > num_frames - 1:
-            index -= num_frames
-            index_for_pdb_file += 1
-            num_frames = Universe(pdb_file_list[index_for_pdb_file]).trajectory.n_frames
-        temp_pos = Universe(pdb_file_list[index_for_pdb_file]).trajectory[index].positions
-        return temp_pos
-
-    @staticmethod
-    def get_RMSD_between_two_frames_in_list_of_pdb(pdb_file_list, index_1, index_2):
-        temp_pos_1 = Sutils.get_positions_from_index_and_list_of_pdb(pdb_file_list, index_1)
-        temp_pos_2 = Sutils.get_positions_from_index_and_list_of_pdb(pdb_file_list, index_2)
-        return Sutils.get_RMSD_after_alignment(temp_pos_1, temp_pos_2)
+    def get_positions_from_list_of_pdb(pdb_file_list, atom_selection_statement='name CA'):
+        positions = []
+        for sample_file in pdb_file_list:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection_statement)
+            for _ in sample.trajectory:
+                positions.append(sample_atom_selection.positions)
+        return positions
 
     @staticmethod
     def get_RMSD_of_a_point_wrt_neighbors_in_PC_space_with_list_of_pdb(PCs, pdb_file_list, radius=0.1):
@@ -515,6 +508,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         in PC space.
         wrt = with respect to
         """
+        positions = Sutils.get_positions_from_list_of_pdb(pdb_file_list)
         pairwise_dis_in_PC = np.array([[np.linalg.norm(item_1 - item_2) for item_1 in PCs] for item_2 in PCs])
         neighbor_matrix = pairwise_dis_in_PC < radius
         RMSD_diff_of_neighbors = np.zeros(neighbor_matrix.shape)
@@ -522,7 +516,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             for jj in range(ii + 1, len(PCs)):
                 if neighbor_matrix[ii][jj]:
                     RMSD_diff_of_neighbors[ii, jj] = RMSD_diff_of_neighbors[jj, ii] \
-                        = Sutils.get_RMSD_between_two_frames_in_list_of_pdb(pdb_file_list, ii, jj)
+                        = Sutils.get_RMSD_after_alignment(positions[ii], positions[jj])
         average_RMSD_wrt_neighbors = [np.average(filter(lambda x: x, RMSD_diff_of_neighbors[ii]))
                                       for ii in range(len(PCs))]
         return average_RMSD_wrt_neighbors
