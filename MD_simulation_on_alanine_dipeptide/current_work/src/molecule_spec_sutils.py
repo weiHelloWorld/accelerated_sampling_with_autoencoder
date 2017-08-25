@@ -509,6 +509,25 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return Sutils.get_RMSD_after_alignment(temp_pos_1, temp_pos_2)
 
     @staticmethod
+    def get_RMSD_of_a_point_wrt_neighbors_in_PC_space_with_list_of_pdb(PCs, pdb_file_list, radius=0.1):
+        """This function calculates RMSD of a configuration with respect to its neighbors in PC space,
+        the purpose is to see if similar structures (small RMSD) are projected to points close to each other
+        in PC space.
+        wrt = with respect to
+        """
+        pairwise_dis_in_PC = np.array([[np.linalg.norm(item_1 - item_2) for item_1 in PCs] for item_2 in PCs])
+        neighbor_matrix = pairwise_dis_in_PC < radius
+        RMSD_diff_of_neighbors = np.zeros(neighbor_matrix.shape)
+        for ii in range(len(PCs)):
+            for jj in range(ii + 1, len(PCs)):
+                if neighbor_matrix[ii][jj]:
+                    RMSD_diff_of_neighbors[ii, jj] = RMSD_diff_of_neighbors[jj, ii] \
+                        = Sutils.get_RMSD_between_two_frames_in_list_of_pdb(pdb_file_list, ii, jj)
+        average_RMSD_wrt_neighbors = [np.average(filter(lambda x: x, RMSD_diff_of_neighbors[ii]))
+                                      for ii in range(len(PCs))]
+        return average_RMSD_wrt_neighbors
+
+    @staticmethod
     def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
         distances_list = []
         index = 0
