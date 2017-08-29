@@ -238,7 +238,9 @@ class autoencoder(object):
         """
         This function clusters configurations based on distance in PC space, and generates output pdb files
         containing configurations in each cluster which have distance smaller than 'radius' to the
-        corresponding cluster center
+        corresponding cluster center.
+        Why don't I use click-and-save approach (as is done in plotting object in ANN_simulation.py)?
+        Because 1. it is not convenient to click for higher-D space, 2. I am lazy to click even for 2D.
         :param temp_autoencoder: autoencoder used to get PCs
         :param folder_for_pdb: folder containing pdb files for input
         :param num_clusters: number of clusters (for K-means)
@@ -249,8 +251,7 @@ class autoencoder(object):
             subprocess.check_output(['mkdir', output_folder])
 
         _1 = coordinates_data_files_list([folder_for_pdb])
-        coord_files = _1.get_list_of_coor_data_files()
-        pdb_files = _1.get_list_of_corresponding_pdb_files()
+        _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
         scaling_factor = CONFIG_49
         input_data = _1.get_coor_data(scaling_factor)
         input_data = Sutils.remove_translation(input_data)
@@ -266,7 +267,7 @@ class autoencoder(object):
             output_pdb_name = '%s/%04d_temp_frames_%s.pdb' % \
                                 (output_folder, index, str(list(kmeans.cluster_centers_[index])).replace(' ',''))
             out_pdb_list.append(output_pdb_name)
-            _1.write_pdb_frames_into_file_with_list_of_coor_index(item, output_pdb_name)
+            _1.write_pdb_frames_into_file_with_list_of_coor_index(item, output_pdb_name, verbose=False)
             # assertion part
             molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=output_pdb_name)
             temp_input_data = np.loadtxt(output_pdb_name.replace('.pdb', '_coordinates.txt')) / scaling_factor

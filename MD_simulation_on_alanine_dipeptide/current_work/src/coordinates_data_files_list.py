@@ -50,7 +50,7 @@ class coordinates_data_files_list(object):
     def get_list_of_line_num_of_coor_data_file(self):
         return self._list_of_line_num_of_coor_data_file
 
-    def write_pdb_frames_into_file_with_list_of_coor_index(self, list_of_coor_index, out_file_name):
+    def write_pdb_frames_into_file_with_list_of_coor_index(self, list_of_coor_index, out_file_name, verbose=True):
         """
         This function picks several frames from pdb files, and write a new pdb file as output,
         we could use this together with the mouse-clicking callback implemented in the scatter plot:
@@ -73,7 +73,7 @@ class coordinates_data_files_list(object):
             temp_index_related_to_this_pdb_file.sort()
 
             if len(temp_index_related_to_this_pdb_file) != 0:
-                print(pdb_files[item])
+                if verbose: print(pdb_files[item])
                 with open(pdb_files[item], 'r') as in_file:
                     content = in_file.read().split('MODEL')[1:]  # remove header
                     frames_to_use = [content[ii] for ii in temp_index_related_to_this_pdb_file]
