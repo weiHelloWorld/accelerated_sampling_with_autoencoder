@@ -215,6 +215,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom
+        if len(coords.shape) == 1:    # convert 1D array (when there is only one coord) to 2D array
+            coords = coords.reshape((1, coords.shape[0]))
         number_of_atoms = coords.shape[1] / 3
         coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
                                      np.average(coords[item, 2::3])] * number_of_atoms

@@ -264,16 +264,17 @@ class autoencoder(object):
         for index, item in enumerate(indices_list):
             # save configurations with distance less than 'radius' to corresponding cluster center
             item = list(filter(lambda x: np.linalg.norm(PCs[x] - kmeans.cluster_centers_[index]) < radius, item))
-            output_pdb_name = '%s/%04d_temp_frames_%s.pdb' % \
-                                (output_folder, index, str(list(kmeans.cluster_centers_[index])).replace(' ',''))
-            out_pdb_list.append(output_pdb_name)
-            _1.write_pdb_frames_into_file_with_list_of_coor_index(item, output_pdb_name, verbose=False)
-            # assertion part
-            molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=output_pdb_name)
-            temp_input_data = np.loadtxt(output_pdb_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
-            temp_input_data = Sutils.remove_translation(temp_input_data)
-            PCs_of_points_selected = self.get_PCs(input_data=temp_input_data)
-            assert_almost_equal(PCs_of_points_selected, PCs[item], decimal=4)
+            if len(item) > 0:
+                output_pdb_name = '%s/%04d_temp_frames_%s.pdb' % \
+                                    (output_folder, index, str(list(kmeans.cluster_centers_[index])).replace(' ',''))
+                out_pdb_list.append(output_pdb_name)
+                _1.write_pdb_frames_into_file_with_list_of_coor_index(item, output_pdb_name, verbose=False)
+                # assertion part
+                molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=output_pdb_name)
+                temp_input_data = np.loadtxt(output_pdb_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
+                temp_input_data = Sutils.remove_translation(temp_input_data)
+                PCs_of_points_selected = self.get_PCs(input_data=temp_input_data)
+                assert_almost_equal(PCs_of_points_selected, PCs[item], decimal=4)
         return out_pdb_list, kmeans.cluster_centers_
 
     @abc.abstractmethod
