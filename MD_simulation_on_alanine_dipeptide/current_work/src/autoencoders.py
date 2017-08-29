@@ -233,6 +233,48 @@ class autoencoder(object):
         r_value = temp_regression.score(PCs_1, PCs_2)
         return PCs_1, PCs_2, predicted_PCs_2, r_value
 
+    def cluster_configs_based_on_distances_in_PC_space(self, folder_for_pdb,
+                                                num_clusters, output_folder, radius=0.02):
+        """
+        This function clusters configurations based on distance in PC space, and generates output pdb files
+        containing configurations in each cluster which have distance smaller than 'radius' to the
+        corresponding cluster center
+        :param temp_autoencoder: autoencoder used to get PCs
+        :param folder_for_pdb: folder containing pdb files for input
+        :param num_clusters: number of clusters (for K-means)
+        :param radius: configs with distance less than 'radius' to the cluster center in PC space will be included in the output pdb
+        :return: cluster_pdb_files, cluster_centers
+        """
+        if not os.path.exists(output_folder):
+            subprocess.check_output(['mkdir', output_folder])
+
+        _1 = coordinates_data_files_list([folder_for_pdb])
+        coord_files = _1.get_list_of_coor_data_files()
+        pdb_files = _1.get_list_of_corresponding_pdb_files()
+        scaling_factor = CONFIG_49
+        input_data = _1.get_coor_data(scaling_factor)
+        input_data = Sutils.remove_translation(input_data)
+        PCs = self.get_PCs(input_data)
+        kmeans = KMeans(init='k-means++', n_clusters=num_clusters, n_init=10)
+        kmeans.fit(PCs)
+        indices_list = np.array([np.where(kmeans.labels_ == ii)[0]
+                                 for ii in range(kmeans.n_clusters)])
+        out_pdb_list = []
+        for index, item in enumerate(indices_list):
+            # save configurations with distance less than 'radius' to corresponding cluster center
+            item = list(filter(lambda x: np.linalg.norm(PCs[x] - kmeans.cluster_centers_[index]) < radius, item))
+            output_pdb_name = '%s/%04d_temp_frames_%s.pdb' % \
+                                (output_folder, index, str(list(kmeans.cluster_centers_[index])).replace(' ',''))
+            out_pdb_list.append(output_pdb_name)
+            _1.write_pdb_frames_into_file_with_list_of_coor_index(item, output_pdb_name)
+            # assertion part
+            molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=output_pdb_name)
+            temp_input_data = np.loadtxt(output_pdb_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
+            temp_input_data = Sutils.remove_translation(temp_input_data)
+            PCs_of_points_selected = self.get_PCs(input_data=temp_input_data)
+            assert_almost_equal(PCs_of_points_selected, PCs[item], decimal=4)
+        return out_pdb_list, kmeans.cluster_centers_
+
     @abc.abstractmethod
     def get_PCs(self, input_data=None):
         """must be implemented by subclasses"""
