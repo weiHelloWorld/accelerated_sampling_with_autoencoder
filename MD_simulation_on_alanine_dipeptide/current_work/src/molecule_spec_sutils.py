@@ -98,15 +98,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def create_subclass_instance_using_name(name):
-        assert (isinstance(name, str))
-        if name == 'Alanine_dipeptide':
-            return Alanine_dipeptide()
-        elif name == "Trp_cage":
-            return Trp_cage()
-        elif name == "Src_kinase":
-            return Src_kinase()
-        else:
-            raise Exception('type name not defined')
+        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(), 'Src_kinase': Src_kinase()}[name]
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
@@ -781,33 +773,6 @@ class Trp_cage(Sutils):
                                                                        step_interval=step_interval)
 
         return output_file_list
-
-    @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon_bak(list_of_files,
-                                                       step_interval = 1 # get_matrices every "step_interval" snapshots
-                                                       ):
-        distances_list = []
-        index = 0
-        num_of_residues = 20
-        for item in list_of_files:
-            p = PDB.PDBParser()
-            structure = p.get_structure('X', item)
-            atom_list = [item for item in structure.get_atoms()]
-            atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
-            atom_list = list(zip(*[iter(atom_list)] * num_of_residues))   # reshape the list
-
-            for model in atom_list:
-                if index % step_interval == 0:
-                    assert (len(model) == num_of_residues)
-                    p_distances = np.zeros((num_of_residues, num_of_residues))
-                    for _1 in range(num_of_residues):
-                        for _2 in range(_1 + 1, num_of_residues):
-                            p_distances[_2][_1] = p_distances[_1][_2] = model[_1] - model[_2]
-
-                    distances_list += [p_distances]
-                index += 1
-
-        return np.array(distances_list)
 
     @staticmethod
     def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval = 1):
