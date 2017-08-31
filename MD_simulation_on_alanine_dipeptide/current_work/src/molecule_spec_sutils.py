@@ -502,8 +502,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         in PC space.
         wrt = with respect to
         """
+        from sklearn.metrics.pairwise import euclidean_distances
         positions = Sutils.get_positions_from_list_of_pdb(pdb_file_list)
-        pairwise_dis_in_PC = np.array([[np.linalg.norm(item_1 - item_2) for item_1 in PCs] for item_2 in PCs])
+        pairwise_dis_in_PC = euclidean_distances(PCs)
         neighbor_matrix = pairwise_dis_in_PC < radius
         RMSD_diff_of_neighbors = np.zeros(neighbor_matrix.shape)
         for ii in range(len(PCs)):
