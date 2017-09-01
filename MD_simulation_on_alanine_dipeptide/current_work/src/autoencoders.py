@@ -382,7 +382,7 @@ class autoencoder(object):
                     raise Exception("error")
 
             todo_list_of_commands_for_simulations = []
-            if CONFIG_48 == 'Cartesian':
+            if CONFIG_48 == 'Cartesian' or 'pairwise_distance':
                 input_data_type = 1
             elif CONFIG_48 == 'cossin':
                 input_data_type = 0

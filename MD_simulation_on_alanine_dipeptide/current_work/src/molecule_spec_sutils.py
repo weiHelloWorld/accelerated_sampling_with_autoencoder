@@ -533,6 +533,22 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return np.array(distances_list)
 
     @staticmethod
+    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval=1):
+        """each element in this result is a list, not a matrix"""
+        dis_matrix_list = Sutils.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        num_of_residues = dis_matrix_list[0].shape[0]
+        result = []
+        for mat in dis_matrix_list:
+            p_distances = []
+            for item_1 in range(num_of_residues):
+                for item_2 in range(item_1 + 1, num_of_residues):
+                    p_distances += [mat[item_1][item_2]]
+            assert (len(p_distances) == num_of_residues * (num_of_residues - 1) / 2)
+            result += [p_distances]
+
+        return result
+
+    @staticmethod
     def get_residue_relative_position_list(sample_file):
         sample = Universe(sample_file)
         temp_heavy_atoms = sample.select_atoms('not name H*')
@@ -774,22 +790,6 @@ class Trp_cage(Sutils):
                                                                        step_interval=step_interval)
 
         return output_file_list
-
-    @staticmethod
-    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval = 1):
-        """each element in this result is a list, not a matrix"""
-        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
-        num_of_residues = 20
-        result = []
-        for mat in dis_matrix_list:
-            p_distances = []
-            for item_1 in range(num_of_residues):
-                for item_2 in range(item_1 + 1, num_of_residues):
-                    p_distances += [mat[item_1][item_2]]
-            assert (len(p_distances) == num_of_residues * (num_of_residues - 1 ) / 2)
-            result += [p_distances]
-
-        return result
 
     @staticmethod
     def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb', step_interval = 1):
