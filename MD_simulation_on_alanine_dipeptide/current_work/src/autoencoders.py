@@ -233,6 +233,12 @@ class autoencoder(object):
         r_value = temp_regression.score(PCs_1, PCs_2)
         return PCs_1, PCs_2, predicted_PCs_2, r_value
 
+    @staticmethod
+    def pairwise_PC_consistency_check(autoencoder_list, input_data=None):
+        result = [[item_1.check_PC_consistency(item_2, input_data=input_data)[3]
+                  for item_1 in autoencoder_list] for item_2 in autoencoder_list]
+        return np.array(result)
+
     def cluster_configs_based_on_distances_in_PC_space(self, folder_for_pdb,
                                                 num_clusters, output_folder, radius=0.02):
         """
