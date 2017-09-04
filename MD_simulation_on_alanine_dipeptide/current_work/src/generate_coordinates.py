@@ -13,6 +13,8 @@ elif args.mol_type == 'Trp_cage':
     molecule_type = Trp_cage()
 elif args.mol_type == "Src_kinase":
     molecule_type = Src_kinase()
+elif args.mol_type == "BetaHairpin":
+    molecule_type = BetaHairpin()
 else:
     raise Exception('molecule type error')
 

@@ -1013,3 +1013,7 @@ class Src_kinase(Sutils):
 
         return np.array(dis_310_409).flatten() - np.array(dis_310_295).flatten()
 
+class BetaHairpin(Sutils):
+    def __init__(self):
+        super(BetaHairpin, self).__init__()
+        return

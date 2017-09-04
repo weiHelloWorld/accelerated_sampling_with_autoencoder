@@ -323,6 +323,8 @@ class iteration(object):
         else:
             if isinstance(molecule_type, Trp_cage):
                 temp_target_folder = '../target/Trp_cage'
+            elif isinstance(molecule_type, BetaHairpin):
+                temp_target_folder = '../target/BetaHairpin'
             elif isinstance(molecule_type, Alanine_dipeptide):
                 temp_target_folder = '../target/Alanine_dipeptide'
             elif isinstance(molecule_type, Src_kinase):

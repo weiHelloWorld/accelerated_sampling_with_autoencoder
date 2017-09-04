@@ -7,6 +7,6 @@ parser.add_argument("--remove_original", help="remove original pdb files", actio
 args = parser.parse_args()
 
 if args.remove_original:
-    Trp_cage().remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = args.path, preserve_original_file=False)
+    Sutils.remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = args.path, preserve_original_file=False)
 else:
-    Trp_cage().remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = args.path, preserve_original_file=True)
+    Sutils.remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = args.path, preserve_original_file=True)
