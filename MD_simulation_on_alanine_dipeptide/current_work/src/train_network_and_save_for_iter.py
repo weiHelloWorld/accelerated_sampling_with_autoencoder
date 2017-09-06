@@ -67,6 +67,17 @@ elif CONFIG_48 == 'Cartesian':
     output_data_set = output_data_set[::args.training_interval]
     assert (Sutils.check_center_of_mass_is_at_origin(data_set))
     assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
+elif CONFIG_48 == 'pairwise_distance':
+    fraction_of_data_to_be_saved = 1.0
+    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+        lambda x: not 'aligned' in x)
+    data_set = Sutils.remove_translation(coor_data_obj_input.get_coor_data(scaling_factor=CONFIG_49))
+    data_set = data_set[::args.training_interval]
+    output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(
+        coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval)) \
+                      / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
+    print np.min(output_data_set), np.max(output_data_set)
+
 else:
     raise Exception('error input data type')
 

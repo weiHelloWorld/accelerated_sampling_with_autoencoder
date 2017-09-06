@@ -98,15 +98,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def create_subclass_instance_using_name(name):
-        assert (isinstance(name, str))
-        if name == 'Alanine_dipeptide':
-            return Alanine_dipeptide()
-        elif name == "Trp_cage":
-            return Trp_cage()
-        elif name == "Src_kinase":
-            return Src_kinase()
-        else:
-            raise Exception('type name not defined')
+        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(), 'Src_kinase': Src_kinase(), 'BetaHairpin': BetaHairpin()}[name]
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
@@ -194,6 +186,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             num_of_backbone_atoms = len(CONFIG_57[1])
         elif isinstance(molecule_type, Src_kinase):
             num_of_backbone_atoms = len(CONFIG_57[2])
+        elif isinstance(molecule_type, BetaHairpin):
+            num_of_backbone_atoms = len(CONFIG_57[3])
         else:
             raise Exception("error molecule type")
 
@@ -215,6 +209,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom
+        if len(coords.shape) == 1:    # convert 1D array (when there is only one coord) to 2D array
+            coords = coords.reshape((1, coords.shape[0]))
         number_of_atoms = coords.shape[1] / 3
         coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
                                      np.average(coords[item, 2::3])] * number_of_atoms
@@ -433,6 +429,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         assert (evaluation_values.shape == num.shape)
         min_weighted_err = float('inf')
         optimal_num = 0
+        best_regr = None
         for item in range(1, len(num) - 1):
             y_left = evaluation_values[:item]
             x_left = num[:item].reshape(item, 1)
@@ -492,6 +489,37 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return result_rmsd_of_atoms
 
     @staticmethod
+    def get_positions_from_list_of_pdb(pdb_file_list, atom_selection_statement='name CA'):
+        positions = []
+        for sample_file in pdb_file_list:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection_statement)
+            for _ in sample.trajectory:
+                positions.append(sample_atom_selection.positions)
+        return positions
+
+    @staticmethod
+    def get_RMSD_of_a_point_wrt_neighbors_in_PC_space_with_list_of_pdb(PCs, pdb_file_list, radius=0.1):
+        """This function calculates RMSD of a configuration with respect to its neighbors in PC space,
+        the purpose is to see if similar structures (small RMSD) are projected to points close to each other
+        in PC space.
+        wrt = with respect to
+        """
+        from sklearn.metrics.pairwise import euclidean_distances
+        positions = Sutils.get_positions_from_list_of_pdb(pdb_file_list)
+        pairwise_dis_in_PC = euclidean_distances(PCs)
+        neighbor_matrix = pairwise_dis_in_PC < radius
+        RMSD_diff_of_neighbors = np.zeros(neighbor_matrix.shape)
+        for ii in range(len(PCs)):
+            for jj in range(ii + 1, len(PCs)):
+                if neighbor_matrix[ii][jj]:
+                    RMSD_diff_of_neighbors[ii, jj] = RMSD_diff_of_neighbors[jj, ii] \
+                        = Sutils.get_RMSD_after_alignment(positions[ii], positions[jj])
+        average_RMSD_wrt_neighbors = [np.average(filter(lambda x: x, RMSD_diff_of_neighbors[ii]))
+                                      for ii in range(len(PCs))]
+        return average_RMSD_wrt_neighbors
+
+    @staticmethod
     def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
         distances_list = []
         index = 0
@@ -506,6 +534,22 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                 index += 1
 
         return np.array(distances_list)
+
+    @staticmethod
+    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval=1):
+        """each element in this result is a list, not a matrix"""
+        dis_matrix_list = Sutils.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        num_of_residues = dis_matrix_list[0].shape[0]
+        result = []
+        for mat in dis_matrix_list:
+            p_distances = []
+            for item_1 in range(num_of_residues):
+                for item_2 in range(item_1 + 1, num_of_residues):
+                    p_distances += [mat[item_1][item_2]]
+            assert (len(p_distances) == num_of_residues * (num_of_residues - 1) / 2)
+            result += [p_distances]
+
+        return result
 
     @staticmethod
     def get_residue_relative_position_list(sample_file):
@@ -751,49 +795,6 @@ class Trp_cage(Sutils):
         return output_file_list
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon_bak(list_of_files,
-                                                       step_interval = 1 # get_matrices every "step_interval" snapshots
-                                                       ):
-        distances_list = []
-        index = 0
-        num_of_residues = 20
-        for item in list_of_files:
-            p = PDB.PDBParser()
-            structure = p.get_structure('X', item)
-            atom_list = [item for item in structure.get_atoms()]
-            atom_list = filter(lambda x: x.get_name() == 'CA', atom_list)
-            atom_list = list(zip(*[iter(atom_list)] * num_of_residues))   # reshape the list
-
-            for model in atom_list:
-                if index % step_interval == 0:
-                    assert (len(model) == num_of_residues)
-                    p_distances = np.zeros((num_of_residues, num_of_residues))
-                    for _1 in range(num_of_residues):
-                        for _2 in range(_1 + 1, num_of_residues):
-                            p_distances[_2][_1] = p_distances[_1][_2] = model[_1] - model[_2]
-
-                    distances_list += [p_distances]
-                index += 1
-
-        return np.array(distances_list)
-
-    @staticmethod
-    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval = 1):
-        """each element in this result is a list, not a matrix"""
-        dis_matrix_list =Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
-        num_of_residues = 20
-        result = []
-        for mat in dis_matrix_list:
-            p_distances = []
-            for item_1 in range(num_of_residues):
-                for item_2 in range(item_1 + 1, num_of_residues):
-                    p_distances += [mat[item_1][item_2]]
-            assert (len(p_distances) == num_of_residues * (num_of_residues - 1 ) / 2)
-            result += [p_distances]
-
-        return result
-
-    @staticmethod
     def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb', step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
         sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
@@ -1015,3 +1016,15 @@ class Src_kinase(Sutils):
 
         return np.array(dis_310_409).flatten() - np.array(dis_310_295).flatten()
 
+class BetaHairpin(Sutils):
+    def __init__(self):
+        super(BetaHairpin, self).__init__()
+        return
+
+    @staticmethod
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[3]]
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
+                                                                       step_interval=step_interval)
+
+        return output_file_list

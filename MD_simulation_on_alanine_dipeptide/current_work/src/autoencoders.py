@@ -233,6 +233,56 @@ class autoencoder(object):
         r_value = temp_regression.score(PCs_1, PCs_2)
         return PCs_1, PCs_2, predicted_PCs_2, r_value
 
+    @staticmethod
+    def pairwise_PC_consistency_check(autoencoder_list, input_data=None):
+        result = [[item_1.check_PC_consistency(item_2, input_data=input_data)[3]
+                  for item_1 in autoencoder_list] for item_2 in autoencoder_list]
+        return np.array(result)
+
+    def cluster_configs_based_on_distances_in_PC_space(self, folder_for_pdb,
+                                                num_clusters, output_folder, radius=0.02):
+        """
+        This function clusters configurations based on distance in PC space, and generates output pdb files
+        containing configurations in each cluster which have distance smaller than 'radius' to the
+        corresponding cluster center.
+        Why don't I use click-and-save approach (as is done in plotting object in ANN_simulation.py)?
+        Because 1. it is not convenient to click for higher-D space, 2. I am lazy to click even for 2D.
+        :param temp_autoencoder: autoencoder used to get PCs
+        :param folder_for_pdb: folder containing pdb files for input
+        :param num_clusters: number of clusters (for K-means)
+        :param radius: configs with distance less than 'radius' to the cluster center in PC space will be included in the output pdb
+        :return: cluster_pdb_files, cluster_centers
+        """
+        if not os.path.exists(output_folder):
+            subprocess.check_output(['mkdir', output_folder])
+
+        _1 = coordinates_data_files_list([folder_for_pdb])
+        _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
+        scaling_factor = CONFIG_49
+        input_data = _1.get_coor_data(scaling_factor)
+        input_data = Sutils.remove_translation(input_data)
+        PCs = self.get_PCs(input_data)
+        kmeans = KMeans(init='k-means++', n_clusters=num_clusters, n_init=10)
+        kmeans.fit(PCs)
+        indices_list = np.array([np.where(kmeans.labels_ == ii)[0]
+                                 for ii in range(kmeans.n_clusters)])
+        out_pdb_list = []
+        for index, item in enumerate(indices_list):
+            # save configurations with distance less than 'radius' to corresponding cluster center
+            item = list(filter(lambda x: np.linalg.norm(PCs[x] - kmeans.cluster_centers_[index]) < radius, item))
+            if len(item) > 0:
+                output_pdb_name = '%s/%04d_temp_frames_%s.pdb' % \
+                                    (output_folder, index, str(list(kmeans.cluster_centers_[index])).replace(' ',''))
+                out_pdb_list.append(output_pdb_name)
+                _1.write_pdb_frames_into_file_with_list_of_coor_index(item, output_pdb_name, verbose=False)
+                # assertion part
+                molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=output_pdb_name)
+                temp_input_data = np.loadtxt(output_pdb_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
+                temp_input_data = Sutils.remove_translation(temp_input_data)
+                PCs_of_points_selected = self.get_PCs(input_data=temp_input_data)
+                assert_almost_equal(PCs_of_points_selected, PCs[item], decimal=4)
+        return out_pdb_list, kmeans.cluster_centers_
+
     @abc.abstractmethod
     def get_PCs(self, input_data=None):
         """must be implemented by subclasses"""
@@ -264,8 +314,17 @@ class autoencoder(object):
             expected_output_data = self._output_data_set
         else:
             expected_output_data = input_data
-
         return np.linalg.norm(expected_output_data - actual_output_data) / sqrt(self._node_num[0] * len(input_data))
+
+    def get_relative_error_for_each_point(self, input_data=None, output_data=None):
+        if input_data is None: input_data = self._data_set
+        if output_data is None:
+            if self._output_data_set is None: output_data = self._data_set
+            else: output_data = self._output_data_set
+        temp_output = self.get_output_data(input_data)
+        relative_err = np.linalg.norm(temp_output - output_data, axis=1) / np.linalg.norm(output_data, axis=1)
+        assert (len(relative_err) == len(input_data)), (len(relative_err), len(input_data))
+        return relative_err
 
     def get_fraction_of_variance_explained(self, num_of_PCs=None):
         """ here num_of_PCs is the same with that in get_training_error() """
@@ -303,24 +362,24 @@ class autoencoder(object):
                 list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
-                    folder_state_coor_file = '../resources/1l2y_coordinates.txt'
+                    temp_state_coor_file = '../resources/1l2y_coordinates.txt'
                 elif isinstance(molecule_type, Alanine_dipeptide):
-                    folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
-                elif isinstance(molecule_type, Src_kinase):
-                    pass
+                    temp_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+                elif isinstance(molecule_type, Src_kinase) or isinstance(molecule_type, BetaHairpin):
+                    temp_state_coor_file = None
                 else:
                     raise Exception('molecule type error')
 
                 if CONFIG_53 == "fixed":
                     force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
                 elif CONFIG_53 == "flexible":
-                    input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                    input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
                     print("PC_folded_state = %s" % str(PC_folded_state))
                     force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
                                                  for item in list_of_potential_center]
                 elif CONFIG_53 == "truncated":
-                    input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                    input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
                     print("PC_folded_state = %s" % str(PC_folded_state))
                     force_constant_for_biased = [min(2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2,
@@ -329,7 +388,7 @@ class autoencoder(object):
                     raise Exception("error")
 
             todo_list_of_commands_for_simulations = []
-            if CONFIG_48 == 'Cartesian':
+            if CONFIG_48 == 'Cartesian' or 'pairwise_distance':
                 input_data_type = 1
             elif CONFIG_48 == 'cossin':
                 input_data_type = 0
@@ -373,6 +432,17 @@ class autoencoder(object):
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Src_kinase/network_%d.pkl' % self._index)
                     # todo_list_of_commands_for_simulations += [command.replace('2src', '1y57') + ' --starting_pdb_file ../resources/1y57.pdb']
+                elif isinstance(molecule_type, BetaHairpin):
+                    fast_equilibration_flag = CONFIG_72
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                                      '../target/BetaHairpin/network_%d/' % self._index,
+                                      autoencoder_info_file,
+                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
+                    command = "python ../src/biased_simulation_general.py BetaHairpin %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
+                    if CONFIG_42:
+                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                            '../resources/Src_kinase/network_%d.pkl' % self._index)
                 else:
                     raise Exception("molecule type not defined")
 
