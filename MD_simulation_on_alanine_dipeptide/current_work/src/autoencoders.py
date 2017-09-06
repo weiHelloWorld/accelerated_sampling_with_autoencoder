@@ -362,24 +362,24 @@ class autoencoder(object):
                 list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
-                    folder_state_coor_file = '../resources/1l2y_coordinates.txt'
+                    temp_state_coor_file = '../resources/1l2y_coordinates.txt'
                 elif isinstance(molecule_type, Alanine_dipeptide):
-                    folder_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
-                elif isinstance(molecule_type, Src_kinase):
-                    pass
+                    temp_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+                elif isinstance(molecule_type, Src_kinase) or isinstance(molecule_type, BetaHairpin):
+                    temp_state_coor_file = None
                 else:
                     raise Exception('molecule type error')
 
                 if CONFIG_53 == "fixed":
                     force_constant_for_biased = [CONFIG_9 for _ in list_of_potential_center]
                 elif CONFIG_53 == "flexible":
-                    input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                    input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
                     print("PC_folded_state = %s" % str(PC_folded_state))
                     force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
                                                  for item in list_of_potential_center]
                 elif CONFIG_53 == "truncated":
-                    input_folded_state = np.loadtxt(folder_state_coor_file) / CONFIG_49
+                    input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
                     print("PC_folded_state = %s" % str(PC_folded_state))
                     force_constant_for_biased = [min(2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2,
@@ -432,6 +432,17 @@ class autoencoder(object):
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/Src_kinase/network_%d.pkl' % self._index)
                     # todo_list_of_commands_for_simulations += [command.replace('2src', '1y57') + ' --starting_pdb_file ../resources/1y57.pdb']
+                elif isinstance(molecule_type, BetaHairpin):
+                    fast_equilibration_flag = CONFIG_72
+                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                                      '../target/BetaHairpin/network_%d/' % self._index,
+                                      autoencoder_info_file,
+                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
+                    command = "python ../src/biased_simulation_general.py BetaHairpin %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
+                    if CONFIG_42:
+                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                            '../resources/Src_kinase/network_%d.pkl' % self._index)
                 else:
                     raise Exception("molecule type not defined")
 

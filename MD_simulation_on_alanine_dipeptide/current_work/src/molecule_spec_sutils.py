@@ -98,7 +98,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def create_subclass_instance_using_name(name):
-        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(), 'Src_kinase': Src_kinase()}[name]
+        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(), 'Src_kinase': Src_kinase(), 'BetaHairpin': BetaHairpin()}[name]
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
@@ -186,6 +186,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             num_of_backbone_atoms = len(CONFIG_57[1])
         elif isinstance(molecule_type, Src_kinase):
             num_of_backbone_atoms = len(CONFIG_57[2])
+        elif isinstance(molecule_type, BetaHairpin):
+            num_of_backbone_atoms = len(CONFIG_57[3])
         else:
             raise Exception("error molecule type")
 
@@ -427,6 +429,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         assert (evaluation_values.shape == num.shape)
         min_weighted_err = float('inf')
         optimal_num = 0
+        best_regr = None
         for item in range(1, len(num) - 1):
             y_left = evaluation_values[:item]
             x_left = num[:item].reshape(item, 1)
@@ -1017,3 +1020,11 @@ class BetaHairpin(Sutils):
     def __init__(self):
         super(BetaHairpin, self).__init__()
         return
+
+    @staticmethod
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[3]]
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
+                                                                       step_interval=step_interval)
+
+        return output_file_list

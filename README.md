@@ -138,8 +138,6 @@ TODO
 
 4. Add molecule-related statements to `${root_dir}/src/ANN_simulation.py` and `${root_dir}/src/autoencoders.py` whenever `Trp_cage` appears.
 
-5. Include new molecule in `${root_dir}/src/generate_coordinates.py`
-
 - How to apply a new network structure or switch to a new training backend?
 
 1. Create a subclass of `autoencoder` for the new structure/backend and do implementation.  Note that all abstract methods (`@abc.abstractmethod`) must be implemented.
