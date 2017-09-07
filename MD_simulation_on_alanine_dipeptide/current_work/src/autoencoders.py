@@ -239,6 +239,14 @@ class autoencoder(object):
                   for item_1 in autoencoder_list] for item_2 in autoencoder_list]
         return np.array(result)
 
+    def get_effective_numbers_of_occupied_bins_in_PC_space(self, input_data, range_of_PC_in_one_dim = [-1, 1],
+                                                           num_of_bins=10, min_num_per_bin=2):
+        PCs = self.get_PCs(input_data)
+        dimensionality = len(PCs[0])
+        range_of_PCs = [range_of_PC_in_one_dim for _ in range(dimensionality)]
+        hist_matrix, edges = np.histogramdd(PCs, bins=num_of_bins * np.ones(dimensionality), range=range_of_PCs)
+        return np.sum(hist_matrix >= min_num_per_bin), hist_matrix
+
     def cluster_configs_based_on_distances_in_PC_space(self, folder_for_pdb,
                                                 num_clusters, output_folder, radius=0.02):
         """
