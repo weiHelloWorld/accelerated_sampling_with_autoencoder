@@ -461,8 +461,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return rmsd(position_1, position_2, center=True, superposition=True)
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file='../resources/1l2y.pdb', atom_selection_statement="name CA",
-                             step_interval=1):
+    def metric_RMSD_of_atoms(list_of_files, ref_file='../resources/1l2y.pdb', ref_index=0,
+                             atom_selection_statement="name CA", step_interval=1):
         """
         :param atom_selection_statement:  could be either
          - "name CA" for alpha-carbon atoms only
@@ -472,6 +472,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         """
         ref = Universe(ref_file)
         ref_atom_selection = ref.select_atoms(atom_selection_statement)
+        ref.trajectory[ref_index]
+        ref_positions = ref_atom_selection.positions
         result_rmsd_of_atoms = []
         index = 0
 
@@ -481,7 +483,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
             for _ in sample.trajectory:
                 if index % step_interval == 0:
-                    result_rmsd_of_atoms.append(Sutils.get_RMSD_after_alignment(ref_atom_selection.positions,
+                    result_rmsd_of_atoms.append(Sutils.get_RMSD_after_alignment(ref_positions,
                                                                     sample_atom_selection.positions))
 
                 index += 1

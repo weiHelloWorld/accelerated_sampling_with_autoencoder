@@ -20,6 +20,7 @@ parser.add_argument("pc_potential_center", type=str, help="potential center (sho
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
+parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='auto', help='the input pdb file to start simulation')
@@ -61,6 +62,8 @@ record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
 force_constant = args.force_constant
 scaling_factor = args.scaling_factor
+num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
+num_of_nodes = [int(item) for item in num_of_nodes]
 
 platform = Platform.getPlatformByName(args.platform)
 temperature = args.temperature
@@ -175,7 +178,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
             force.set_data_type_in_input_layer(args.data_type_in_input_layer)
             force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
             force.set_index_of_backbone_atoms(index_of_backbone_atoms)
-            force.set_num_of_nodes(CONFIG_3[:3])
+            force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
             force.set_scaling_factor(float(scaling_factor))
