@@ -13,9 +13,15 @@ from numpy.testing import assert_almost_equal, assert_equal
 class test_Sutils(object):
     @staticmethod
     def test_mark_and_modify_pdb_for_calculating_RMSD_for_plumed():
-        Sutils.mark_and_modify_pdb_for_calculating_RMSD_for_plumed('../resources/1l2y.pdb', 'temp_out.pdb',
+        temp_out = 'temp_out.pdb'
+        Sutils.mark_and_modify_pdb_for_calculating_RMSD_for_plumed('../resources/1l2y.pdb', temp_out,
                                 get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'))
-        subprocess.check_output(['rm', 'temp_out.pdb'])
+        a = Universe(temp_out)
+        b = a.select_atoms('name CA')
+        assert np.all(b.bfactors) and np.all(b.occupancies)
+        b = a.select_atoms('not name CA')
+        assert not (np.any(b.bfactors) or np.any(b.occupancies))
+        subprocess.check_output(['rm', temp_out])
         return
 
     @staticmethod
