@@ -29,7 +29,7 @@ it configures all default values/global parameters for constructors/functions
 #######################################################################
 
 layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
@@ -213,9 +213,9 @@ CONFIG_16 = get_mol_param([500, 2000, 2000, 2000])                     # record 
 CONFIG_8 = get_mol_param([50000, 200000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
-CONFIG_9 = get_mol_param([3000, 5000, 3000, 3000])                     # force constant for biased simulations
-CONFIG_53 = get_mol_param(['flexible', 'flexible', 'fixed', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
-CONFIG_54 = 2.50 * get_mol_param([30.0, 15.0, 15.0, 20.0])             # max external potential energy allowed (in k_BT)
+CONFIG_9 = get_mol_param([3000, 3000, 3000, 3000])                     # force constant for biased simulations
+CONFIG_53 = get_mol_param(['flexible', 'fixed', 'fixed', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
+CONFIG_54 = 2.50 * get_mol_param([30.0, 20.0, 15.0, 20.0])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
 CONFIG_66 = get_mol_param([500, 500, 500, None])          # pace of metadynamics
 CONFIG_67 = get_mol_param([2, 2, 2, None])              # height of metadynamics
