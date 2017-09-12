@@ -373,6 +373,7 @@ class autoencoder(object):
             # if start_from_nearest_config:
             #     nearest_pdb_frame_index_list = []
             #     _1 = coordinates_data_files_list(['../target/BetaHairpin'])  # TODO: temp version
+            #     _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
             #     temp_input_data = _1.get_coor_data(scaling_factor=CONFIG_49)
             #     temp_input_data = Sutils.remove_translation(temp_input_data)
             #     temp_all_PCs = list(self.get_PCs(temp_input_data))
@@ -432,24 +433,24 @@ class autoencoder(object):
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
                 else:
-                    fast_equilibration_flag = CONFIG_72
                     parameter_list = (
                             str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                            '../target/placeholder_1/network_%d/' % self._index,
-                            autoencoder_info_file,
+                            '../target/placeholder_1/network_%d/' % self._index, autoencoder_info_file,
                             'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                            CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py placeholder_2 %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
+                            CONFIG_40, CONFIG_51, index % 2)
+                    command = "python ../src/biased_simulation_general.py placeholder_2 %s %s %s %s %s %s %s %s --device %d" % parameter_list
+                    if not input_data_type: command += ' --data_type_in_input_layer 0'
+                    if CONFIG_72: command += ' --fast_equilibration 1'
                     if CONFIG_42:
-                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                        command += ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/placeholder_1/network_%d.pkl' % self._index)
                     # if start_from_nearest_config:
                     #     command += ' --starting_pdb_file %s --starting_frame %d ' % (nearest_pdb_frame_index_list[index][0],
                     #                                                                  nearest_pdb_frame_index_list[index][1])
                     #     print command
-                    if isinstance(molecule_type, Trp_cage): command.replace('placeholder_1', 'Trp_cage').replace('placeholder_2', 'Trp_cage')
-                    elif isinstance(molecule_type, Src_kinase): command.replace('placeholder_1', 'Src_kinase').replace('placeholder_2', '2src')
-                    elif isinstance(molecule_type, BetaHairpin): command.replace('placeholder_1', 'BetaHairpin').replace('placeholder_2', 'BetaHairpin')
+                    if isinstance(molecule_type, Trp_cage): command = command.replace('placeholder_1', 'Trp_cage').replace('placeholder_2', 'Trp_cage')
+                    elif isinstance(molecule_type, Src_kinase): command = command.replace('placeholder_1', 'Src_kinase').replace('placeholder_2', '2src')
+                    elif isinstance(molecule_type, BetaHairpin): command = command.replace('placeholder_1', 'BetaHairpin').replace('placeholder_2', 'BetaHairpin')
                     else: raise Exception("molecule type not defined")
 
                 todo_list_of_commands_for_simulations += [command]
