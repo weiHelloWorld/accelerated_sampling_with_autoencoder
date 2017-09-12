@@ -318,6 +318,15 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                                 '--device', str(_1 % 2),
                                  '--equilibration_steps', str(num_steps_of_equilibration),
                                  '--plumed_file', plumed_script_file]
+                elif isinstance(molecule_type, BetaHairpin):
+                    command = ['python', '../src/biased_simulation_general.py', 'BetaHairpin',
+                               str(self._step_interval), str(num_steps_of_restrained_MD + num_steps_of_unbiased_MD), '0',
+                               output_folder, 'none', 'pc_0', 'implicit', 'NPT',
+                               '--output_pdb', item_out_pdb,
+                                 '--platform', 'CUDA', '--bias_method', 'plumed_other',
+                                '--device', str(_1 % 2),
+                                 '--equilibration_steps', str(num_steps_of_equilibration),
+                                 '--plumed_file', plumed_script_file]
                 else:
                     raise Exception('molecule type error')
                 print ' '.join(command)
@@ -357,15 +366,24 @@ if __name__ == '__main__':
     #                   num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=20,
     #                   smooth_coeff=0.5)
     # a.remove_water_and_align('../target/' + CONFIG_30)
-    # a.run_multi_iterations(1, 10)
 
-    atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
-                                         '(resid 144:170 or resid 44:58) and not name H*')
-    a = String_method(atom_index, '../resources/2src.pdb',
-                      num_of_simulations_for_each_image=3,
+    # atom_index = get_index_list_with_selection_statement('../resources/2src.pdb',
+    #                                      '(resid 144:170 or resid 44:58) and not name H*')
+    # a = String_method(atom_index, '../resources/2src.pdb',
+    #                   num_of_simulations_for_each_image=3,
+    #                   num_steps_of_equilibration=5000,
+    #                   num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=100,
+    #                   step_interval=2,
+    #                   num_snapshots_for_calculating_average_positions=10,
+    #                   smooth_coeff=0.5)
+
+    atom_index = get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone')
+    a = String_method(atom_index, '../resources/BetaHairpin.pdb',
+                      num_of_simulations_for_each_image=10,
                       num_steps_of_equilibration=5000,
-                      num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=100,
-                      step_interval=2,
+                      num_steps_of_restrained_MD=0, num_steps_of_unbiased_MD=20,
+                      step_interval=1,
                       num_snapshots_for_calculating_average_positions=10,
                       smooth_coeff=0.5)
+
     a.run_multi_iterations(1, 10)
