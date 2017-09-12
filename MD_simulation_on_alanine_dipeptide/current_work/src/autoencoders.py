@@ -368,6 +368,21 @@ class autoencoder(object):
                 assert (len(PCs_of_network[0]) == self._node_num[2])
             if list_of_potential_center is None:
                 list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
+
+            # start_from_nearest_config = True
+            # if start_from_nearest_config:
+            #     nearest_pdb_frame_index_list = []
+            #     _1 = coordinates_data_files_list(['../target/BetaHairpin'])  # TODO: temp version
+            #     temp_input_data = _1.get_coor_data(scaling_factor=CONFIG_49)
+            #     temp_input_data = Sutils.remove_translation(temp_input_data)
+            #     temp_all_PCs = list(self.get_PCs(temp_input_data))
+            #     assert len(temp_all_PCs) == np.sum(_1.get_list_of_line_num_of_coor_data_file())
+            #     for item_2 in list_of_potential_center:
+            #         temp_distances = np.array([np.linalg.norm(item_3 - item_2) for item_3 in temp_all_PCs])
+            #         index_of_nearest_config = np.argmin(temp_distances)
+            #         nearest_pdb, nearest_frame_index = _1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(index_of_nearest_config)
+            #         nearest_pdb_frame_index_list.append([nearest_pdb, nearest_frame_index])
+
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
                     temp_state_coor_file = '../resources/1l2y_coordinates.txt'
@@ -416,43 +431,26 @@ class autoencoder(object):
                     if CONFIG_42:  # whether the force constant adjustable mode is enabled
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
-
-                elif isinstance(molecule_type, Trp_cage):
-                    fast_equilibration_flag = CONFIG_72
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                      '../target/Trp_cage/network_%d/' % self._index,
-                                      autoencoder_info_file,
-                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
-                    if CONFIG_42:
-                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
-                            '../resources/Trp_cage/network_%d.pkl' % self._index)
-                elif isinstance(molecule_type, Src_kinase):
-                    fast_equilibration_flag = CONFIG_72
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                      '../target/Src_kinase/network_%d/' % self._index,
-                                      autoencoder_info_file,
-                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
-                    if CONFIG_42:
-                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
-                            '../resources/Src_kinase/network_%d.pkl' % self._index)
-                    # todo_list_of_commands_for_simulations += [command.replace('2src', '1y57') + ' --starting_pdb_file ../resources/1y57.pdb']
-                elif isinstance(molecule_type, BetaHairpin):
-                    fast_equilibration_flag = CONFIG_72
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                      '../target/BetaHairpin/network_%d/' % self._index,
-                                      autoencoder_info_file,
-                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py BetaHairpin %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
-                    if CONFIG_42:
-                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
-                            '../resources/Src_kinase/network_%d.pkl' % self._index)
                 else:
-                    raise Exception("molecule type not defined")
+                    fast_equilibration_flag = CONFIG_72
+                    parameter_list = (
+                            str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                            '../target/placeholder_1/network_%d/' % self._index,
+                            autoencoder_info_file,
+                            'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                            CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
+                    command = "python ../src/biased_simulation_general.py placeholder_2 %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
+                    if CONFIG_42:
+                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                            '../resources/placeholder_1/network_%d.pkl' % self._index)
+                    # if start_from_nearest_config:
+                    #     command += ' --starting_pdb_file %s --starting_frame %d ' % (nearest_pdb_frame_index_list[index][0],
+                    #                                                                  nearest_pdb_frame_index_list[index][1])
+                    #     print command
+                    if isinstance(molecule_type, Trp_cage): command.replace('placeholder_1', 'Trp_cage').replace('placeholder_2', 'Trp_cage')
+                    elif isinstance(molecule_type, Src_kinase): command.replace('placeholder_1', 'Src_kinase').replace('placeholder_2', '2src')
+                    elif isinstance(molecule_type, BetaHairpin): command.replace('placeholder_1', 'BetaHairpin').replace('placeholder_2', 'BetaHairpin')
+                    else: raise Exception("molecule type not defined")
 
                 todo_list_of_commands_for_simulations += [command]
         elif bias_method == "MTD":
@@ -473,13 +471,6 @@ class autoencoder(object):
                                       '../target/Trp_cage/network_%d/' % self._index, self._autoencoder_info_file,
                                       pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
                     command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
-                    todo_list_of_commands_for_simulations += [command]
-            elif isinstance(molecule_type, Src_kinase):
-                for mtd_sim_index in range(6):
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
-                                      '../target/Src_kinase/network_%d/' % self._index, self._autoencoder_info_file,
-                                      pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
-                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
                     todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")
