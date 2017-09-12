@@ -31,7 +31,7 @@ if args.save_CA_RMSD:
 if args.save_radius_of_gyration:
     np.savetxt(info_radius_of_gyration_file, Trp_cage.metric_radius_of_gyration(my_pdb_file_list))
 
-distances_list = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(my_pdb_file_list)
+distances_list = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(my_pdb_file_list)
 
 if args.save_residue_9_16_distance:
     np.savetxt(info_residue_9_16_distance_file, np.array([item[8][15] for item in distances_list]))

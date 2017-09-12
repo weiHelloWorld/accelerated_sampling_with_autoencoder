@@ -204,9 +204,9 @@ class test_Trp_cage(object):
     @staticmethod
     def test_get_non_repeated_pairwise_distance_as_list_of_alpha_carbon():
         pdb_file_list = ['dependency/temp_Trp_cage_data/1l2y.pdb']
-        a = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(pdb_file_list)
+        a = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(pdb_file_list)
         a = [item.reshape(400, 1) for item in a]
-        b = Trp_cage.get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(pdb_file_list)
+        b = Trp_cage.get_non_repeated_pairwise_distance(pdb_file_list)
         assert (len(a) == len(b))
         for _1 in range(len(b)):
             for _2 in b[_1]:
@@ -215,7 +215,7 @@ class test_Trp_cage(object):
 
     @staticmethod
     def test_get_pairwise_distance_matrices_of_alpha_carbon():
-        actual = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(['dependency/temp_Trp_cage_data/1l2y.pdb'])[0]
+        actual = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(['dependency/temp_Trp_cage_data/1l2y.pdb'])[0]
         expected = np.loadtxt("dependency/test_get_pairwise_distance_matrices_of_alpha_carbon.txt")
         assert_almost_equal(actual, expected)
         return

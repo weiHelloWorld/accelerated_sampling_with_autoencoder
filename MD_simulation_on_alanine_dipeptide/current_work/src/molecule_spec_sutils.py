@@ -525,12 +525,12 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return average_RMSD_wrt_neighbors
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
+    def get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval=1, atom_selection='name CA'):
         distances_list = []
         index = 0
         for sample_file in list_of_files:
             sample = Universe(sample_file)
-            sample_atom_selection = sample.select_atoms("name CA")
+            sample_atom_selection = sample.select_atoms(atom_selection)
             for _ in sample.trajectory:
                 if index % step_interval == 0:
                     distances_list.append(
@@ -541,17 +541,18 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return np.array(distances_list)
 
     @staticmethod
-    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval=1):
+    def get_non_repeated_pairwise_distance(list_of_files, step_interval=1, atom_selection='name CA'):
         """each element in this result is a list, not a matrix"""
-        dis_matrix_list = Sutils.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
-        num_of_residues = dis_matrix_list[0].shape[0]
+        dis_matrix_list = Sutils.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval,
+                                                                                  atom_selection)
+        num_atoms = dis_matrix_list[0].shape[0]
         result = []
         for mat in dis_matrix_list:
             p_distances = []
-            for item_1 in range(num_of_residues):
-                for item_2 in range(item_1 + 1, num_of_residues):
+            for item_1 in range(num_atoms):
+                for item_2 in range(item_1 + 1, num_atoms):
                     p_distances += [mat[item_1][item_2]]
-            assert (len(p_distances) == num_of_residues * (num_of_residues - 1) / 2)
+            assert (len(p_distances) == num_atoms * (num_atoms - 1) / 2)
             result += [p_distances]
 
         return result
@@ -801,8 +802,8 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb', step_interval = 1):
-        ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        ref = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms([ref_file])
+        sample = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval)
         diff = map(lambda x: np.linalg.norm(ref[0] - x), sample)
         return diff
 
@@ -840,8 +841,8 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
-        ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        ref = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms([ref_file])
+        sample = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval)
 
         result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
                      sample)
