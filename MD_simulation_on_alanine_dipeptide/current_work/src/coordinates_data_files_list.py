@@ -83,6 +83,12 @@ class coordinates_data_files_list(object):
 
         return
 
+    def get_pdb_name_and_corresponding_frame_index_with_global_coor_index(self, coor_index):
+        for item, temp_pdb in zip(self._list_of_line_num_of_coor_data_file, self.get_list_of_corresponding_pdb_files()):
+            if coor_index < item: break
+            else: coor_index -= item
+        return temp_pdb, coor_index
+
     def concat_all_pdb_files(self, out_pdb_file):
         """
         Why don't I use 'cat' in terminal? since I want to make order consistent with Python sort() function 

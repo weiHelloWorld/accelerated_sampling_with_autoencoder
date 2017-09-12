@@ -12,6 +12,13 @@ from numpy.testing import assert_almost_equal, assert_equal
 
 class test_Sutils(object):
     @staticmethod
+    def test_mark_and_modify_pdb_for_calculating_RMSD_for_plumed():
+        Sutils.mark_and_modify_pdb_for_calculating_RMSD_for_plumed('../resources/1l2y.pdb', 'temp_out.pdb',
+                                get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'))
+        subprocess.check_output(['rm', 'temp_out.pdb'])
+        return
+
+    @staticmethod
     def test__generate_coordinates_from_pdb_files():
         # TODO
         return
@@ -287,6 +294,14 @@ class test_coordinates_data_files_list(object):
         a_sub = a.create_sub_coor_data_files_list_using_filter_conditional(lambda x: '0.7' in x)
         for item in a_sub.get_list_of_coor_data_files():
             assert ('0.7' in item)
+        return
+
+    @staticmethod
+    def test_get_pdb_name_and_corresponding_frame_index_with_global_coor_index():
+        _1 = coordinates_data_files_list(['dependency/temp_data/'])
+        pdb_files = _1.get_list_of_corresponding_pdb_files()
+        for item in range(1, 602, 100):
+            assert (_1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(item) == (pdb_files[item / 100], 1))
         return
 
 
