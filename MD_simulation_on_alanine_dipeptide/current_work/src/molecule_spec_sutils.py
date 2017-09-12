@@ -171,12 +171,15 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return
 
     @staticmethod
-    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type):
+    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type,
+                          is_output_reconstructed_Cartesian=True  # output could be pairwise distances
+                          ):
         """
         assume that center of mass motion of data_set and output_data_set should be removed.
         """
         assert (Sutils.check_center_of_mass_is_at_origin(data_set))
-        assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
+        if is_output_reconstructed_Cartesian:
+            assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
 
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
