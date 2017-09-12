@@ -444,7 +444,7 @@ class test_biased_simulation(object):
             subprocess.check_output(['rm', '-rf', output_folder])
 
         subprocess.check_output(
-            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s --platform CPU'
+            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s --platform CPU --data_type_in_input_layer 0'
             % (output_folder, autoencoder_coeff_file, potential_center, "8,15,4", "Tanh,Circular"),
             shell=True)
 
@@ -474,7 +474,7 @@ class test_biased_simulation(object):
         a = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
         a.write_expression_script_for_plumed('temp_info.txt')
         subprocess.check_output(
-'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d --equilibration_steps 0'
+'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d --equilibration_steps 0 --data_type_in_input_layer 0'
                                 % (output_folder, biasfactor, use_well_tempered), shell=True)
         subprocess.check_output(['python', '../src/generate_coordinates.py', 'Alanine_dipeptide', '--path', output_folder])
         fig, axes = plt.subplots(1, 3)

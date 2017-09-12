@@ -26,7 +26,7 @@ parser.add_argument("--temperature", type=int, default= 300, help='simulation te
 parser.add_argument("--starting_pdb_file", type=str, default='auto', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
-parser.add_argument("--data_type_in_input_layer", type=int, default=0, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
+parser.add_argument("--data_type_in_input_layer", type=int, default=1, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
 parser.add_argument("--device", type=str, default='none', help='device index to run simulation on')
 parser.add_argument("--checkpoint", type=int, default=1, help="whether to save checkpoint at the end of the simulation")
