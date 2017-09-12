@@ -369,20 +369,20 @@ class autoencoder(object):
             if list_of_potential_center is None:
                 list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
 
-            # start_from_nearest_config = True
-            # if start_from_nearest_config:
-            #     nearest_pdb_frame_index_list = []
-            #     _1 = coordinates_data_files_list(['../target/BetaHairpin'])  # TODO: temp version
-            #     _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
-            #     temp_input_data = _1.get_coor_data(scaling_factor=CONFIG_49)
-            #     temp_input_data = Sutils.remove_translation(temp_input_data)
-            #     temp_all_PCs = list(self.get_PCs(temp_input_data))
-            #     assert len(temp_all_PCs) == np.sum(_1.get_list_of_line_num_of_coor_data_file())
-            #     for item_2 in list_of_potential_center:
-            #         temp_distances = np.array([np.linalg.norm(item_3 - item_2) for item_3 in temp_all_PCs])
-            #         index_of_nearest_config = np.argmin(temp_distances)
-            #         nearest_pdb, nearest_frame_index = _1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(index_of_nearest_config)
-            #         nearest_pdb_frame_index_list.append([nearest_pdb, nearest_frame_index])
+            start_from_nearest_config = True
+            if start_from_nearest_config:
+                nearest_pdb_frame_index_list = []
+                _1 = coordinates_data_files_list(['../target/BetaHairpin'])  # TODO: temp version
+                _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
+                temp_input_data = _1.get_coor_data(scaling_factor=CONFIG_49)
+                temp_input_data = Sutils.remove_translation(temp_input_data)
+                temp_all_PCs = list(self.get_PCs(temp_input_data))
+                assert len(temp_all_PCs) == np.sum(_1.get_list_of_line_num_of_coor_data_file())
+                for item_2 in list_of_potential_center:
+                    temp_distances = np.array([np.linalg.norm(item_3 - item_2) for item_3 in temp_all_PCs])
+                    index_of_nearest_config = np.argmin(temp_distances)
+                    nearest_pdb, nearest_frame_index = _1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(index_of_nearest_config)
+                    nearest_pdb_frame_index_list.append([nearest_pdb, nearest_frame_index])
 
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
@@ -444,10 +444,10 @@ class autoencoder(object):
                     if CONFIG_42:
                         command += ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
                             '../resources/placeholder_1/network_%d.pkl' % self._index)
-                    # if start_from_nearest_config:
-                    #     command += ' --starting_pdb_file %s --starting_frame %d ' % (nearest_pdb_frame_index_list[index][0],
-                    #                                                                  nearest_pdb_frame_index_list[index][1])
-                    #     print command
+                    if start_from_nearest_config:
+                        command += ' --starting_pdb_file %s --starting_frame %d ' % (nearest_pdb_frame_index_list[index][0],
+                                                                                     nearest_pdb_frame_index_list[index][1])
+                        print command
                     if isinstance(molecule_type, Trp_cage): command = command.replace('placeholder_1', 'Trp_cage').replace('placeholder_2', 'Trp_cage')
                     elif isinstance(molecule_type, Src_kinase): command = command.replace('placeholder_1', 'Src_kinase').replace('placeholder_2', '2src')
                     elif isinstance(molecule_type, BetaHairpin): command = command.replace('placeholder_1', 'BetaHairpin').replace('placeholder_2', 'BetaHairpin')
