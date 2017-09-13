@@ -372,7 +372,7 @@ class autoencoder(object):
             start_from_nearest_config = True
             if start_from_nearest_config:
                 nearest_pdb_frame_index_list = []
-                _1 = coordinates_data_files_list(['../target/BetaHairpin'])  # TODO: temp version
+                _1 = coordinates_data_files_list(['../target/%s' % CONFIG_30])
                 _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
                 temp_input_data = _1.get_coor_data(scaling_factor=CONFIG_49)
                 temp_input_data = Sutils.remove_translation(temp_input_data)
@@ -381,8 +381,17 @@ class autoencoder(object):
                 for item_2 in list_of_potential_center:
                     temp_distances = np.array([np.linalg.norm(item_3 - item_2) for item_3 in temp_all_PCs])
                     index_of_nearest_config = np.argmin(temp_distances)
+
                     nearest_pdb, nearest_frame_index = _1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(index_of_nearest_config)
                     nearest_pdb_frame_index_list.append([nearest_pdb, nearest_frame_index])
+                    # assertion part
+                    temp_input_data_2 = np.loadtxt(nearest_pdb.replace('.pdb', '_coordinates.txt')) / CONFIG_49
+                    temp_input_data_2 = Sutils.remove_translation(temp_input_data_2)
+                    temp_PC_2 = self.get_PCs(temp_input_data_2)[nearest_frame_index]
+                    print temp_distances[index_of_nearest_config]
+                    expected = temp_distances[index_of_nearest_config]
+                    actual = np.linalg.norm(temp_PC_2 - item_2)
+                    assert_almost_equal(expected, actual, decimal=3)
 
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
@@ -447,7 +456,6 @@ class autoencoder(object):
                     if start_from_nearest_config:
                         command += ' --starting_pdb_file %s --starting_frame %d ' % (nearest_pdb_frame_index_list[index][0],
                                                                                      nearest_pdb_frame_index_list[index][1])
-                        print command
                     if isinstance(molecule_type, Trp_cage): command = command.replace('placeholder_1', 'Trp_cage').replace('placeholder_2', 'Trp_cage')
                     elif isinstance(molecule_type, Src_kinase): command = command.replace('placeholder_1', 'Src_kinase').replace('placeholder_2', '2src')
                     elif isinstance(molecule_type, BetaHairpin): command = command.replace('placeholder_1', 'BetaHairpin').replace('placeholder_2', 'BetaHairpin')
