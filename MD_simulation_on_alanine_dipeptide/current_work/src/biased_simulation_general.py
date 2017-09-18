@@ -105,8 +105,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
                                       'BetaHairpin': '../resources/BetaHairpin.pdb'}[args.molecule]
     else:
         input_pdb_file_of_molecule = args.starting_pdb_file
-        pdb_reporter_file = pdb_reporter_file.split('_sf_')[0].split('.pdb')[0] + '_sf_%s.pdb' % \
-                                args.starting_pdb_file.split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
+        pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
+                                args.starting_pdb_file.split('_sf_')[0].split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
 
     print "start_pdb = %s" % input_pdb_file_of_molecule
     if args.starting_frame != 0:

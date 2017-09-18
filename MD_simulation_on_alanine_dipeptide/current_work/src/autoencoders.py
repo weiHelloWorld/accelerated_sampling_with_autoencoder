@@ -369,7 +369,7 @@ class autoencoder(object):
             if list_of_potential_center is None:
                 list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
 
-            start_from_nearest_config = True
+            start_from_nearest_config = CONFIG_74
             if start_from_nearest_config:
                 nearest_pdb_frame_index_list = []
                 _1 = coordinates_data_files_list(['../target/%s' % CONFIG_30])
