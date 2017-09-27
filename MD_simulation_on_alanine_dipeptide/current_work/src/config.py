@@ -76,7 +76,9 @@ CONFIG_57 = [
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O')
 ]                                          # index list of atoms for training and biased simulations
 if CONFIG_48 == 'pairwise_distance':
-    CONFIG_73 = 'backbone and not name O'       # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
+    CONFIG_73 = get_mol_param([None, 'backbone and not name O',
+                               '(resid 144:170 or resid 44:58) and name CA', None
+                               ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_2 = 1     # training data interval
