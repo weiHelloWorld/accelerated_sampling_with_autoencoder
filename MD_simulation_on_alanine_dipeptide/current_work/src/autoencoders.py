@@ -2,9 +2,9 @@ from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
-from keras.models import Sequential
+from keras.models import Sequential, Model, load_model
 from keras.optimizers import *
-from keras.layers import Dense, Activation, Lambda, Reshape
+from keras.layers import Dense, Activation, Lambda, Reshape, Input
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 import random
@@ -65,6 +65,7 @@ class autoencoder(object):
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
+        self._molecule_net_layers = None
         self._output_as_circular = output_as_circular
         self._init_extra(*args, **kwargs)
         return
@@ -948,10 +949,18 @@ class autoencoder_Keras(autoencoder):
 
         return PCs
 
+    def get_outputs_from_PC(self, input_PC):
+        if self._hidden_layers_type[1] == CircularLayer: raise Exception('not implemented')
+        inputs = Input(shape=(self._node_num[2],))
+        x = inputs
+        for item in self._molecule_net_layers[-2:]:
+            x = item(x)     # using functional API
+        model = Model(input=inputs, output=x)
+        return model.predict(input_PC)
+
     def train(self):    
         node_num = self._node_num
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
-        num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
             print ("outputs different from inputs")
