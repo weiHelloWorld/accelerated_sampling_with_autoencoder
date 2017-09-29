@@ -18,9 +18,9 @@ class test_Sutils(object):
                                 get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'))
         a = Universe(temp_out)
         b = a.select_atoms('name CA')
-        assert np.all(b.bfactors) and np.all(b.occupancies)
+        assert np.all(b.tempfactors) and np.all(b.occupancies)
         b = a.select_atoms('not name CA')
-        assert not (np.any(b.bfactors) or np.any(b.occupancies))
+        assert not (np.any(b.tempfactors) or np.any(b.occupancies))
         subprocess.check_output(['rm', temp_out])
         return
 

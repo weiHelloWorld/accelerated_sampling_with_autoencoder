@@ -29,7 +29,7 @@ class Sutils(object):
 
         temp_bfactors = np.zeros(len(temp_atoms))
         temp_bfactors[indices] = 1
-        temp_atoms.bfactors = temp_bfactors
+        temp_atoms.tempfactors = temp_bfactors
         temp_atoms.occupancies = temp_bfactors
         temp_atoms.write(out_pdb)
         return out_pdb
