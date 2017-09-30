@@ -12,6 +12,19 @@ from numpy.testing import assert_almost_equal, assert_equal
 
 class test_Sutils(object):
     @staticmethod
+    def test_mark_and_modify_pdb_for_calculating_RMSD_for_plumed():
+        temp_out = 'temp_out.pdb'
+        Sutils.mark_and_modify_pdb_for_calculating_RMSD_for_plumed('../resources/1l2y.pdb', temp_out,
+                                get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'))
+        a = Universe(temp_out)
+        b = a.select_atoms('name CA')
+        assert np.all(b.tempfactors) and np.all(b.occupancies)
+        b = a.select_atoms('not name CA')
+        assert not (np.any(b.tempfactors) or np.any(b.occupancies))
+        subprocess.check_output(['rm', temp_out])
+        return
+
+    @staticmethod
     def test__generate_coordinates_from_pdb_files():
         # TODO
         return
@@ -204,9 +217,9 @@ class test_Trp_cage(object):
     @staticmethod
     def test_get_non_repeated_pairwise_distance_as_list_of_alpha_carbon():
         pdb_file_list = ['dependency/temp_Trp_cage_data/1l2y.pdb']
-        a = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(pdb_file_list)
+        a = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(pdb_file_list)
         a = [item.reshape(400, 1) for item in a]
-        b = Trp_cage.get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(pdb_file_list)
+        b = Trp_cage.get_non_repeated_pairwise_distance(pdb_file_list)
         assert (len(a) == len(b))
         for _1 in range(len(b)):
             for _2 in b[_1]:
@@ -215,7 +228,7 @@ class test_Trp_cage(object):
 
     @staticmethod
     def test_get_pairwise_distance_matrices_of_alpha_carbon():
-        actual = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(['dependency/temp_Trp_cage_data/1l2y.pdb'])[0]
+        actual = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(['dependency/temp_Trp_cage_data/1l2y.pdb'])[0]
         expected = np.loadtxt("dependency/test_get_pairwise_distance_matrices_of_alpha_carbon.txt")
         assert_almost_equal(actual, expected)
         return
@@ -287,6 +300,14 @@ class test_coordinates_data_files_list(object):
         a_sub = a.create_sub_coor_data_files_list_using_filter_conditional(lambda x: '0.7' in x)
         for item in a_sub.get_list_of_coor_data_files():
             assert ('0.7' in item)
+        return
+
+    @staticmethod
+    def test_get_pdb_name_and_corresponding_frame_index_with_global_coor_index():
+        _1 = coordinates_data_files_list(['dependency/temp_data/'])
+        pdb_files = _1.get_list_of_corresponding_pdb_files()
+        for item in range(1, 602, 100):
+            assert (_1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(item) == (pdb_files[item / 100], 1))
         return
 
 
@@ -423,7 +444,7 @@ class test_biased_simulation(object):
             subprocess.check_output(['rm', '-rf', output_folder])
 
         subprocess.check_output(
-            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s --platform CPU'
+            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s --platform CPU --data_type_in_input_layer 0'
             % (output_folder, autoencoder_coeff_file, potential_center, "8,15,4", "Tanh,Circular"),
             shell=True)
 
@@ -453,7 +474,7 @@ class test_biased_simulation(object):
         a = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
         a.write_expression_script_for_plumed('temp_info.txt')
         subprocess.check_output(
-'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d'
+'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d --equilibration_steps 0 --data_type_in_input_layer 0'
                                 % (output_folder, biasfactor, use_well_tempered), shell=True)
         subprocess.check_output(['python', '../src/generate_coordinates.py', 'Alanine_dipeptide', '--path', output_folder])
         fig, axes = plt.subplots(1, 3)

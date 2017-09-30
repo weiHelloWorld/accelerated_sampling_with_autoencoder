@@ -2,9 +2,9 @@ from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
-from keras.models import Sequential
+from keras.models import Sequential, Model, load_model
 from keras.optimizers import *
-from keras.layers import Dense, Activation, Lambda, Reshape
+from keras.layers import Dense, Activation, Lambda, Reshape, Input
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 import random
@@ -65,6 +65,7 @@ class autoencoder(object):
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
+        self._molecule_net_layers = None
         self._output_as_circular = output_as_circular
         self._init_extra(*args, **kwargs)
         return
@@ -239,6 +240,14 @@ class autoencoder(object):
                   for item_1 in autoencoder_list] for item_2 in autoencoder_list]
         return np.array(result)
 
+    def get_effective_numbers_of_occupied_bins_in_PC_space(self, input_data, range_of_PC_in_one_dim = [-1, 1],
+                                                           num_of_bins=10, min_num_per_bin=2):
+        PCs = self.get_PCs(input_data)
+        dimensionality = len(PCs[0])
+        range_of_PCs = [range_of_PC_in_one_dim for _ in range(dimensionality)]
+        hist_matrix, edges = np.histogramdd(PCs, bins=num_of_bins * np.ones(dimensionality), range=range_of_PCs)
+        return np.sum(hist_matrix >= min_num_per_bin), hist_matrix
+
     def cluster_configs_based_on_distances_in_PC_space(self, folder_for_pdb,
                                                 num_clusters, output_folder, radius=0.02):
         """
@@ -360,6 +369,31 @@ class autoencoder(object):
                 assert (len(PCs_of_network[0]) == self._node_num[2])
             if list_of_potential_center is None:
                 list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
+
+            start_from_nearest_config = CONFIG_74
+            if start_from_nearest_config:
+                nearest_pdb_frame_index_list = []
+                _1 = coordinates_data_files_list(['../target/%s' % CONFIG_30])
+                _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
+                temp_input_data = _1.get_coor_data(scaling_factor=CONFIG_49)
+                temp_input_data = Sutils.remove_translation(temp_input_data)
+                temp_all_PCs = list(self.get_PCs(temp_input_data))
+                assert len(temp_all_PCs) == np.sum(_1.get_list_of_line_num_of_coor_data_file())
+                for item_2 in list_of_potential_center:
+                    temp_distances = np.array([np.linalg.norm(item_3 - item_2) for item_3 in temp_all_PCs])
+                    index_of_nearest_config = np.argmin(temp_distances)
+
+                    nearest_pdb, nearest_frame_index = _1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(index_of_nearest_config)
+                    nearest_pdb_frame_index_list.append([nearest_pdb, nearest_frame_index])
+                    # assertion part
+                    temp_input_data_2 = np.loadtxt(nearest_pdb.replace('.pdb', '_coordinates.txt')) / CONFIG_49
+                    temp_input_data_2 = Sutils.remove_translation(temp_input_data_2)
+                    temp_PC_2 = self.get_PCs(temp_input_data_2)[nearest_frame_index]
+                    print temp_distances[index_of_nearest_config]
+                    expected = temp_distances[index_of_nearest_config]
+                    actual = np.linalg.norm(temp_PC_2 - item_2)
+                    assert_almost_equal(expected, actual, decimal=3)
+
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
                     temp_state_coor_file = '../resources/1l2y_coordinates.txt'
@@ -408,43 +442,25 @@ class autoencoder(object):
                     if CONFIG_42:  # whether the force constant adjustable mode is enabled
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
-
-                elif isinstance(molecule_type, Trp_cage):
-                    fast_equilibration_flag = CONFIG_72
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                      '../target/Trp_cage/network_%d/' % self._index,
-                                      autoencoder_info_file,
-                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
-                    if CONFIG_42:
-                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
-                            '../resources/Trp_cage/network_%d.pkl' % self._index)
-                elif isinstance(molecule_type, Src_kinase):
-                    fast_equilibration_flag = CONFIG_72
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                      '../target/Src_kinase/network_%d/' % self._index,
-                                      autoencoder_info_file,
-                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
-                    if CONFIG_42:
-                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
-                            '../resources/Src_kinase/network_%d.pkl' % self._index)
-                    # todo_list_of_commands_for_simulations += [command.replace('2src', '1y57') + ' --starting_pdb_file ../resources/1y57.pdb']
-                elif isinstance(molecule_type, BetaHairpin):
-                    fast_equilibration_flag = CONFIG_72
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
-                                      '../target/BetaHairpin/network_%d/' % self._index,
-                                      autoencoder_info_file,
-                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
-                                      CONFIG_40, CONFIG_51, input_data_type, index % 2, fast_equilibration_flag)
-                    command = "python ../src/biased_simulation_general.py BetaHairpin %s %s %s %s %s %s %s %s --data_type_in_input_layer %d --device %d --fast_equilibration %d" % parameter_list
-                    if CONFIG_42:
-                        command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
-                            '../resources/Src_kinase/network_%d.pkl' % self._index)
                 else:
-                    raise Exception("molecule type not defined")
+                    parameter_list = (
+                            str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
+                            '../target/placeholder_1/network_%d/' % self._index, autoencoder_info_file,
+                            'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                            CONFIG_40, CONFIG_51, index % 2)
+                    command = "python ../src/biased_simulation_general.py placeholder_2 %s %s %s %s %s %s %s %s --device %d" % parameter_list
+                    if not input_data_type: command += ' --data_type_in_input_layer 0'
+                    if CONFIG_72: command += ' --fast_equilibration 1'
+                    if CONFIG_42:
+                        command += ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
+                            '../resources/placeholder_1/network_%d.pkl' % self._index)
+                    if start_from_nearest_config:
+                        command += ' --starting_pdb_file %s --starting_frame %d ' % (nearest_pdb_frame_index_list[index][0],
+                                                                                     nearest_pdb_frame_index_list[index][1])
+                    if isinstance(molecule_type, Trp_cage): command = command.replace('placeholder_1', 'Trp_cage').replace('placeholder_2', 'Trp_cage')
+                    elif isinstance(molecule_type, Src_kinase): command = command.replace('placeholder_1', 'Src_kinase').replace('placeholder_2', '2src')
+                    elif isinstance(molecule_type, BetaHairpin): command = command.replace('placeholder_1', 'BetaHairpin').replace('placeholder_2', 'BetaHairpin')
+                    else: raise Exception("molecule type not defined")
 
                 todo_list_of_commands_for_simulations += [command]
         elif bias_method == "MTD":
@@ -465,13 +481,6 @@ class autoencoder(object):
                                       '../target/Trp_cage/network_%d/' % self._index, self._autoencoder_info_file,
                                       pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
                     command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
-                    todo_list_of_commands_for_simulations += [command]
-            elif isinstance(molecule_type, Src_kinase):
-                for mtd_sim_index in range(6):
-                    parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(mtd_sim_index),
-                                      '../target/Src_kinase/network_%d/' % self._index, self._autoencoder_info_file,
-                                      pc_string, CONFIG_40, CONFIG_51, mtd_sim_index % 2)
-                    command = "python ../src/biased_simulation_general.py 2src %s %s %s %s %s %s %s %s --data_type_in_input_layer 1 --bias_method MTD --device %d" % parameter_list
                     todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")
@@ -940,10 +949,18 @@ class autoencoder_Keras(autoencoder):
 
         return PCs
 
+    def get_outputs_from_PC(self, input_PC):
+        if self._hidden_layers_type[1] == CircularLayer: raise Exception('not implemented')
+        inputs = Input(shape=(self._node_num[2],))
+        x = inputs
+        for item in self._molecule_net_layers[-2:]:
+            x = item(x)     # using functional API
+        model = Model(input=inputs, output=x)
+        return model.predict(input_PC)
+
     def train(self):    
         node_num = self._node_num
         num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
-        num_of_PCs = node_num[2] / num_of_PC_nodes_for_each_PC
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
             print ("outputs different from inputs")

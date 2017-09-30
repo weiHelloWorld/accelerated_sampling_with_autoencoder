@@ -29,7 +29,7 @@ class Sutils(object):
 
         temp_bfactors = np.zeros(len(temp_atoms))
         temp_bfactors[indices] = 1
-        temp_atoms.bfactors = temp_bfactors
+        temp_atoms.tempfactors = temp_bfactors
         temp_atoms.occupancies = temp_bfactors
         temp_atoms.write(out_pdb)
         return out_pdb
@@ -171,12 +171,15 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return
 
     @staticmethod
-    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type):
+    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type,
+                          is_output_reconstructed_Cartesian=True  # output could be pairwise distances
+                          ):
         """
         assume that center of mass motion of data_set and output_data_set should be removed.
         """
         assert (Sutils.check_center_of_mass_is_at_origin(data_set))
-        assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
+        if is_output_reconstructed_Cartesian:
+            assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
 
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
@@ -461,8 +464,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return rmsd(position_1, position_2, center=True, superposition=True)
 
     @staticmethod
-    def metric_RMSD_of_atoms(list_of_files, ref_file='../resources/1l2y.pdb', atom_selection_statement="name CA",
-                             step_interval=1):
+    def metric_RMSD_of_atoms(list_of_files, ref_file='../resources/1l2y.pdb', ref_index=0,
+                             atom_selection_statement="name CA", step_interval=1):
         """
         :param atom_selection_statement:  could be either
          - "name CA" for alpha-carbon atoms only
@@ -472,6 +475,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         """
         ref = Universe(ref_file)
         ref_atom_selection = ref.select_atoms(atom_selection_statement)
+        ref.trajectory[ref_index]
+        ref_positions = ref_atom_selection.positions
         result_rmsd_of_atoms = []
         index = 0
 
@@ -481,7 +486,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
             for _ in sample.trajectory:
                 if index % step_interval == 0:
-                    result_rmsd_of_atoms.append(Sutils.get_RMSD_after_alignment(ref_atom_selection.positions,
+                    result_rmsd_of_atoms.append(Sutils.get_RMSD_after_alignment(ref_positions,
                                                                     sample_atom_selection.positions))
 
                 index += 1
@@ -520,12 +525,12 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return average_RMSD_wrt_neighbors
 
     @staticmethod
-    def get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval=1):
+    def get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval=1, atom_selection='name CA'):
         distances_list = []
         index = 0
         for sample_file in list_of_files:
             sample = Universe(sample_file)
-            sample_atom_selection = sample.select_atoms("name CA")
+            sample_atom_selection = sample.select_atoms(atom_selection)
             for _ in sample.trajectory:
                 if index % step_interval == 0:
                     distances_list.append(
@@ -536,17 +541,18 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return np.array(distances_list)
 
     @staticmethod
-    def get_non_repeated_pairwise_distance_as_list_of_alpha_carbon(list_of_files, step_interval=1):
+    def get_non_repeated_pairwise_distance(list_of_files, step_interval=1, atom_selection='name CA'):
         """each element in this result is a list, not a matrix"""
-        dis_matrix_list = Sutils.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
-        num_of_residues = dis_matrix_list[0].shape[0]
+        dis_matrix_list = Sutils.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval,
+                                                                                  atom_selection)
+        num_atoms = dis_matrix_list[0].shape[0]
         result = []
         for mat in dis_matrix_list:
             p_distances = []
-            for item_1 in range(num_of_residues):
-                for item_2 in range(item_1 + 1, num_of_residues):
+            for item_1 in range(num_atoms):
+                for item_2 in range(item_1 + 1, num_atoms):
                     p_distances += [mat[item_1][item_2]]
-            assert (len(p_distances) == num_of_residues * (num_of_residues - 1) / 2)
+            assert (len(p_distances) == num_atoms * (num_atoms - 1) / 2)
             result += [p_distances]
 
         return result
@@ -796,8 +802,8 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb', step_interval = 1):
-        ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        ref = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms([ref_file])
+        sample = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval)
         diff = map(lambda x: np.linalg.norm(ref[0] - x), sample)
         return diff
 
@@ -835,8 +841,8 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def metric_get_number_of_native_contacts(list_of_files, ref_file ='../resources/1l2y.pdb', threshold = 8, step_interval = 1):
-        ref = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon([ref_file])
-        sample = Trp_cage.get_pairwise_distance_matrices_of_alpha_carbon(list_of_files, step_interval)
+        ref = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms([ref_file])
+        sample = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval)
 
         result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
                      sample)

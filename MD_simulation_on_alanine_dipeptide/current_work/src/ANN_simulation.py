@@ -182,7 +182,7 @@ class plotting(object):
                         if CONFIG_48 == "cossin":
                             temp_input_data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
                                 list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
-                        elif CONFIG_48 == "Cartesian":
+                        elif CONFIG_48 == "Cartesian" or 'pairwise_distance':
                             scaling_factor = CONFIG_49
                             temp_input_data = np.loadtxt(out_file_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
                             temp_input_data = Sutils.remove_translation(temp_input_data)
