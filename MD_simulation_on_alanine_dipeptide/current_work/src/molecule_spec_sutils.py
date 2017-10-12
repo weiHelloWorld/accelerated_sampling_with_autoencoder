@@ -10,6 +10,37 @@ class Sutils(object):
         return
 
     @staticmethod
+    def get_num_of_non_overlapping_hyperspheres_that_filled_explored_phase_space(
+            pdb_file_list, atom_selection, radius, step_interval=1, distance_metric='RMSD'):
+        """
+        This functions is used to count how many non-overlapping hyperspheres are needed to fill the explored phase
+        space, to estimate volumn of explored region
+        :param atom_selection: atom selection statement for MDAnalysis
+        :param radius: radius of hyperspheres
+        :param distance_metric: distance metric of two frames
+        :return: number of hyperspheres
+        """
+        index = 0
+        positions_list = []
+        for sample_file in pdb_file_list:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection)
+
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    current_positions = sample_atom_selection.positions
+                    distances_to_previous_frames = np.array(
+                        [Sutils.get_RMSD_after_alignment(item, current_positions)
+                            for item in positions_list])
+                    if len(distances_to_previous_frames) == 0 or np.all(distances_to_previous_frames > radius):
+                        # need to include a new hypershere
+                        positions_list.append(current_positions)
+
+                index += 1
+
+        return len(positions_list)
+
+    @staticmethod
     def mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_file, out_pdb,
                                                             atom_index_list, item_positions=None):
         """
