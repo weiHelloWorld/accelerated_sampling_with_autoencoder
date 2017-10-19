@@ -67,6 +67,10 @@ elif CONFIG_48 == 'Cartesian':
     output_data_set = output_data_set[::args.training_interval]
     assert (Sutils.check_center_of_mass_is_at_origin(data_set))
     assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
+    scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to put more weights on some components in the output
+    if not scaling_factor_for_expected_output is None:
+        print "expected output is weighted"
+        output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
 elif CONFIG_48 == 'pairwise_distance':
     num_of_copies = args.num_of_copies
     fraction_of_data_to_be_saved = 1.0 / num_of_copies
