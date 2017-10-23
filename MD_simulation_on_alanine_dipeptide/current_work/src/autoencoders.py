@@ -722,11 +722,7 @@ class autoencoder_Keras(autoencoder):
 
     def get_output_data(self, input_data=None, num_of_PCs = None):
         if input_data is None: input_data = self._data_set
-        temp_model = Sequential()
-        for item in self._molecule_net_layers:
-            temp_model.add(item)
-
-        return temp_model.predict(input_data)
+        return self._molecule_net.predict(input_data)
 
     def get_mid_result(self, input_data=None):
         """The out format of this function is different from that in Pybrain implementation"""
