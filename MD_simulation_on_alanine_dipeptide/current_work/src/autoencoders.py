@@ -781,6 +781,7 @@ class autoencoder_Keras(autoencoder):
         num_of_hidden_layers = len(self._hidden_layers_type)
         if self._hierarchical:
             output_data_set = np.concatenate([output_data_set,output_data_set], axis=1)
+            self._output_data_set = output_data_set
             # functional API: https://keras.io/getting-started/functional-api-guide
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
@@ -792,7 +793,7 @@ class autoencoder_Keras(autoencoder):
             assert (len(x_next) == 2)
             from keras import layers
             from keras import backend as K
-            x_next_1 = [Lambda(lambda x: K.tanh(x))(item) for item in [x_next[0], layers.Add()(x_next)]]
+            x_next_1 = [temp_lambda_layer(item) for item in [x_next[0], layers.Add()(x_next)]]
             shared_final_layer = Dense(node_num[4], activation='tanh',
                                        kernel_regularizer=l2(self._network_parameters[4][3]))
             outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
@@ -841,6 +842,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         # for _1 in range(len(dense_layers)):
         #     assert (dense_layers[_1].get_weights()[0].shape[0] == node_num[_1]), (
         #     dense_layers[_1].get_weights()[0].shape[1], node_num[_1])  # check shapes of weights
+        # TODO: other way to check shapes of weights..
 
         self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
                                                   molecule_net.layers if isinstance(item,
@@ -934,3 +936,5 @@ def temp_lambda_func_for_circular_for_Keras(x):
     """This has to be defined at the module level here, otherwise the pickle will not work
     """
     return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
+
+temp_lambda_layer = Lambda(lambda x: K.tanh(x))
