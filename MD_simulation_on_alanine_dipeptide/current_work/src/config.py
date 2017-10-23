@@ -159,9 +159,9 @@ CONFIG_74 = False                  # whether we start each biased simulation wit
 CONFIG_40 = 'implicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_51 = 'NPT'                  # simulation ensemble type (for Trp-cage only)
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
-CONFIG_44 = False                             # whether to use hierarchical autoencoder
-if CONFIG_44:
-    raise Exception("Warning: no longer supported (used for backward compatibility)!  " + WARNING_INFO)
+CONFIG_44 = True                             # whether to use hierarchical autoencoder
+# if CONFIG_44:
+#     raise Exception("Warning: no longer supported (used for backward compatibility)!  " + WARNING_INFO)
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
 CONFIG_47 = False                        # whether to set the output layer as circular layer
 if CONFIG_47:

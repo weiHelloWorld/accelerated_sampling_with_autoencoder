@@ -773,7 +773,93 @@ class autoencoder_Keras(autoencoder):
         model = Model(input=inputs, output=x)
         return model.predict(input_PC)
 
-    def train(self):    
+    def train(self):
+        node_num = self._node_num
+        data = self._data_set
+        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
+            print ("outputs different from inputs")
+            output_data_set = self._output_data_set
+        else:
+            output_data_set = data
+
+        num_of_hidden_layers = len(self._hidden_layers_type)
+        if self._hierarchical:
+            output_data_set = np.concatenate([output_data_set,output_data_set], axis=1)
+            # functional API: https://keras.io/getting-started/functional-api-guide
+            inputs_net = Input(shape=(node_num[0],))
+            x = Dense(node_num[1], activation='tanh',
+                      kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
+            x_bottleneck = [Dense(1, activation='tanh', kernel_regularizer=l2(self._network_parameters[4][1]))(x)
+                            for _ in range(node_num[2])]  # hierarchical bottleneck CV layer
+            x_next = [Dense(node_num[3], activation='linear',
+                            kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in x_bottleneck]
+            assert (len(x_next) == 2)
+            from keras import layers
+            from keras import backend as K
+            x_next_1 = [Lambda(lambda x: K.tanh(x))(item) for item in [x_next[0], layers.Add()(x_next)]]
+            shared_final_layer = Dense(node_num[4], activation='tanh',
+                                       kernel_regularizer=l2(self._network_parameters[4][3]))
+            outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
+            molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
+            from keras.utils import plot_model
+            plot_model(molecule_net, to_file='model.png')
+        elif num_of_hidden_layers != 3:
+            raise Exception('not implemented for this case')
+        elif self._hidden_layers_type[1] == CircularLayer:
+            raise Exception('circularlayer not implemented')
+        else:
+            inputs_net = Input(shape=(node_num[0],))
+            x = Dense(node_num[1], activation='tanh',
+                      kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
+            for item in range(1, 4):
+                x = Dense(node_num[item + 1], activation='tanh',
+                          kernel_regularizer=l2(self._network_parameters[4][item]))(x)
+            molecule_net = Model(inputs=inputs_net, outputs=x)
+
+        molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
+                             optimizer=SGD(lr=self._network_parameters[0],
+                                           momentum=self._network_parameters[1],
+                                           decay=self._network_parameters[2],
+                                           nesterov=self._network_parameters[3])
+                             )
+
+        training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
+parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
+                              (self._index, self._max_num_of_training, str(self._node_num),
+                               str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
+                               len(data),
+                               self._network_parameters[0], self._network_parameters[1],
+                               self._network_parameters[2], str(self._network_parameters[4]),
+                               str(self._output_as_circular))
+
+        print("Start " + training_print_info + str(datetime.datetime.now()))
+        call_back_list = []
+        earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
+        if self._enable_early_stopping:
+            call_back_list += [earlyStopping]
+
+        molecule_net.fit(data, output_data_set, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
+                         verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
+
+        dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
+        # for _1 in range(len(dense_layers)):
+        #     assert (dense_layers[_1].get_weights()[0].shape[0] == node_num[_1]), (
+        #     dense_layers[_1].get_weights()[0].shape[1], node_num[_1])  # check shapes of weights
+
+        self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
+                                                  molecule_net.layers if isinstance(item,
+                                                                                    Dense)]  # transpose the weights for consistency
+        self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if
+                                                    isinstance(item, Dense)]
+
+        print('Done ' + training_print_info + str(datetime.datetime.now()))
+        self._molecule_net = molecule_net
+        self._molecule_net_layers = molecule_net.layers
+
+        return self
+
+    def train_bak(self):
+        """this is kept for old version"""
         node_num = self._node_num
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
