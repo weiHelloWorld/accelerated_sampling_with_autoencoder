@@ -65,8 +65,7 @@ class autoencoder(object):
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
-        self._molecule_net_layers = None
-        self._molecule_net = None
+        self._molecule_net_layers = self._molecule_net = self._encoder_net = self._decoder_net = None
         self._output_as_circular = output_as_circular
         self._init_extra(*args, **kwargs)
         return
@@ -89,6 +88,10 @@ class autoencoder(object):
                 a._molecule_net.add(item)
         else:
             raise Exception('cannot load attribute _molecule_net')
+        if os.path.isfile(filename.replace('.pkl', '_encoder.hdf5')):
+            a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'))
+        else:
+            raise Exception('TODO: construct encoder from _molecule_net') # TODO
         return a
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
@@ -109,12 +112,18 @@ class autoencoder(object):
                 "%Y_%m_%d_%H_%M_%S") + '.pkl')
 
         hdf5_file_name = filename.replace('.pkl', '.hdf5')
+        hdf5_file_name_encoder = hdf5_file_name.replace('.hdf5', '_encoder.hdf5')
+        hdf5_file_name_decoder = hdf5_file_name.replace('.hdf5', '_decoder.hdf5')
         self._molecule_net.save(hdf5_file_name)
-        self._molecule_net = None  # we save model in hdf5, not in pkl
-        self._molecule_net_layers = None
+        self._encoder_net.save(hdf5_file_name_encoder)
+        if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
+        self._molecule_net = self._molecule_net_layers = self._encoder_net = self._decoder_net = None  # we save model in hdf5, not in pkl
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
+
         self._molecule_net = load_model(hdf5_file_name)
+        self._encoder_net = load_model(hdf5_file_name_encoder)
+        # self._decoder_net = load_model(hdf5_file_name_decoder)
         self._molecule_net_layers = self._molecule_net.layers
         return
 
@@ -740,24 +749,16 @@ class autoencoder_Keras(autoencoder):
 
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
-        temp_model = Sequential()
         if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
-            for item in self._molecule_net_layers[:-5]:
-                temp_model.add(item)
-        else:
-            for item in self._molecule_net_layers[:-2]:
-                temp_model.add(item)
+            raise Exception('no longer supported')
 
         if self._hidden_layers_type[1] == CircularLayer:
-            PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
-                   for item in temp_model.predict(input_data)]
-            assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
+            raise Exception('to be implemented')
         elif self._hidden_layers_type[1] == TanhLayer:
-            PCs = temp_model.predict(input_data)
+            PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[2])
         else:
             raise Exception("PC layer type error")
-
         return PCs
 
     def get_outputs_from_PC(self, input_PC):
@@ -786,18 +787,21 @@ class autoencoder_Keras(autoencoder):
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            x_bottleneck = [Dense(1, activation='tanh', kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-                            for _ in range(node_num[2])]  # hierarchical bottleneck CV layer
+            encoded = Dense(node_num[2], activation='tanh',
+                            kernel_regularizer=l2(self._network_parameters[4][1]))(x)
+            encoded_split = [temp_lambda_slice_layer_0(encoded), temp_lambda_slice_layer_1(encoded)]
             x_next = [Dense(node_num[3], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in x_bottleneck]
+                            kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
             assert (len(x_next) == 2)
             from keras import layers
             from keras import backend as K
-            x_next_1 = [temp_lambda_layer(item) for item in [x_next[0], layers.Add()(x_next)]]
+            x_next_1 = [temp_lambda_tanh_layer(item) for item in [x_next[0], layers.Add()(x_next)]]
             shared_final_layer = Dense(node_num[4], activation='tanh',
                                        kernel_regularizer=l2(self._network_parameters[4][3]))
             outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
+            encoder_net = Model(inputs=inputs_net, outputs=encoded)
             molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
+            print molecule_net.summary()
             from keras.utils import plot_model
             plot_model(molecule_net, to_file='model.png')
         elif num_of_hidden_layers != 3:
@@ -812,6 +816,7 @@ class autoencoder_Keras(autoencoder):
                 x = Dense(node_num[item + 1], activation='tanh',
                           kernel_regularizer=l2(self._network_parameters[4][item]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
+            # TODO: define encoder for this part
 
         molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
                              optimizer=SGD(lr=self._network_parameters[0],
@@ -853,7 +858,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         print('Done ' + training_print_info + str(datetime.datetime.now()))
         self._molecule_net = molecule_net
         self._molecule_net_layers = molecule_net.layers
-
+        self._encoder_net = encoder_net
         return self
 
     def train_bak(self):
@@ -937,4 +942,6 @@ def temp_lambda_func_for_circular_for_Keras(x):
     """
     return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
 
-temp_lambda_layer = Lambda(lambda x: K.tanh(x))
+temp_lambda_tanh_layer = Lambda(lambda x: K.tanh(x))
+temp_lambda_slice_layer_0 = Lambda(lambda x: x[:, [0]], output_shape=(1,))
+temp_lambda_slice_layer_1 = Lambda(lambda x: x[:, [1]], output_shape=(1,))
