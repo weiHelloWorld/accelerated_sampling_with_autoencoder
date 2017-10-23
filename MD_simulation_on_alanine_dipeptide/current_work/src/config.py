@@ -155,7 +155,7 @@ elif CONFIG_48 == 'pairwise_distance':
 else:
     raise Exception('error input data type')
 
-CONFIG_74 = True                  # whether we start each biased simulation with nearest configuration or a fixed configuration
+CONFIG_74 = False                  # whether we start each biased simulation with nearest configuration or a fixed configuration
 CONFIG_40 = 'implicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_51 = 'NPT'                  # simulation ensemble type (for Trp-cage only)
 CONFIG_42 = False                             # whether to enable force constant adjustable mode

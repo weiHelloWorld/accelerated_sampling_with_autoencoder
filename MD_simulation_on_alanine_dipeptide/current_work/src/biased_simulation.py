@@ -255,7 +255,7 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
 
 def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     coor_file = Alanine_dipeptide().generate_coordinates_from_pdb_files(pdb_file)[0]
-    temp_network = pickle.load(open(args.autoencoder_file, 'rb'))
+    temp_network = autoencoder.load_from_pkl_file(args.autoencoder_file)
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center(input_data_type)
     if layer_types[1] == "Circular":
