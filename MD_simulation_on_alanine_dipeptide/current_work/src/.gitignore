@@ -12,3 +12,5 @@ temp_*.sh
 *_coordinates.txt
 temp*.txt
 temp/**
+*.hdf5
+
