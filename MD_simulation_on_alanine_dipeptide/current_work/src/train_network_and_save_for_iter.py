@@ -89,6 +89,10 @@ else:
 
 print ("min/max of output = %f, %f" % (np.min(output_data_set), np.max(output_data_set)))
 assert (len(data_set) == len(output_data_set))
+use_representative_points_for_training = CONFIG_58
+if use_representative_points_for_training:
+    data_set, output_data_set = Sutils.select_representative_points(data_set, output_data_set)
+    
 if input_data_type == 'Cartesian':
     print 'applying data augmentation...'
     data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies,
@@ -100,10 +104,6 @@ scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to p
 if not scaling_factor_for_expected_output is None:
     print "expected output is weighted"
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
-
-use_representative_points_for_training = CONFIG_58
-if use_representative_points_for_training:
-    data_set, output_data_set = Sutils.select_representative_points(data_set, output_data_set)
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
