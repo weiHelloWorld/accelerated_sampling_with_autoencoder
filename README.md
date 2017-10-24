@@ -56,7 +56,7 @@ echo "you may need to install following packages manually: PLUMED, OpenMM-plumed
 
 ## Installation and preparation
 
-No installation is required.  You may simply have all dependent packages installed and checkout this repository.  Reference pdb files for simulation are needed.
+No installation is required.  You may simply have all dependent packages installed and checkout this repository (or download the package with dependency files here: https://drive.google.com/a/illinois.edu/file/d/0B6OOQc-KDdimbklIbkd1cjhnSWs/view?usp=sharing).  Reference pdb files for simulation are needed.
 
 It is **highly recommended** to run tests before running code to make sure packages are correctly installed.
 
