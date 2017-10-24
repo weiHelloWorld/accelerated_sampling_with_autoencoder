@@ -89,33 +89,24 @@ elif CONFIG_48 == 'pairwise_distance':
 else:
     raise Exception('error input data type')
 
-max_FVE = 0
-current_network = None
-
-for _ in range(args.num_of_trainings):
-    if CONFIG_45 == 'pybrain':
-        temp_network = neural_network_for_simulation(index=args.index,
-                                                     data_set_for_training=data_set,
-                                                     training_data_interval=1,
-                                                     )
-    elif CONFIG_45 == 'keras':
-        temp_network = autoencoder_Keras(index=args.index,
+if CONFIG_45 == 'keras':
+    temp_network_list = [autoencoder_Keras(index=args.index,
                                          data_set_for_training=data_set,
                                          output_data_set=output_data_set,
                                          training_data_interval=1,
                                          **additional_argument_list
-                                         )
-    else:
-        raise Exception ('this training backend not implemented')
+                                         ) for _ in range(args.num_of_trainings)]
+else:
+    raise Exception ('this training backend not implemented')
 
-    temp_network.train()
-    print("temp FVE = %f" % (temp_network.get_fraction_of_variance_explained()))
-    if temp_network.get_fraction_of_variance_explained() > max_FVE:
-        max_FVE = temp_network.get_fraction_of_variance_explained()
-        print("max_FVE = %f" % max_FVE)
-        assert (max_FVE > 0)
-        current_network = copy.deepcopy(temp_network)
+for item in temp_network_list: item.train()
 
-assert (isinstance(current_network, autoencoder))
-current_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
-print current_network._filename_to_save_network
+temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
+max_FVE = np.max(temp_FVE_list)
+print 'temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE)
+best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
+
+assert (isinstance(best_network, autoencoder))
+assert (best_network.get_fraction_of_variance_explained() == max_FVE)
+best_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
+print best_network._filename_to_save_network

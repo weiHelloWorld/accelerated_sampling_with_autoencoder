@@ -801,7 +801,7 @@ class autoencoder_Keras(autoencoder):
             outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
             molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
-            print molecule_net.summary()
+            # print molecule_net.summary()
             from keras.utils import plot_model
             plot_model(molecule_net, to_file='model.png')
         elif num_of_hidden_layers != 3:
