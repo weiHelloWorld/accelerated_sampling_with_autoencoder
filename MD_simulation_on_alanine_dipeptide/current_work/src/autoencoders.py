@@ -583,6 +583,7 @@ class autoencoder(object):
         window_counts = []
         coords = []
         umbOP = []
+        num_of_random_points_to_pick_in_each_file = None
         if random_dataset:
             temp_total_num_points = np.sum(temp_coor_file_obj.get_list_of_line_num_of_coor_data_file())
             temp_total_num_files = len(temp_coor_file_obj.get_list_of_line_num_of_coor_data_file())
@@ -802,8 +803,8 @@ class autoencoder_Keras(autoencoder):
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
             molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             # print molecule_net.summary()
-            from keras.utils import plot_model
-            plot_model(molecule_net, to_file='model.png')
+            # from keras.utils import plot_model
+            # plot_model(molecule_net, to_file='model.png')
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
         elif self._hidden_layers_type[1] == CircularLayer:
@@ -812,11 +813,14 @@ class autoencoder_Keras(autoencoder):
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            for item in range(1, 4):
-                x = Dense(node_num[item + 1], activation='tanh',
-                          kernel_regularizer=l2(self._network_parameters[4][item]))(x)
+            encoded = Dense(node_num[2], activation='tanh',
+                            kernel_regularizer=l2(self._network_parameters[4][1]))(x)
+            x = Dense(node_num[3], activation='tanh',
+                      kernel_regularizer=l2(self._network_parameters[4][2]))(encoded)
+            x = Dense(node_num[4], activation='tanh',
+                      kernel_regularizer=l2(self._network_parameters[4][3]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
-            # TODO: define encoder for this part
+            encoder_net = Model(inputs=inputs_net, outputs=encoded)
 
         molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
                              optimizer=SGD(lr=self._network_parameters[0],
@@ -844,10 +848,9 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                          verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
         dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
-        # for _1 in range(len(dense_layers)):
-        #     assert (dense_layers[_1].get_weights()[0].shape[0] == node_num[_1]), (
-        #     dense_layers[_1].get_weights()[0].shape[1], node_num[_1])  # check shapes of weights
-        # TODO: other way to check shapes of weights..
+        for _1 in range(2):  # check first two layers only
+            assert (dense_layers[_1].get_weights()[0].shape[0] == node_num[_1]), (
+            dense_layers[_1].get_weights()[0].shape[1], node_num[_1])  # check shapes of weights
 
         self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
                                                   molecule_net.layers if isinstance(item,
