@@ -29,6 +29,7 @@ if not args.num_PCs is None:
     temp_node_num[2] = args.num_PCs
     additional_argument_list['node_num'] = temp_node_num
 
+num_of_copies = args.num_of_copies
 if not args.data_folder is None:
     temp_list_of_directories_contanining_data = [args.data_folder]
 else:
@@ -37,57 +38,72 @@ else:
 my_coor_data_obj = coordinates_data_files_list(
     list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
 my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
-if CONFIG_48 == 'cossin':
+
+fraction_of_data_to_be_saved = 1   # save all training data by default
+input_data_type, output_data_type = CONFIG_48, CONFIG_76
+
+# getting input data
+if input_data_type == 'cossin' and output_data_type == 'cossin':  # input type
     data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
         my_file_list, step_interval=args.training_interval)
-    output_data_set = None
-    fraction_of_data_to_be_saved = 1
-elif CONFIG_48 == 'Cartesian':
+elif input_data_type == 'Cartesian':
     coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
+    scaling_factor = CONFIG_49
+    data_set = coor_data_obj_input.get_coor_data(scaling_factor)
+    data_set = data_set[::args.training_interval]
+    data_set = Sutils.remove_translation(data_set)
+    assert (Sutils.check_center_of_mass_is_at_origin(data_set))
+else:
+    raise Exception('error input type')
+
+# getting output data
+if output_data_type == 'cossin':   # output type
+    output_data_set = None   # done above
+elif output_data_type == 'Cartesian':
+    scaling_factor = CONFIG_49
     alignment_coor_file_suffix_list = CONFIG_61
-    num_of_copies = args.num_of_copies
-    fraction_of_data_to_be_saved = 1.0 / num_of_copies
-    data_set, output_data_set = Sutils.prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
-        temp_list_of_directories_contanining_data, alignment_coor_file_suffix_list, CONFIG_49, num_of_copies,
-        molecule_type,
-        use_representative_points_for_training=CONFIG_58
-    )
-    mixed_error_function = CONFIG_71
+    output_data_set = Sutils.prepare_output_Cartesian_coor_with_multiple_ref_structures(
+        temp_list_of_directories_contanining_data, alignment_coor_file_suffix_list, scaling_factor)
+    output_data_set = output_data_set[::args.training_interval]
+    mixed_error_function = CONFIG_71    # TODO: refactor this part later
     if mixed_error_function:
         if CONFIG_30 == "Trp_cage":
             output_data_set_1 = Sutils.remove_translation(output_data_set[:, list(range(9 * 1, 9 * 8))])  # mixed_err
             output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(180, 360))])
-            output_data_set = np.concatenate([3.0 * output_data_set_1, output_data_set_2], axis=1)  # TODO: may modify this relative weight later
+            output_data_set = np.concatenate([3.0 * output_data_set_1, output_data_set_2],
+                                             axis=1)  # TODO: may modify this relative weight later
         elif CONFIG_30 == "Src_kinase":
-            output_data_set_1 = Sutils.remove_translation(output_data_set[:, list(range(9 * 143, 9 * 170))])  # mixed_err
+            output_data_set_1 = Sutils.remove_translation(
+                output_data_set[:, list(range(9 * 143, 9 * 170))])  # mixed_err
             output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(2358 + 9 * 43, 2358 + 9 * 58))])
             output_data_set = np.concatenate([output_data_set_1, output_data_set_2], axis=1)
-
-    data_set = data_set[::args.training_interval]
-    output_data_set = output_data_set[::args.training_interval]
-    assert (Sutils.check_center_of_mass_is_at_origin(data_set))
     assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
-    scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to put more weights on some components in the output
-    if not scaling_factor_for_expected_output is None:
-        print "expected output is weighted"
-        output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
-elif CONFIG_48 == 'pairwise_distance':
-    num_of_copies = args.num_of_copies
-    fraction_of_data_to_be_saved = 1.0 / num_of_copies
+elif output_data_type == 'pairwise_distance':
     coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
         lambda x: not 'aligned' in x)
-    data_set = Sutils.remove_translation(coor_data_obj_input.get_coor_data(scaling_factor=CONFIG_49))
-    data_set = data_set[::args.training_interval]
     output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
-        coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval, atom_selection=CONFIG_73)) \
-                      / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
-
-    data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type,
-                                                         is_output_reconstructed_Cartesian=False)
-    print np.min(output_data_set), np.max(output_data_set)
-
+        coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
+        atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
 else:
-    raise Exception('error input data type')
+    raise Exception('error output data type')
+
+print ("min/max of output = %f, %f" % (np.min(output_data_set), np.max(output_data_set)))
+assert (len(data_set) == len(output_data_set))
+if input_data_type == 'Cartesian':
+    print 'applying data augmentation...'
+    data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies,
+                             is_output_reconstructed_Cartesian=(output_data_type == 'Cartesian'))
+else:
+    print "data augmentation not applied"
+
+scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to put more weights on some components in the output
+if not scaling_factor_for_expected_output is None:
+    print "expected output is weighted"
+    output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
+
+use_representative_points_for_training = CONFIG_58
+if use_representative_points_for_training:
+    data_set, output_data_set = Sutils.select_representative_points(data_set, output_data_set)
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
