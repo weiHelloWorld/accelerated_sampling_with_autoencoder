@@ -785,28 +785,36 @@ class autoencoder_Keras(autoencoder):
         num_of_hidden_layers = len(self._hidden_layers_type)
         if self._hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
-            # TODO: only implemented for 2-CV case
-            output_data_set = np.concatenate([output_data_set,output_data_set], axis=1)
+            temp_output_shape = output_data_set.shape
+            output_data_set = np.repeat(output_data_set, node_num[2], axis=0).reshape(temp_output_shape[0],
+                                        temp_output_shape[1] * node_num[2])   # repeat output for hierarchical case
+            # check if the output data are correct
+            temp_data_for_checking = output_data_set[0]
+            for item in range(node_num[2]):
+                assert (np.all(temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]]
+                        == temp_data_for_checking[:temp_output_shape[1]]))
             self._output_data_set = output_data_set
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
             encoded = Dense(node_num[2], activation='tanh',
                             kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-            encoded_split = [temp_lambda_slice_layers[0](encoded), temp_lambda_slice_layers[1](encoded)]
-            # encoded_split = [temp_lambda_slice_layer_0(encoded), temp_lambda_slice_layer_1(encoded)]
+            encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
             x_next = [Dense(node_num[3], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
-            assert (len(x_next) == 2)
             x_next_1 = [temp_lambda_tanh_layer(item) for item in [x_next[0], layers.Add()(x_next)]]
+            x_next_1 = [x_next[0]]
+            for item in range(2, len(x_next) + 1):
+                x_next_1.append(layers.Add()(x_next[:item]))
+            assert (len(x_next) == len(x_next_1))
             shared_final_layer = Dense(node_num[4], activation='tanh',
                                        kernel_regularizer=l2(self._network_parameters[4][3]))
             outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
             molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             # print molecule_net.summary()
-            # from keras.utils import plot_model
-            # plot_model(molecule_net, to_file='model.png')
+            from keras.utils import plot_model
+            plot_model(molecule_net, to_file='model.png')
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
         elif self._hidden_layers_type[1] == CircularLayer:
