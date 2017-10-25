@@ -794,24 +794,40 @@ class autoencoder_Keras(autoencoder):
                 assert (np.all(temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]]
                         == temp_data_for_checking[:temp_output_shape[1]]))
             self._output_data_set = output_data_set
+            hierarchical_variant = 1
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
             encoded = Dense(node_num[2], activation='tanh',
                             kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-            encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
-            x_next = [Dense(node_num[3], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
-            x_next_1 = [temp_lambda_tanh_layer(item) for item in [x_next[0], layers.Add()(x_next)]]
-            x_next_1 = [x_next[0]]
-            for item in range(2, len(x_next) + 1):
-                x_next_1.append(layers.Add()(x_next[:item]))
-            assert (len(x_next) == len(x_next_1))
-            shared_final_layer = Dense(node_num[4], activation='tanh',
-                                       kernel_regularizer=l2(self._network_parameters[4][3]))
-            outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
-            encoder_net = Model(inputs=inputs_net, outputs=encoded)
-            molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
+            if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
+                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
+                x_next = [Dense(node_num[3], activation='linear',
+                                kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
+                x_next_1 = [x_next[0]]
+                for item in range(2, len(x_next) + 1):
+                    x_next_1.append(layers.Add()(x_next[:item]))
+                x_next_1 = [temp_lambda_tanh_layer(item) for item in x_next_1]
+                assert (len(x_next) == len(x_next_1))
+                shared_final_layer = Dense(node_num[4], activation='tanh',
+                                           kernel_regularizer=l2(self._network_parameters[4][3]))
+                outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
+                encoder_net = Model(inputs=inputs_net, outputs=encoded)
+                molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
+            elif hierarchical_variant == 1:   # simplified version, no shared layer after CV (encoded) layer
+                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
+                concat_layers = [encoded_split[0]]
+                concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, node_num[2] + 1)]
+                x = [Dense(node_num[3], activation='tanh',
+                                kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in concat_layers]
+                x = [Dense(node_num[4], activation='tanh',
+                                kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
+                outputs_net = layers.Concatenate()(x)
+                encoder_net = Model(inputs=inputs_net, outputs=encoded)
+                molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
+            elif hierarchical_variant == 2:   # boosted hierarchical autoencoders
+                pass
+            else: raise Exception('error variant')
             # print molecule_net.summary()
             from keras.utils import plot_model
             plot_model(molecule_net, to_file='model.png')
