@@ -794,7 +794,7 @@ class autoencoder_Keras(autoencoder):
                 assert (np.all(temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]]
                         == temp_data_for_checking[:temp_output_shape[1]]))
             self._output_data_set = output_data_set
-            hierarchical_variant = 1
+            hierarchical_variant = 2
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
@@ -825,8 +825,21 @@ class autoencoder_Keras(autoencoder):
                 outputs_net = layers.Concatenate()(x)
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
-            elif hierarchical_variant == 2:   # boosted hierarchical autoencoders
-                pass
+            elif hierarchical_variant == 2:
+                # boosted hierarchical autoencoders, CV i in encoded layer learns remaining error that has
+                # not been learned by previous CVs
+                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
+                x = [Dense(node_num[3], activation='tanh',
+                           kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
+                x = [Dense(node_num[4], activation='tanh',
+                           kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
+                x_out = [x[0]]
+                for item in range(2, len(x) + 1):
+                    x_out.append(layers.Add()(x[:item]))
+                assert (len(x_out) == len(x))
+                outputs_net = layers.Concatenate()(x_out)
+                encoder_net = Model(inputs=inputs_net, outputs=encoded)
+                molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             else: raise Exception('error variant')
             # print molecule_net.summary()
             from keras.utils import plot_model
