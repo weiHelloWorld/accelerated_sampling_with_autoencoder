@@ -368,7 +368,7 @@ class autoencoder(object):
         assert (len(relative_err) == len(input_data)), (len(relative_err), len(input_data))
         return relative_err
 
-    def get_fraction_of_variance_explained(self, num_of_PCs=None):
+    def get_fraction_of_variance_explained(self, num_of_PCs=None, hierarchical_FVE=False):
         """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
         actual_output_data = self.get_output_data(num_of_PCs)
@@ -377,9 +377,21 @@ class autoencoder(object):
         else:
             expected_output_data = input_data
 
-        var_of_input = sum(np.var(expected_output_data, axis=0))
+        var_of_output = sum(np.var(expected_output_data, axis=0))
         var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
-        return 1 - var_of_err / var_of_input
+        if self._hierarchical and hierarchical_FVE:
+            num_PCs = self._node_num[2]
+            length_for_hierarchical_component = expected_output_data.shape[1] / num_PCs
+            hierarchical_actual_output_list = [actual_output_data[:,
+                                    item * length_for_hierarchical_component:
+                                    (item + 1) * length_for_hierarchical_component]
+                                               for item in range(num_PCs)]
+            expected_output_component = expected_output_data[:, :length_for_hierarchical_component]
+            assert (expected_output_component.shape == hierarchical_actual_output_list[0].shape)
+            var_of_expected_output_component = sum(np.var(expected_output_component, axis=0))
+            var_of_actual_output_component_list = [sum(np.var(item - expected_output_component, axis=0)) for item in hierarchical_actual_output_list]
+            return [1 - item / var_of_expected_output_component for item in var_of_actual_output_component_list]
+        return 1 - var_of_err / var_of_output
 
     def get_commands_for_further_biased_simulations(self, list_of_potential_center=None,
                                                     num_of_simulation_steps=None,
