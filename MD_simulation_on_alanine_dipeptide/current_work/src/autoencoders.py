@@ -7,6 +7,8 @@ from keras.optimizers import *
 from keras.layers import Dense, Activation, Lambda, Reshape, Input
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
+from keras import layers
+from keras import backend as K
 import random
 
 ##################    set types of molecules  ############################
@@ -782,20 +784,20 @@ class autoencoder_Keras(autoencoder):
 
         num_of_hidden_layers = len(self._hidden_layers_type)
         if self._hierarchical:
+            # functional API: https://keras.io/getting-started/functional-api-guide
+            # TODO: only implemented for 2-CV case
             output_data_set = np.concatenate([output_data_set,output_data_set], axis=1)
             self._output_data_set = output_data_set
-            # functional API: https://keras.io/getting-started/functional-api-guide
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
             encoded = Dense(node_num[2], activation='tanh',
                             kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-            encoded_split = [temp_lambda_slice_layer_0(encoded), temp_lambda_slice_layer_1(encoded)]
+            encoded_split = [temp_lambda_slice_layers[0](encoded), temp_lambda_slice_layers[1](encoded)]
+            # encoded_split = [temp_lambda_slice_layer_0(encoded), temp_lambda_slice_layer_1(encoded)]
             x_next = [Dense(node_num[3], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
             assert (len(x_next) == 2)
-            from keras import layers
-            from keras import backend as K
             x_next_1 = [temp_lambda_tanh_layer(item) for item in [x_next[0], layers.Add()(x_next)]]
             shared_final_layer = Dense(node_num[4], activation='tanh',
                                        kernel_regularizer=l2(self._network_parameters[4][3]))
@@ -946,5 +948,12 @@ def temp_lambda_func_for_circular_for_Keras(x):
     return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
 
 temp_lambda_tanh_layer = Lambda(lambda x: K.tanh(x))
-temp_lambda_slice_layer_0 = Lambda(lambda x: x[:, [0]], output_shape=(1,))
-temp_lambda_slice_layer_1 = Lambda(lambda x: x[:, [1]], output_shape=(1,))
+# not sure if there are better ways to do this, since Lambda layer has to be defined at top level of the file,
+# following line does not work
+# temp_lambda_slice_layers = [Lambda(lambda x: x[:, [index]], output_shape=(1,)) for index in range(20)]
+temp_lambda_slice_layers = [
+    Lambda(lambda x: x[:, [0]], output_shape=(1,)), Lambda(lambda x: x[:, [1]], output_shape=(1,)),
+    Lambda(lambda x: x[:, [2]], output_shape=(1,)), Lambda(lambda x: x[:, [3]], output_shape=(1,)),
+    Lambda(lambda x: x[:, [4]], output_shape=(1,)), Lambda(lambda x: x[:, [5]], output_shape=(1,)),
+    Lambda(lambda x: x[:, [6]], output_shape=(1,)), Lambda(lambda x: x[:, [7]], output_shape=(1,)),
+    Lambda(lambda x: x[:, [8]], output_shape=(1,)), Lambda(lambda x: x[:, [9]], output_shape=(1,))]
