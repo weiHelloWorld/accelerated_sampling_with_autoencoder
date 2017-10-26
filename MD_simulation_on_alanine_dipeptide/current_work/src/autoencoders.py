@@ -768,7 +768,9 @@ class autoencoder_Keras(autoencoder):
             raise Exception('no longer supported')
 
         if self._hidden_layers_type[1] == CircularLayer:
-            raise Exception('to be implemented')
+            PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
+                   for item in self._encoder_net.predict(input_data)]
+            assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
         elif self._hidden_layers_type[1] == TanhLayer:
             PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[2])
@@ -858,14 +860,23 @@ class autoencoder_Keras(autoencoder):
             plot_model(molecule_net, to_file='model.png')
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
-        elif self._hidden_layers_type[1] == CircularLayer:
+        elif self._hidden_layers_type[1] == CircularLayer and self._hierarchical:
             raise Exception('circularlayer not implemented')
         else:
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            encoded = Dense(node_num[2], activation='tanh',
+            if self._hidden_layers_type[1] == CircularLayer:
+                x = Dense(node_num[2], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][1]))(x)
+                x = Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],))(x)
+                x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
+                encoded = Reshape((node_num[2],))(x)
+            elif self._hidden_layers_type[1] == TanhLayer:
+                encoded = Dense(node_num[2], activation='tanh',
+                            kernel_regularizer=l2(self._network_parameters[4][1]))(x)
+            else:
+                raise Exception('CV layer type error')
             x = Dense(node_num[3], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][2]))(encoded)
             x = Dense(node_num[4], activation='tanh',

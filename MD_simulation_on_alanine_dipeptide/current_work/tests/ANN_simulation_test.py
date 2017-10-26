@@ -345,7 +345,8 @@ class test_autoencoder_Keras(object):
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 4, 15, 8],
                                   hidden_layers_types=[TanhLayer, CircularLayer, TanhLayer],
-                                  network_parameters = [0.1, 0.4,0, True, [0.001]* 4]
+                                  network_parameters = [0.1, 0.4,0, True, [0.001]* 4],
+                                  hierarchical=False
                                   )
         model.train()
 
