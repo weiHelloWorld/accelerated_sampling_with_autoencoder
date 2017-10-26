@@ -11,7 +11,7 @@ args = parser.parse_args()
 if args.starting_network_file is None:
     starting_network = None
 else:
-    starting_network = Sutils.load_object_from_pkl_file(args.starting_network_file)
+    starting_network = autoencoder.load_from_pkl_file(args.starting_network_file)
 
 init_iter = iteration(index = args.starting_index, network = starting_network)
 

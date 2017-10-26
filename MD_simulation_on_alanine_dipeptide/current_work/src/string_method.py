@@ -12,7 +12,7 @@ class String_method_1(object):  # with autoencoder approach
         _1 = coordinates_data_files_list([folder_containing_data_in_previous_iteration])
         _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
         coor_data = Sutils.remove_translation(_1.get_coor_data(scaling_factor=scaling_factor))
-        temp_autoencoder = Sutils.load_object_from_pkl_file(autoencoder_filename)
+        temp_autoencoder = autoencoder.load_from_pkl_file(autoencoder_filename)
         assert (isinstance(temp_autoencoder, autoencoder))
         PCs = temp_autoencoder.get_PCs(coor_data)
         image_params = np.linspace(PCs.min(), PCs.max(), num_images + 2)

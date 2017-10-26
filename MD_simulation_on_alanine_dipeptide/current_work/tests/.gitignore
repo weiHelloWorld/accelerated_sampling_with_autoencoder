@@ -6,3 +6,4 @@
 dependency/**
 *.txt
 *.pdb
+*.hdf5

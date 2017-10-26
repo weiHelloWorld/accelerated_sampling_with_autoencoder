@@ -10,6 +10,37 @@ class Sutils(object):
         return
 
     @staticmethod
+    def get_num_of_non_overlapping_hyperspheres_that_filled_explored_phase_space(
+            pdb_file_list, atom_selection, radius, step_interval=1, distance_metric='RMSD'):
+        """
+        This functions is used to count how many non-overlapping hyperspheres are needed to fill the explored phase
+        space, to estimate volumn of explored region
+        :param atom_selection: atom selection statement for MDAnalysis
+        :param radius: radius of hyperspheres
+        :param distance_metric: distance metric of two frames
+        :return: number of hyperspheres
+        """
+        index = 0
+        positions_list = []
+        for sample_file in pdb_file_list:
+            sample = Universe(sample_file)
+            sample_atom_selection = sample.select_atoms(atom_selection)
+
+            for _ in sample.trajectory:
+                if index % step_interval == 0:
+                    current_positions = sample_atom_selection.positions
+                    distances_to_previous_frames = np.array(
+                        [Sutils.get_RMSD_after_alignment(item, current_positions)
+                            for item in positions_list])
+                    if len(distances_to_previous_frames) == 0 or np.all(distances_to_previous_frames > radius):
+                        # need to include a new hypershere
+                        positions_list.append(current_positions)
+
+                index += 1
+
+        return len(positions_list)
+
+    @staticmethod
     def mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_file, out_pdb,
                                                             atom_index_list, item_positions=None):
         """
@@ -54,13 +85,10 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return plumed_script
 
     @staticmethod
-    def prepare_training_data_using_Cartesian_coordinates_with_data_augmentation(
+    def prepare_output_Cartesian_coor_with_multiple_ref_structures(
              folder_list,
              alignment_coor_file_suffix_list,
-             scaling_factor,
-             num_of_copies,
-             molecule_type,
-             use_representative_points_for_training=True
+             scaling_factor
              ):
         my_coor_data_obj = coordinates_data_files_list(list_of_dir_of_coor_data_files=folder_list)
         coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
@@ -74,27 +102,21 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                               coor_data_obj_output_list[item].get_list_of_coor_data_files()):
                 assert (_2 == _1.replace('_coordinates.txt', alignment_coor_file_suffix_list[item])), (_2, _1)
 
-        data_set = coor_data_obj_input.get_coor_data(scaling_factor)
-        # remove the center of mass
-        data_set = Sutils.remove_translation(data_set)
         output_data_set = np.concatenate([Sutils.remove_translation(item.get_coor_data(scaling_factor))
                                           for item in coor_data_obj_output_list] , axis=1)
-        assert (data_set.shape[0] == output_data_set.shape[0])
+        return output_data_set
+
+    @staticmethod
+    def select_representative_points(data_set, output_data_set):
         # clustering, pick representative points for training, two purposes:
         # 1. avoid that training results are too good for densely-sampled regions, but bad for others.
         # 2. reduce computation cost
-        if use_representative_points_for_training:
-            print ("selecting representative points...")
-            kmeans = KMeans(init='k-means++', n_clusters=min(CONFIG_59, data_set.shape[0]), n_init=10)
-            kmeans.fit(output_data_set)
-            indices_of_representative_points = np.array([np.where(kmeans.labels_ == ii)[0][0]
-                                                         for ii in range(kmeans.n_clusters)])
-            data_set = data_set[indices_of_representative_points]
-            output_data_set = output_data_set[indices_of_representative_points]
-
-        # random rotation for data augmentation
-        data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies, molecule_type)
-        return data_set, output_data_set
+        print ("selecting representative points...")
+        kmeans = KMeans(init='k-means++', n_clusters=min(CONFIG_59, output_data_set.shape[0]), n_init=10)
+        kmeans.fit(output_data_set)
+        indices_of_representative_points = np.array([np.where(kmeans.labels_ == ii)[0][0]
+                                                     for ii in range(kmeans.n_clusters)])
+        return data_set[indices_of_representative_points], output_data_set[indices_of_representative_points]
 
     @staticmethod
     def create_subclass_instance_using_name(name):
@@ -171,9 +193,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return
 
     @staticmethod
-    def data_augmentation(data_set, output_data_set, num_of_copies, molecule_type,
-                          is_output_reconstructed_Cartesian=True  # output could be pairwise distances
-                          ):
+    def data_augmentation(data_set, output_data_set, num_of_copies, is_output_reconstructed_Cartesian=True):
         """
         assume that center of mass motion of data_set and output_data_set should be removed.
         """
@@ -183,24 +203,14 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
-        if isinstance(molecule_type, Alanine_dipeptide):
-            num_of_backbone_atoms = len(CONFIG_57[0])
-        elif isinstance(molecule_type, Trp_cage):
-            num_of_backbone_atoms = len(CONFIG_57[1])
-        elif isinstance(molecule_type, Src_kinase):
-            num_of_backbone_atoms = len(CONFIG_57[2])
-        elif isinstance(molecule_type, BetaHairpin):
-            num_of_backbone_atoms = len(CONFIG_57[3])
-        else:
-            raise Exception("error molecule type")
-
-        data_set = data_set.reshape((num_of_data, num_of_backbone_atoms, 3))
+        num_atoms = len(data_set[0]) / 3
+        data_set = data_set.reshape((num_of_data, num_atoms, 3))
         temp_data_set = []
         for _ in range(num_of_copies):
             temp_data_set.append([Sutils.rotating_randomly_around_center_of_mass(x) for x in data_set])
 
         data_set = np.concatenate(temp_data_set, axis=0)
-        data_set = data_set.reshape((num_of_copies * num_of_data, num_of_backbone_atoms * 3))
+        data_set = data_set.reshape((num_of_copies * num_of_data, num_atoms * 3))
         return data_set, output_data_set
 
     @staticmethod
@@ -836,6 +846,20 @@ class Trp_cage(Sutils):
                                  for item in [1, 9, 14, 20]]
                     result.append(Trp_cage.get_cossin_of_a_dihedral_from_four_atoms(
                         atom_list[0], atom_list[1], atom_list[2], atom_list[3])[1])
+                index += 1
+        return np.array(result)
+
+    @staticmethod
+    def metric_vertical_shift(list_of_files, step_interval=1):
+        result = []
+        index = 0
+        for temp_file in list_of_files:
+            temp_universe = Universe(temp_file)
+            for _ in temp_universe.trajectory:
+                if index % step_interval == 0:
+                    atom_list = [temp_universe.select_atoms('name CA and resid %d' % item).positions[0]
+                                 for item in [1, 11, 20]]
+                    result.append(np.linalg.norm(atom_list[0] - atom_list[1]) - np.linalg.norm(atom_list[2] - atom_list[1]))
                 index += 1
         return np.array(result)
 

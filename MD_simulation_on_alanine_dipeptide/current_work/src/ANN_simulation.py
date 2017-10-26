@@ -371,7 +371,7 @@ class iteration(object):
             raise Exception('machine type error')
 
         print temp_output
-        self._network = Sutils.load_object_from_pkl_file(autoencoder_filename)
+        self._network = autoencoder.load_from_pkl_file(autoencoder_filename)
         return
 
     def prepare_simulation(self):
