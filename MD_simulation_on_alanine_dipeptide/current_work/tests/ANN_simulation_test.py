@@ -321,22 +321,23 @@ class test_autoencoder_Keras(object):
         data = self._data
         dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
 
-        model = autoencoder_Keras(1447, data,
-                                  node_num=[8, 15, 2, 15, 8],
-                                  hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
-                                  network_parameters = [0.02, 0.9,0, True, [0.001]* 4],
-                                  batch_size=100
-                                  )
-        model.train()
+        for is_hi in [0, 1]:
+            model = autoencoder_Keras(1447, data,
+                                      node_num=[8, 15, 2, 15, 8],
+                                      hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
+                                      network_parameters = [0.02, 0.9,0, True, [0.001]* 4],
+                                      batch_size=100, hierarchical=is_hi
+                                      )
+            model.train()
 
-        PCs = model.get_PCs()
-        [x, y] = zip(*PCs)
+            PCs = model.get_PCs()
+            [x, y] = zip(*PCs)
 
-        psi = [item[2] for item in dihedrals]
-        fig, ax = plt.subplots()
-        ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+            psi = [item[2] for item in dihedrals]
+            fig, ax = plt.subplots()
+            ax.scatter(x, y, c=psi, cmap='gist_rainbow')
 
-        fig.savefig('try_keras_noncircular.png')
+            fig.savefig('try_keras_noncircular_hierarchical_%d.png' % is_hi)
         return
 
     def test_train_2(self):
@@ -376,45 +377,46 @@ class test_autoencoder_Keras(object):
 class test_biased_simulation(object):
     @staticmethod
     def helper_biased_simulation_alanine_dipeptide(potential_center):
-        autoencoder_coeff_file = 'dependency/test_biased_simulation/autoencoder_info_4.txt'
-        autoencoder_pkl_file = 'dependency/test_biased_simulation/network_4.pkl'
+        autoencoder_coeff_file = 'autoencoder_info_9.txt'
+        autoencoder_pkl_file = 'dependency/test_biased_simulation/network_9.pkl'
+        my_network = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
+        assert (isinstance(my_network, autoencoder))
+        my_network.write_coefficients_of_connections_into_file(autoencoder_coeff_file)
         output_folder = 'temp_output_test_biased_simulation'
 
         if os.path.exists(output_folder):
             subprocess.check_output(['rm', '-rf', output_folder])
 
         subprocess.check_output(
-            'python ../src/biased_simulation.py 50 5000 100 %s %s pc_%s --num_of_nodes %s --layer_types %s --platform CPU --data_type_in_input_layer 0'
-            % (output_folder, autoencoder_coeff_file, potential_center, "8,15,4", "Tanh,Circular"),
+            'python ../src/biased_simulation.py 50 5000 5000 %s %s pc_%s --num_of_nodes %s --layer_types %s --platform CPU --data_type_in_input_layer 1'
+            % (output_folder, autoencoder_coeff_file, potential_center, "21,40,2", "Tanh,Tanh"),
             shell=True)
 
         Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
         fig, ax = plt.subplots()
-        my_files = coordinates_data_files_list([output_folder]).get_list_of_coor_data_files()
-        cossin_data = Alanine_dipeptide.get_many_cossin_from_coordinates_in_list_of_files(my_files)
-        my_network = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
-        assert (isinstance(my_network, autoencoder))
-        PCs = my_network.get_PCs(cossin_data)
+        input_data = coordinates_data_files_list([output_folder]).get_coor_data(5.0)
+        input_data = Sutils.remove_translation(input_data)
+        PCs = my_network.get_PCs(input_data)
         x, y = zip(*PCs)
-        ax.scatter(x, y)
+        ax.scatter(x, y, c=range(len(x)), cmap='gist_rainbow')
         fig.savefig('test_biased_simulation_%s.png' % potential_center)
         subprocess.check_output(['rm', '-rf', output_folder])
         return
 
     @staticmethod
     def test_biased_simulation_alanine_dipeptide():
-        for item in ['-1.57,-1.57', '0,0', '-0.9,0.9', '-2,2', '-2,1', '-2,-2']:
+        for item in ['-0.4,0.7', '-0.5,0.7', '-0.6,0.7', '-0.7,0.3', '-0.7,0.4','-0.7,0.7','-0.5,0.4']:
             test_biased_simulation.helper_biased_simulation_alanine_dipeptide(item.replace(' ',''))
         return
 
     @staticmethod
     def test_biased_simulation_alanine_dipeptide_with_metadynamics(use_well_tempered=0, biasfactor=-1):
-        autoencoder_pkl_file = 'dependency/test_biased_simulation/temp_bias_with_MTD.pkl'
+        autoencoder_pkl_file = 'dependency/test_biased_simulation/network_9.pkl'
         output_folder = 'temp_output_test_biased_simulation'
-        a = Sutils.load_object_from_pkl_file(autoencoder_pkl_file)
+        a = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         a.write_expression_script_for_plumed('temp_info.txt')
         subprocess.check_output(
-'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d --equilibration_steps 0 --data_type_in_input_layer 0'
+'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d --equilibration_steps 0'
                                 % (output_folder, biasfactor, use_well_tempered), shell=True)
         subprocess.check_output(['python', '../src/generate_coordinates.py', 'Alanine_dipeptide', '--path', output_folder])
         fig, axes = plt.subplots(1, 3)
