@@ -814,10 +814,20 @@ class autoencoder_Keras(autoencoder):
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            encoded = Dense(node_num[2], activation='tanh',
+            if self._hidden_layers_type[1] == CircularLayer:
+                x = Dense(node_num[2], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-            if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
+                x = Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],))(x)
+                x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
+                encoded = Reshape((node_num[2],))(x)
+                encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(node_num[2] / 2)]
+            elif self._hidden_layers_type[1] == TanhLayer:
+                encoded = Dense(node_num[2], activation='tanh',
+                                kernel_regularizer=l2(self._network_parameters[4][1]))(x)
                 encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
+            else: raise Exception('layer error')
+
+            if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
                 x_next = [Dense(node_num[3], activation='linear',
                                 kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
                 x_next_1 = [x_next[0]]
@@ -831,7 +841,6 @@ class autoencoder_Keras(autoencoder):
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             elif hierarchical_variant == 1:   # simplified version, no shared layer after CV (encoded) layer
-                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
                 concat_layers = [encoded_split[0]]
                 concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, node_num[2] + 1)]
                 x = [Dense(node_num[3], activation='tanh',
@@ -844,7 +853,6 @@ class autoencoder_Keras(autoencoder):
             elif hierarchical_variant == 2:
                 # boosted hierarchical autoencoders, CV i in encoded layer learns remaining error that has
                 # not been learned by previous CVs
-                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
                 x = [Dense(node_num[3], activation='tanh',
                            kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
                 x = [Dense(node_num[4], activation='tanh',
@@ -1019,3 +1027,10 @@ temp_lambda_slice_layers = [
     Lambda(lambda x: x[:, [4]], output_shape=(1,)), Lambda(lambda x: x[:, [5]], output_shape=(1,)),
     Lambda(lambda x: x[:, [6]], output_shape=(1,)), Lambda(lambda x: x[:, [7]], output_shape=(1,)),
     Lambda(lambda x: x[:, [8]], output_shape=(1,)), Lambda(lambda x: x[:, [9]], output_shape=(1,))]
+temp_lambda_slice_layers_circular = [
+    Lambda(lambda x: x[:, [0,1]], output_shape=(2,)),   Lambda(lambda x: x[:, [2,3]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [4,5]], output_shape=(2,)),   Lambda(lambda x: x[:, [6,7]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [8,9]], output_shape=(2,)),   Lambda(lambda x: x[:, [10,11]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [12,13]], output_shape=(2,)), Lambda(lambda x: x[:, [14,15]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [16,17]], output_shape=(2,)), Lambda(lambda x: x[:, [18,19]], output_shape=(2,))
+]
