@@ -30,7 +30,7 @@ class autoencoder(object):
                  training_data_interval=CONFIG_2,
                  in_layer_type=LinearLayer,
                  hidden_layers_types=CONFIG_17,
-                 out_layer_type=LinearLayer,  # different layers
+                 out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
                  max_num_of_training=CONFIG_5,
                  filename_to_save_network=CONFIG_6,
@@ -794,6 +794,7 @@ class autoencoder_Keras(autoencoder):
         return model.predict(input_PC)
 
     def train(self):
+        output_layer_activation = layer_type_to_name_mapping[self._out_layer_type].lower()
         node_num = self._node_num
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
@@ -840,17 +841,17 @@ class autoencoder_Keras(autoencoder):
                     x_next_1.append(layers.Add()(x_next[:item]))
                 x_next_1 = [temp_lambda_tanh_layer(item) for item in x_next_1]
                 assert (len(x_next) == len(x_next_1))
-                shared_final_layer = Dense(node_num[4], activation='tanh',
+                shared_final_layer = Dense(node_num[4], activation=output_layer_activation,
                                            kernel_regularizer=l2(self._network_parameters[4][3]))
                 outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             elif hierarchical_variant == 1:   # simplified version, no shared layer after CV (encoded) layer
                 concat_layers = [encoded_split[0]]
-                concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, node_num[2] + 1)]
+                concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, num_CVs + 1)]
                 x = [Dense(node_num[3], activation='tanh',
                                 kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in concat_layers]
-                x = [Dense(node_num[4], activation='tanh',
+                x = [Dense(node_num[4], activation=output_layer_activation,
                                 kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
                 outputs_net = layers.Concatenate()(x)
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
@@ -860,7 +861,7 @@ class autoencoder_Keras(autoencoder):
                 # not been learned by previous CVs
                 x = [Dense(node_num[3], activation='tanh',
                            kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
-                x = [Dense(node_num[4], activation='tanh',
+                x = [Dense(node_num[4], activation=output_layer_activation,
                            kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
                 x_out = [x[0]]
                 for item in range(2, len(x) + 1):
@@ -892,7 +893,7 @@ class autoencoder_Keras(autoencoder):
                 raise Exception('CV layer type error')
             x = Dense(node_num[3], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][2]))(encoded)
-            x = Dense(node_num[4], activation='tanh',
+            x = Dense(node_num[4], activation=output_layer_activation,
                       kernel_regularizer=l2(self._network_parameters[4][3]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
             encoder_net = Model(inputs=inputs_net, outputs=encoded)

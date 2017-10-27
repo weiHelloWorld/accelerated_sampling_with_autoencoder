@@ -83,6 +83,8 @@ if CONFIG_48 == 'pairwise_distance':
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_78 = LinearLayer                    # output layer type
+
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
