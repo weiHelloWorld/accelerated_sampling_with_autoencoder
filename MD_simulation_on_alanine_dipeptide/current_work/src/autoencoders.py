@@ -379,8 +379,8 @@ class autoencoder(object):
 
         var_of_output = sum(np.var(expected_output_data, axis=0))
         var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
-        if self._hierarchical and hierarchical_FVE:
-            num_PCs = self._node_num[2]
+        if self._hierarchical:
+            num_PCs = self._node_num[2] / 2 if self._hidden_layers_type[1] == CircularLayer else self._node_num[2]
             length_for_hierarchical_component = expected_output_data.shape[1] / num_PCs
             hierarchical_actual_output_list = [actual_output_data[:,
                                     item * length_for_hierarchical_component:
@@ -390,8 +390,12 @@ class autoencoder(object):
             assert (expected_output_component.shape == hierarchical_actual_output_list[0].shape)
             var_of_expected_output_component = sum(np.var(expected_output_component, axis=0))
             var_of_actual_output_component_list = [sum(np.var(item - expected_output_component, axis=0)) for item in hierarchical_actual_output_list]
-            return [1 - item / var_of_expected_output_component for item in var_of_actual_output_component_list]
-        return 1 - var_of_err / var_of_output
+            result = [1 - item / var_of_expected_output_component for item in var_of_actual_output_component_list]
+            if not hierarchical_FVE:
+                result = result[-1]   # it is more reasonable to return only last FVE (which includes information from all CV nodes)
+        else:
+            result = 1 - var_of_err / var_of_output
+        return result
 
     def get_commands_for_further_biased_simulations(self, list_of_potential_center=None,
                                                     num_of_simulation_steps=None,
