@@ -875,8 +875,6 @@ class autoencoder_Keras(autoencoder):
             plot_model(molecule_net, to_file='model.png')
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
-        elif self._hidden_layers_type[1] == CircularLayer and self._hierarchical:
-            raise Exception('circularlayer not implemented')
         else:
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
@@ -899,12 +897,18 @@ class autoencoder_Keras(autoencoder):
             molecule_net = Model(inputs=inputs_net, outputs=x)
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
 
-        molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
+        molecule_net.compile(loss='mean_squared_error', metrics=['mean_squared_error'],
                              optimizer=SGD(lr=self._network_parameters[0],
                                            momentum=self._network_parameters[1],
                                            decay=self._network_parameters[2],
                                            nesterov=self._network_parameters[3])
                              )
+        encoder_net.compile(loss='mean_squared_error', metrics=['mean_squared_error'],
+                             optimizer=SGD(lr=self._network_parameters[0],
+                                           momentum=self._network_parameters[1],
+                                           decay=self._network_parameters[2],
+                                           nesterov=self._network_parameters[3])
+                             )  # not needed, but do not want to see endless warning...
 
         training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
 parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
