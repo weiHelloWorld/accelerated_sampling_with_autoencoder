@@ -332,18 +332,19 @@ class iteration(object):
             else:
                 raise Exception("molecule type error")
 
-        for _1 in range(num_of_reference_configs):
-            temp_command_list = ['python', 'structural_alignment.py', temp_target_folder,
-                                 '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
-                                 '--atom_selection', atom_selection_list[_1]
-                                 ]
-            if machine_to_run_simulations == 'local':
-                subprocess.check_output(temp_command_list)
-            elif machine_to_run_simulations == 'cluster':
-                temp_command = ' '.join(['"%s"' % item for item in temp_command_list]) + ' 2> /dev/null '  # TODO: does it work by adding quotation marks to everything
-                cluster_management.run_a_command_and_wait_on_cluster(command=temp_command)
-            else:
-                raise Exception('machine type error')
+        if CONFIG_48 == 'Cartesian':
+            for _1 in range(num_of_reference_configs):
+                temp_command_list = ['python', 'structural_alignment.py', temp_target_folder,
+                                     '--ref', reference_configs[_1], '--suffix', reference_suffix_list[_1],
+                                     '--atom_selection', atom_selection_list[_1]
+                                     ]
+                if machine_to_run_simulations == 'local':
+                    subprocess.check_output(temp_command_list)
+                elif machine_to_run_simulations == 'cluster':
+                    temp_command = ' '.join(['"%s"' % item for item in temp_command_list]) + ' 2> /dev/null '  # TODO: does it work by adding quotation marks to everything
+                    cluster_management.run_a_command_and_wait_on_cluster(command=temp_command)
+                else:
+                    raise Exception('machine type error')
 
         molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=temp_target_folder)
         return

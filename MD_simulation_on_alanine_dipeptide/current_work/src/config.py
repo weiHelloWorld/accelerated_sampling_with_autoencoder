@@ -160,6 +160,7 @@ CONFIG_40 = 'implicit'                  # whether to include water molecules, op
 CONFIG_51 = 'NPT'                  # simulation ensemble type (for Trp-cage only)
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = True                             # whether to use hierarchical autoencoder
+CONFIG_77 = 2                      # hierarchical autoencoder variant index
 # if CONFIG_44:
 #     raise Exception("Warning: no longer supported (used for backward compatibility)!  " + WARNING_INFO)
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
@@ -221,7 +222,7 @@ CONFIG_16 = get_mol_param([500, 2000, 2000, 2000])                     # record 
 CONFIG_8 = get_mol_param([50000, 200000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
-CONFIG_9 = get_mol_param([3000, 3000, 3000, 3000])                     # force constant for biased simulations
+CONFIG_9 = get_mol_param([3000, 2000, 3000, 3000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['fixed', 'fixed', 'fixed', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
 CONFIG_54 = 2.50 * get_mol_param([30.0, 20.0, 15.0, 20.0])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics

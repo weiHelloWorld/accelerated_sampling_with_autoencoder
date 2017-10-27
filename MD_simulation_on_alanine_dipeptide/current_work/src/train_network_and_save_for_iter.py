@@ -44,8 +44,8 @@ input_data_type, output_data_type = CONFIG_48, CONFIG_76
 
 # getting input data
 if input_data_type == 'cossin' and output_data_type == 'cossin':  # input type
-    data_set = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
-        my_file_list, step_interval=args.training_interval)
+    data_set = np.array(molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
+        my_file_list, step_interval=args.training_interval))
 elif input_data_type == 'Cartesian':
     coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
     scaling_factor = CONFIG_49
@@ -58,7 +58,7 @@ else:
 
 # getting output data
 if output_data_type == 'cossin':   # output type
-    output_data_set = None   # done above
+    output_data_set = data_set   # done above
 elif output_data_type == 'Cartesian':
     scaling_factor = CONFIG_49
     alignment_coor_file_suffix_list = CONFIG_61

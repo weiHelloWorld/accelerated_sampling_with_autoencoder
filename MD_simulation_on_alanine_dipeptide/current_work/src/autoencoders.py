@@ -467,7 +467,7 @@ class autoencoder(object):
                     raise Exception("error")
 
             todo_list_of_commands_for_simulations = []
-            if CONFIG_48 == 'Cartesian' or 'pairwise_distance':
+            if CONFIG_48 == 'Cartesian' or CONFIG_48 == 'pairwise_distance':
                 input_data_type = 1
             elif CONFIG_48 == 'cossin':
                 input_data_type = 0
@@ -487,6 +487,8 @@ class autoencoder(object):
                     if CONFIG_42:  # whether the force constant adjustable mode is enabled
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
+                    if CONFIG_17[1] == CircularLayer:
+                        command += ' --layer_types Tanh,Circular'
                 else:
                     parameter_list = (
                             str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
@@ -808,7 +810,7 @@ class autoencoder_Keras(autoencoder):
                 assert (np.all(temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]]
                         == temp_data_for_checking[:temp_output_shape[1]]))
             self._output_data_set = output_data_set
-            hierarchical_variant = 2
+            hierarchical_variant = CONFIG_77
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
