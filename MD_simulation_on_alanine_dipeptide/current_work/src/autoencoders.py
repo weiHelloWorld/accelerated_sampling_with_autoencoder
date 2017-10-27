@@ -802,11 +802,12 @@ class autoencoder_Keras(autoencoder):
         if self._hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
             temp_output_shape = output_data_set.shape
-            output_data_set = np.repeat(output_data_set, node_num[2], axis=0).reshape(temp_output_shape[0],
-                                        temp_output_shape[1] * node_num[2])   # repeat output for hierarchical case
+            num_CVs = node_num[2] / 2 if self._hidden_layers_type[1] == CircularLayer else node_num[2]
+            output_data_set = np.repeat(output_data_set, num_CVs, axis=0).reshape(temp_output_shape[0],
+                                        temp_output_shape[1] * num_CVs)   # repeat output for hierarchical case
             # check if the output data are correct
             temp_data_for_checking = output_data_set[0]
-            for item in range(node_num[2]):
+            for item in range(num_CVs):
                 assert (np.all(temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]]
                         == temp_data_for_checking[:temp_output_shape[1]]))
             self._output_data_set = output_data_set
