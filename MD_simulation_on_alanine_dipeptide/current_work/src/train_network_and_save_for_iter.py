@@ -23,7 +23,7 @@ if not args.output_file is None:
 if not args.lr_m is None:
     temp_lr = float(args.lr_m.strip().split(',')[0])
     temp_momentum = float(args.lr_m.strip().split(',')[1])
-    additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, [0.00, 0.0000, 0.00, 0.00]]
+    additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, CONFIG_4[4]]
 if not args.num_PCs is None:
     temp_node_num = CONFIG_3[:]  # deep copy list
     temp_node_num[2] = args.num_PCs
