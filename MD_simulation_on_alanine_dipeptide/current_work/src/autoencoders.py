@@ -81,8 +81,7 @@ class autoencoder(object):
     def load_from_pkl_file(filename):
         a = Sutils.load_object_from_pkl_file(filename)
         if os.path.isfile(filename.replace('.pkl','.hdf5')):
-            from keras.models import load_model
-            a._molecule_net = load_model(filename.replace('.pkl','.hdf5'))
+            a._molecule_net = load_model(filename.replace('.pkl','.hdf5'),custom_objects={'mse_weighted': mse_weighted})
             a._molecule_net_layers = a._molecule_net.layers
         elif not hasattr(a, '_molecule_net') and hasattr(a, '_molecule_net_layers'):  # for backward compatibility
             a._molecule_net = Sequential()
@@ -91,7 +90,7 @@ class autoencoder(object):
         else:
             raise Exception('cannot load attribute _molecule_net')
         if os.path.isfile(filename.replace('.pkl', '_encoder.hdf5')):
-            a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'))
+            a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'),custom_objects={'mse_weighted': mse_weighted})
         else:
             raise Exception('TODO: construct encoder from _molecule_net') # TODO
         return a
@@ -123,9 +122,9 @@ class autoencoder(object):
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
 
-        self._molecule_net = load_model(hdf5_file_name)
-        self._encoder_net = load_model(hdf5_file_name_encoder)
-        # self._decoder_net = load_model(hdf5_file_name_decoder)
+        self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': mse_weighted})
+        self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': mse_weighted})
+        # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         self._molecule_net_layers = self._molecule_net.layers
         return
 
@@ -386,7 +385,7 @@ class autoencoder(object):
                                     item * length_for_hierarchical_component:
                                     (item + 1) * length_for_hierarchical_component]
                                                for item in range(num_PCs)]
-            expected_output_component = expected_output_data[:, :length_for_hierarchical_component]
+            expected_output_component = expected_output_data[:, -length_for_hierarchical_component:]
             assert (expected_output_component.shape == hierarchical_actual_output_list[0].shape)
             var_of_expected_output_component = sum(np.var(expected_output_component, axis=0))
             var_of_actual_output_component_list = [sum(np.var(item - expected_output_component, axis=0)) for item in hierarchical_actual_output_list]
@@ -813,8 +812,9 @@ class autoencoder_Keras(autoencoder):
             # check if the output data are correct
             temp_data_for_checking = output_data_set[0]
             for item in range(num_CVs):
-                assert (np.all(temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]]
-                        == temp_data_for_checking[:temp_output_shape[1]]))
+                assert_almost_equal (
+                    temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]],
+                    temp_data_for_checking[:temp_output_shape[1]])
             self._output_data_set = output_data_set
             hierarchical_variant = CONFIG_77
             inputs_net = Input(shape=(node_num[0],))
@@ -874,6 +874,7 @@ class autoencoder_Keras(autoencoder):
             # print molecule_net.summary()
             from keras.utils import plot_model
             plot_model(molecule_net, to_file='model.png')
+            loss_function = mse_weighted
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
         else:
@@ -897,14 +898,15 @@ class autoencoder_Keras(autoencoder):
                       kernel_regularizer=l2(self._network_parameters[4][3]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
+            loss_function = 'mean_squared_error'
 
-        molecule_net.compile(loss='mean_squared_error', metrics=['mean_squared_error'],
+        molecule_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer=SGD(lr=self._network_parameters[0],
                                            momentum=self._network_parameters[1],
                                            decay=self._network_parameters[2],
                                            nesterov=self._network_parameters[3])
                              )
-        encoder_net.compile(loss='mean_squared_error', metrics=['mean_squared_error'],
+        encoder_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer=SGD(lr=self._network_parameters[0],
                                            momentum=self._network_parameters[1],
                                            decay=self._network_parameters[2],
@@ -1044,3 +1046,20 @@ temp_lambda_slice_layers_circular = [
     Lambda(lambda x: x[:, [12,13]], output_shape=(2,)), Lambda(lambda x: x[:, [14,15]], output_shape=(2,)),
     Lambda(lambda x: x[:, [16,17]], output_shape=(2,)), Lambda(lambda x: x[:, [18,19]], output_shape=(2,))
 ]
+
+# following is custom loss function for hierarchical error of hierarchical autoencoder
+weight_for_hierarchical_error = np.ones(CONFIG_3[-1] * CONFIG_36)
+weight_factor_for_hierarchical_err = 1
+for item in range(CONFIG_36):
+    weight_for_hierarchical_error[: item * CONFIG_3[-1]] *= weight_factor_for_hierarchical_err
+weight_for_hierarchical_error = K.variable(weight_for_hierarchical_error)
+
+def mse_weighted(y_true, y_pred):
+    # it may be useful to assign different weights for hierarchical error,
+    # instead of having E = E_1 + E_{1,2} + E_{1,2,3}
+    # we have E = a^2 E_1 + a E_{1,2} + E_{1,2,3}, a < 1
+    # to avoid too large bias towards reconstruction error using first few components
+    return K.mean(weight_for_hierarchical_error * K.square(y_pred - y_true), axis=-1)
+
+import keras.losses
+keras.losses.mse_weighted = mse_weighted
