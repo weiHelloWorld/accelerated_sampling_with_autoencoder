@@ -30,10 +30,14 @@ if not args.num_PCs is None:
     additional_argument_list['node_num'] = temp_node_num
 
 num_of_copies = args.num_of_copies
-if not args.data_folder is None:
-    temp_list_of_directories_contanining_data = [args.data_folder]
-else:
+if args.data_folder is None:
     temp_list_of_directories_contanining_data = ['../target/' + CONFIG_30]
+elif "up_to_iter_" in args.data_folder:
+    temp_iter_index = int(args.data_folder.split('up_to_iter_')[1])
+    temp_list_of_directories_contanining_data = ['../target/%s/unbiased/' % CONFIG_30] \
+                 + ['../target/%s/network_%d' % (CONFIG_30, item) for item in range(1, temp_iter_index + 1)]
+else:
+    temp_list_of_directories_contanining_data = [args.data_folder]
 
 my_coor_data_obj = coordinates_data_files_list(
     list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
