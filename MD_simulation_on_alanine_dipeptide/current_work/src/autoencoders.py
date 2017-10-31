@@ -928,7 +928,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         if self._enable_early_stopping:
             call_back_list += [earlyStopping]
 
-        molecule_net.fit(data, output_data_set, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
+        molecule_net.fit(data, output_data_set, epochs=self._max_num_of_training, batch_size=self._batch_size,
                          verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
         dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
@@ -1047,19 +1047,22 @@ temp_lambda_slice_layers_circular = [
     Lambda(lambda x: x[:, [16,17]], output_shape=(2,)), Lambda(lambda x: x[:, [18,19]], output_shape=(2,))
 ]
 
-# following is custom loss function for hierarchical error of hierarchical autoencoder
-weight_for_hierarchical_error = np.ones(CONFIG_3[-1] * CONFIG_36)
-weight_factor_for_hierarchical_err = 1
-for item in range(CONFIG_36):
-    weight_for_hierarchical_error[: item * CONFIG_3[-1]] *= weight_factor_for_hierarchical_err
-weight_for_hierarchical_error = K.variable(weight_for_hierarchical_error)
-
-def mse_weighted(y_true, y_pred):
+def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
+    # following is custom loss function for hierarchical error of hierarchical autoencoder
     # it may be useful to assign different weights for hierarchical error,
     # instead of having E = E_1 + E_{1,2} + E_{1,2,3}
     # we have E = a^2 E_1 + a E_{1,2} + E_{1,2,3}, a < 1
     # to avoid too large bias towards reconstruction error using first few components
-    return K.mean(weight_for_hierarchical_error * K.square(y_pred - y_true), axis=-1)
+    # see progress report 20171101
+    weight_for_hierarchical_error = np.ones(CONFIG_3[-1] * CONFIG_36)
+    for item in range(CONFIG_36):
+        weight_for_hierarchical_error[: item * CONFIG_3[-1]] *= weight_factor_for_hierarchical_err
+    return weight_for_hierarchical_error
 
-import keras.losses
-keras.losses.mse_weighted = mse_weighted
+# weighted MSE
+if CONFIG_44:
+    weight_for_MSE = get_hierarchical_weights()
+    print "MSE is weighted by %s" % str(weight_for_MSE)
+
+def mse_weighted(y_true, y_pred):
+    return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)
