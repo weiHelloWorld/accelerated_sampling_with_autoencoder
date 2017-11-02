@@ -77,7 +77,7 @@ CONFIG_57 = [
        2701, 2707, 2714, 2731],
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O')
 ]                                          # index list of atoms for training and biased simulations
-if CONFIG_48 == 'pairwise_distance':
+if CONFIG_76 == 'pairwise_distance':
     CONFIG_73 = get_mol_param([None, 'backbone and not name O',
                                '(resid 144:170 or resid 44:58) and name CA', None
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
@@ -134,13 +134,13 @@ CONFIG_64 = get_mol_param([
     ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
-if CONFIG_48 == 'cossin':
+if CONFIG_76 == 'cossin':
     CONFIG_3 = get_mol_param([
          [8, 15, CONFIG_37, 15, 8],  # the structure of ANN: number of nodes in each layer
          [76, 50, CONFIG_37, 50, 76]
         ])
     # raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
-elif CONFIG_48 == 'Cartesian':
+elif CONFIG_76 == 'Cartesian':
     CONFIG_3 = get_mol_param([
          [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  
          [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55], # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
@@ -148,10 +148,10 @@ elif CONFIG_48 == 'Cartesian':
         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[2])],
         [3 * len(CONFIG_57[3]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[3])],
          ])  # the structure of ANN: number of nodes in each
-elif CONFIG_48 == 'pairwise_distance':
+elif CONFIG_76 == 'pairwise_distance':
     CONFIG_3 = get_mol_param([
         None,
-        [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 190],
+        [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 1770],
         None, None
     ])
 else:
@@ -220,8 +220,8 @@ CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the numbe
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 CONFIG_65 = "US"          # default biasing method
-CONFIG_16 = get_mol_param([500, 2000, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
-CONFIG_8 = get_mol_param([50000, 200000, 200000, 200000])                  # num of simulation steps
+CONFIG_16 = get_mol_param([500, 5000, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
+CONFIG_8 = get_mol_param([50000, 500000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
 CONFIG_9 = get_mol_param([3000, 2000, 3000, 3000])                     # force constant for biased simulations
