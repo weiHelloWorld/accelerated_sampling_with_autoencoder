@@ -108,7 +108,7 @@ else:
 
 scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to put more weights on some components in the output
 if not scaling_factor_for_expected_output is None:
-    print "expected output is weighted"
+    print "expected output is weighted by %s" % str(scaling_factor_for_expected_output)
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
 
 if CONFIG_45 == 'keras':
