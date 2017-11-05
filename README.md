@@ -86,27 +86,48 @@ For more options, type
 python main_work.py --help
 ```
 
-## Quick introduction to data-augmented autoencoders
+## Quick introduction to autoencoders
+
+A typical autoencoder consists of encoder ANN and decoder ANN, where encoder ANN maps inputs to a small number of collective variables (CVs) in encoding layer and decoder ANN tries to reconstruct inputs (or some variants of inputs) from CVs:
+
+![](figures/diagram_autoencoder.png)
+
+A typical 5-layer structure is given below:
+
+![](figures/autoencoder_2.png)
 
 For traditional autoencoders, we minimize
 
-$E=|A(x)-x|^2 + R$
+$$E=|A(x)-x|^2 + R$$
 
 where $A$ is autoencoder mapping function, $R$ is regularization term.
 
-For data-augmented autoencoders, we minimize
+To remove external degrees of freedom, we use data-augmented autoencoders, which minimizes
 
-$E=|A(x)-L(x)|^2 + R$
+$$E=|A(x)-L(x)|^2 + R$$
 
-where $L$ is the alignment function responsible for data augmentation.
+where $L$ is the alignment function responsible for data augmentation.  It can be written in "cat form" as (cat = molecule configuration, little human = alignment function L):
 
-For multi-reference data-augmented autoencoders, error function is 
+![](figures/autoencoder_1.png)
 
-$E=\sum_j |A_j(x)-L_j(x)|^2 + R$
+To possibly remove dependency on specific reference, we apply multiple references to data-augmented autoencoders, corresponding error function is 
+
+$$E=\sum_j |A_j(x)-L_j(x)|^2 + R$$
 
 where $A_j$ are autoencoders that share all but the last layer, and $L_j$ is alignment functions with respect to reference $j$.
 
+If we want to see relative importance among these CVs, we construct multiple outputs with each output taking contribution from some of CVs in encoding layer.  Two possible types of network topology are given below:
+
+![](figures/hierarchical_autoencoder.png)
+
+Corresponding error function is then
+
+$$E=E_{1}+E_{1,2}+E_{1,2,3}+...$$
+
+where $E_{1}$ is reconstruction error when only 1st CV is used to compute output, $E_{1,2}$ is reconstruction error when only first two CVs are used to compute output, ...
+
 See slides for more information: (TODO)
+
 
 ## Directory structure
 
