@@ -73,8 +73,8 @@ CONFIG_57 = [
        2701, 2707, 2714, 2731],
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O')
 ]                                          # index list of atoms for training and biased simulations
-if CONFIG_76 == 'pairwise_distance':
-    CONFIG_73 = get_mol_param([None, 'backbone and not name O',
+if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
+    CONFIG_73 = get_mol_param([None, 'name CA',
                                '(resid 144:170 or resid 44:58) and name CA', None
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
@@ -91,7 +91,7 @@ elif CONFIG_45 == 'keras':
             [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == CircularLayer else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]],
             None, None, None
         ])
-    elif CONFIG_76 == 'Cartesian':
+    elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
         CONFIG_4 = get_mol_param([
             [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
             [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
@@ -161,8 +161,14 @@ elif CONFIG_76 == 'pairwise_distance':
         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 1770],
         None, None
     ])
+elif CONFIG_76 == 'combined':
+    CONFIG_3 = get_mol_param([
+        None,
+        [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243 + 20 * 19 / 2],
+        None, None
+    ])
 else:
-    raise Exception('error input data type')
+    raise Exception('error output data type')
 
 CONFIG_74 = False                  # whether we start each biased simulation with nearest configuration or a fixed configuration
 CONFIG_40 = 'implicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water

@@ -90,6 +90,26 @@ elif output_data_type == 'pairwise_distance':
     output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
         atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
+elif output_data_type == 'combined':
+    scaling_factor = CONFIG_49
+    alignment_coor_file_suffix_list = CONFIG_61
+    output_data_set = Sutils.prepare_output_Cartesian_coor_with_multiple_ref_structures(
+        temp_list_of_directories_contanining_data, alignment_coor_file_suffix_list, scaling_factor)
+    output_data_set = output_data_set[::args.training_interval]
+    mixed_error_function = CONFIG_71  # TODO: refactor this part later
+    assert mixed_error_function  # mixed error is required
+    if CONFIG_30 == "Trp_cage":
+        output_data_set_1 = Sutils.remove_translation(output_data_set[:, list(range(9 * 1, 9 * 8))])  # mixed_err
+        output_data_set_2 = Sutils.remove_translation(output_data_set[:, list(range(180, 360))])
+        output_data_set = np.concatenate([4.0 * output_data_set_1, output_data_set_2],
+                                         axis=1)  # TODO: may modify this relative weight later
+    else: raise Exception('not defined')
+    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+        lambda x: not 'aligned' in x)
+    temp_output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
+        coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
+        atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
+    output_data_set = np.concatenate([output_data_set, temp_output_data_set], axis=1)
 else:
     raise Exception('error output data type')
 
