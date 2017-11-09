@@ -30,7 +30,7 @@ class autoencoder(object):
                  training_data_interval=CONFIG_2,
                  in_layer_type=LinearLayer,
                  hidden_layers_types=CONFIG_17,
-                 out_layer_type=LinearLayer,  # different layers
+                 out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
                  max_num_of_training=CONFIG_5,
                  filename_to_save_network=CONFIG_6,
@@ -81,8 +81,7 @@ class autoencoder(object):
     def load_from_pkl_file(filename):
         a = Sutils.load_object_from_pkl_file(filename)
         if os.path.isfile(filename.replace('.pkl','.hdf5')):
-            from keras.models import load_model
-            a._molecule_net = load_model(filename.replace('.pkl','.hdf5'))
+            a._molecule_net = load_model(filename.replace('.pkl','.hdf5'),custom_objects={'mse_weighted': mse_weighted})
             a._molecule_net_layers = a._molecule_net.layers
         elif not hasattr(a, '_molecule_net') and hasattr(a, '_molecule_net_layers'):  # for backward compatibility
             a._molecule_net = Sequential()
@@ -91,7 +90,7 @@ class autoencoder(object):
         else:
             raise Exception('cannot load attribute _molecule_net')
         if os.path.isfile(filename.replace('.pkl', '_encoder.hdf5')):
-            a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'))
+            a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'),custom_objects={'mse_weighted': mse_weighted})
         else:
             raise Exception('TODO: construct encoder from _molecule_net') # TODO
         return a
@@ -123,9 +122,9 @@ class autoencoder(object):
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
 
-        self._molecule_net = load_model(hdf5_file_name)
-        self._encoder_net = load_model(hdf5_file_name_encoder)
-        # self._decoder_net = load_model(hdf5_file_name_decoder)
+        self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': mse_weighted})
+        self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': mse_weighted})
+        # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         self._molecule_net_layers = self._molecule_net.layers
         return
 
@@ -379,19 +378,23 @@ class autoencoder(object):
 
         var_of_output = sum(np.var(expected_output_data, axis=0))
         var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
-        if self._hierarchical and hierarchical_FVE:
-            num_PCs = self._node_num[2]
+        if self._hierarchical:
+            num_PCs = self._node_num[2] / 2 if self._hidden_layers_type[1] == CircularLayer else self._node_num[2]
             length_for_hierarchical_component = expected_output_data.shape[1] / num_PCs
             hierarchical_actual_output_list = [actual_output_data[:,
                                     item * length_for_hierarchical_component:
                                     (item + 1) * length_for_hierarchical_component]
                                                for item in range(num_PCs)]
-            expected_output_component = expected_output_data[:, :length_for_hierarchical_component]
+            expected_output_component = expected_output_data[:, -length_for_hierarchical_component:]
             assert (expected_output_component.shape == hierarchical_actual_output_list[0].shape)
             var_of_expected_output_component = sum(np.var(expected_output_component, axis=0))
             var_of_actual_output_component_list = [sum(np.var(item - expected_output_component, axis=0)) for item in hierarchical_actual_output_list]
-            return [1 - item / var_of_expected_output_component for item in var_of_actual_output_component_list]
-        return 1 - var_of_err / var_of_output
+            result = [1 - item / var_of_expected_output_component for item in var_of_actual_output_component_list]
+            if not hierarchical_FVE:
+                result = result[-1]   # it is more reasonable to return only last FVE (which includes information from all CV nodes)
+        else:
+            result = 1 - var_of_err / var_of_output
+        return result
 
     def get_commands_for_further_biased_simulations(self, list_of_potential_center=None,
                                                     num_of_simulation_steps=None,
@@ -467,7 +470,7 @@ class autoencoder(object):
                     raise Exception("error")
 
             todo_list_of_commands_for_simulations = []
-            if CONFIG_48 == 'Cartesian' or 'pairwise_distance':
+            if CONFIG_48 == 'Cartesian' or CONFIG_48 == 'pairwise_distance':
                 input_data_type = 1
             elif CONFIG_48 == 'cossin':
                 input_data_type = 0
@@ -487,6 +490,8 @@ class autoencoder(object):
                     if CONFIG_42:  # whether the force constant adjustable mode is enabled
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
+                    if CONFIG_17[1] == CircularLayer:
+                        command += ' --layer_types Tanh,Circular'
                 else:
                     parameter_list = (
                             str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
@@ -788,6 +793,7 @@ class autoencoder_Keras(autoencoder):
         return model.predict(input_PC)
 
     def train(self):
+        output_layer_activation = layer_type_to_name_mapping[self._out_layer_type].lower()
         node_num = self._node_num
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
@@ -800,22 +806,34 @@ class autoencoder_Keras(autoencoder):
         if self._hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
             temp_output_shape = output_data_set.shape
-            output_data_set = np.repeat(output_data_set, node_num[2], axis=0).reshape(temp_output_shape[0],
-                                        temp_output_shape[1] * node_num[2])   # repeat output for hierarchical case
+            num_CVs = node_num[2] / 2 if self._hidden_layers_type[1] == CircularLayer else node_num[2]
+            output_data_set = np.repeat(output_data_set, num_CVs, axis=0).reshape(temp_output_shape[0],
+                                        temp_output_shape[1] * num_CVs)   # repeat output for hierarchical case
             # check if the output data are correct
             temp_data_for_checking = output_data_set[0]
-            for item in range(node_num[2]):
-                assert (np.all(temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]]
-                        == temp_data_for_checking[:temp_output_shape[1]]))
+            for item in range(num_CVs):
+                assert_almost_equal (
+                    temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]],
+                    temp_data_for_checking[:temp_output_shape[1]])
             self._output_data_set = output_data_set
-            hierarchical_variant = 2
+            hierarchical_variant = CONFIG_77
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            encoded = Dense(node_num[2], activation='tanh',
+            if self._hidden_layers_type[1] == CircularLayer:
+                x = Dense(node_num[2], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-            if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
+                x = Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],))(x)
+                x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
+                encoded = Reshape((node_num[2],))(x)
+                encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(node_num[2] / 2)]
+            elif self._hidden_layers_type[1] == TanhLayer:
+                encoded = Dense(node_num[2], activation='tanh',
+                                kernel_regularizer=l2(self._network_parameters[4][1]))(x)
                 encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
+            else: raise Exception('layer error')
+
+            if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
                 x_next = [Dense(node_num[3], activation='linear',
                                 kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
                 x_next_1 = [x_next[0]]
@@ -823,18 +841,17 @@ class autoencoder_Keras(autoencoder):
                     x_next_1.append(layers.Add()(x_next[:item]))
                 x_next_1 = [temp_lambda_tanh_layer(item) for item in x_next_1]
                 assert (len(x_next) == len(x_next_1))
-                shared_final_layer = Dense(node_num[4], activation='tanh',
+                shared_final_layer = Dense(node_num[4], activation=output_layer_activation,
                                            kernel_regularizer=l2(self._network_parameters[4][3]))
                 outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             elif hierarchical_variant == 1:   # simplified version, no shared layer after CV (encoded) layer
-                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
                 concat_layers = [encoded_split[0]]
-                concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, node_num[2] + 1)]
+                concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, num_CVs + 1)]
                 x = [Dense(node_num[3], activation='tanh',
                                 kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in concat_layers]
-                x = [Dense(node_num[4], activation='tanh',
+                x = [Dense(node_num[4], activation=output_layer_activation,
                                 kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
                 outputs_net = layers.Concatenate()(x)
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
@@ -842,10 +859,9 @@ class autoencoder_Keras(autoencoder):
             elif hierarchical_variant == 2:
                 # boosted hierarchical autoencoders, CV i in encoded layer learns remaining error that has
                 # not been learned by previous CVs
-                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
                 x = [Dense(node_num[3], activation='tanh',
                            kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
-                x = [Dense(node_num[4], activation='tanh',
+                x = [Dense(node_num[4], activation=output_layer_activation,
                            kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
                 x_out = [x[0]]
                 for item in range(2, len(x) + 1):
@@ -858,10 +874,9 @@ class autoencoder_Keras(autoencoder):
             # print molecule_net.summary()
             from keras.utils import plot_model
             plot_model(molecule_net, to_file='model.png')
+            loss_function = mse_weighted
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
-        elif self._hidden_layers_type[1] == CircularLayer and self._hierarchical:
-            raise Exception('circularlayer not implemented')
         else:
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
@@ -879,17 +894,24 @@ class autoencoder_Keras(autoencoder):
                 raise Exception('CV layer type error')
             x = Dense(node_num[3], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][2]))(encoded)
-            x = Dense(node_num[4], activation='tanh',
+            x = Dense(node_num[4], activation=output_layer_activation,
                       kernel_regularizer=l2(self._network_parameters[4][3]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
+            loss_function = 'mean_squared_error'
 
-        molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
+        molecule_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer=SGD(lr=self._network_parameters[0],
                                            momentum=self._network_parameters[1],
                                            decay=self._network_parameters[2],
                                            nesterov=self._network_parameters[3])
                              )
+        encoder_net.compile(loss=loss_function, metrics=[loss_function],
+                             optimizer=SGD(lr=self._network_parameters[0],
+                                           momentum=self._network_parameters[1],
+                                           decay=self._network_parameters[2],
+                                           nesterov=self._network_parameters[3])
+                             )  # not needed, but do not want to see endless warning...
 
         training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
 parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
@@ -906,7 +928,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         if self._enable_early_stopping:
             call_back_list += [earlyStopping]
 
-        molecule_net.fit(data, output_data_set, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
+        molecule_net.fit(data, output_data_set, epochs=self._max_num_of_training, batch_size=self._batch_size,
                          verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
         dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
@@ -1017,3 +1039,30 @@ temp_lambda_slice_layers = [
     Lambda(lambda x: x[:, [4]], output_shape=(1,)), Lambda(lambda x: x[:, [5]], output_shape=(1,)),
     Lambda(lambda x: x[:, [6]], output_shape=(1,)), Lambda(lambda x: x[:, [7]], output_shape=(1,)),
     Lambda(lambda x: x[:, [8]], output_shape=(1,)), Lambda(lambda x: x[:, [9]], output_shape=(1,))]
+temp_lambda_slice_layers_circular = [
+    Lambda(lambda x: x[:, [0,1]], output_shape=(2,)),   Lambda(lambda x: x[:, [2,3]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [4,5]], output_shape=(2,)),   Lambda(lambda x: x[:, [6,7]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [8,9]], output_shape=(2,)),   Lambda(lambda x: x[:, [10,11]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [12,13]], output_shape=(2,)), Lambda(lambda x: x[:, [14,15]], output_shape=(2,)),
+    Lambda(lambda x: x[:, [16,17]], output_shape=(2,)), Lambda(lambda x: x[:, [18,19]], output_shape=(2,))
+]
+
+def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
+    # following is custom loss function for hierarchical error of hierarchical autoencoder
+    # it may be useful to assign different weights for hierarchical error,
+    # instead of having E = E_1 + E_{1,2} + E_{1,2,3}
+    # we have E = a^2 E_1 + a E_{1,2} + E_{1,2,3}, a < 1
+    # to avoid too large bias towards reconstruction error using first few components
+    # see progress report 20171101
+    weight_for_hierarchical_error = np.ones(CONFIG_3[-1] * CONFIG_36)
+    for item in range(CONFIG_36):
+        weight_for_hierarchical_error[: item * CONFIG_3[-1]] *= weight_factor_for_hierarchical_err
+    return weight_for_hierarchical_error
+
+# weighted MSE
+if CONFIG_44:
+    weight_for_MSE = get_hierarchical_weights()
+    print "MSE is weighted by %s" % str(weight_for_MSE)
+
+def mse_weighted(y_true, y_pred):
+    return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)

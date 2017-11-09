@@ -43,7 +43,7 @@ def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
     return (Universe(pdb_file).select_atoms(atom_selection_statement).indices + 1).tolist()
 
 #######################################################################
-############   config for ANN_simulation.py  ##########################
+##################   configurations  ##################################
 #######################################################################
 
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
@@ -56,12 +56,8 @@ CONFIG_58 = True              # use representative points for training (generate
 CONFIG_59 = 500               # number of representative points
 
 CONFIG_49 = get_mol_param([5.0, 20.0, 40.0, 20.0]) # scaling factor for output for Cartesian coordinates
-
-'''class coordinates_data_files_list:'''
-
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
-'''class autoencoder:'''
 CONFIG_57 = [
     [2,5,7,9,15,17,19],
     get_index_list_with_selection_statement('../resources/1l2y.pdb', 'backbone and not name O'),
@@ -77,23 +73,36 @@ CONFIG_57 = [
        2701, 2707, 2714, 2731],
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O')
 ]                                          # index list of atoms for training and biased simulations
-if CONFIG_48 == 'pairwise_distance':
-    CONFIG_73 = get_mol_param([None, 'backbone and not name O',
+if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
+    CONFIG_73 = get_mol_param([None, 'name CA',
                                '(resid 144:170 or resid 44:58) and name CA', None
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
+CONFIG_78 = LinearLayer                    # output layer type
+
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
     CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
     raise Exception("Warning: PyBrain is no longer supported!  " + WARNING_INFO)
 elif CONFIG_45 == 'keras':
-    CONFIG_4 = get_mol_param([
-        [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-        ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
+    if CONFIG_76 == 'cossin':
+        CONFIG_4 = get_mol_param([
+            [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == CircularLayer else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]],
+            None, None, None
+        ])
+    elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
+        CONFIG_4 = get_mol_param([
+            [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
+    elif CONFIG_76 == 'pairwise_distance':
+        CONFIG_4 = get_mol_param([
+            None, [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]], None, None
+        ])
+    else: raise Exception('error')
 else:
     raise Exception('training backend not implemented')
 
@@ -110,7 +119,7 @@ else:
 CONFIG_71 = False                  # use mixed error function
 CONFIG_62 = get_mol_param([
     ['../resources/alanine_dipeptide.pdb', '../resources/alanine_ref_1.pdb'],
-    ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'], # ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
+    ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'] if not CONFIG_71 else ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
     # ['../resources/2src.pdb', '../resources/2src.pdb']
     ['../resources/2src.pdb'],
     ['../resources/BetaHairpin.pdb']
@@ -125,41 +134,48 @@ CONFIG_61 = ['_aligned%s_coordinates.txt' % item
              for item in CONFIG_63]  # alignment_coor_file_suffix_list (we use different suffix for aligned files with respect to different references)
 CONFIG_64 = get_mol_param([
     ['backbone', 'backbone'],
-    ['backbone', 'backbone'], # ['backbone and resid 2:8', 'backbone'], # mixed_err
+    ['backbone', 'backbone'] if not CONFIG_71 else ['backbone and resid 2:8', 'backbone'], # mixed_err
     # ['backbone and resid 144:170', 'backbone and resid 44:58']
     ['backbone'],
     ['backbone']
     ])                             # atom selection statement list for structural alignment
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
-if CONFIG_48 == 'cossin':
+if CONFIG_76 == 'cossin':
     CONFIG_3 = get_mol_param([
          [8, 15, CONFIG_37, 15, 8],  # the structure of ANN: number of nodes in each layer
          [76, 50, CONFIG_37, 50, 76]
         ])
-    raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
-elif CONFIG_48 == 'Cartesian':
+    # raise Exception("Warning: it is not a good idea to use cossin as inputs!  " + WARNING_INFO)
+elif CONFIG_76 == 'Cartesian':
     CONFIG_3 = get_mol_param([
          [3 * len(CONFIG_57[0]), 40, CONFIG_37, 40, 3 * len(CONFIG_57[0]) * CONFIG_55],  
-         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55], # [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
+         [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 3 * len(CONFIG_57[1]) * CONFIG_55] if not CONFIG_71 else [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243], # mixed_err
          # [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 42 * 9],
         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[2])],
         [3 * len(CONFIG_57[3]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[3])],
          ])  # the structure of ANN: number of nodes in each
-elif CONFIG_48 == 'pairwise_distance':
+elif CONFIG_76 == 'pairwise_distance':
     CONFIG_3 = get_mol_param([
         None,
-        [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 190],
+        [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 1770],
+        None, None
+    ])
+elif CONFIG_76 == 'combined':
+    CONFIG_3 = get_mol_param([
+        None,
+        [3 * len(CONFIG_57[1]), 50, CONFIG_37, 50, 243 + 20 * 19 / 2],
         None, None
     ])
 else:
-    raise Exception('error input data type')
+    raise Exception('error output data type')
 
 CONFIG_74 = False                  # whether we start each biased simulation with nearest configuration or a fixed configuration
 CONFIG_40 = 'implicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_51 = 'NPT'                  # simulation ensemble type (for Trp-cage only)
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
-CONFIG_44 = True                             # whether to use hierarchical autoencoder
+CONFIG_44 = False                             # whether to use hierarchical autoencoder
+CONFIG_77 = 2                      # hierarchical autoencoder variant index
 # if CONFIG_44:
 #     raise Exception("Warning: no longer supported (used for backward compatibility)!  " + WARNING_INFO)
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
@@ -167,31 +183,17 @@ CONFIG_47 = False                        # whether to set the output layer as ci
 if CONFIG_47:
     raise Exception("Warning: this is a bad choice!  " + WARNING_INFO)
 
-'''class iteration'''
-
-'''def train_network_and_save'''
-
 CONFIG_13 = get_mol_param([3,3, 3, 3])  # num of network trainings we are going to run, and pick the one with least FVE from them
 CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers
 if CONFIG_43:
     raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)
 
-'''def prepare_simulation'''
 CONFIG_31 = 10        # maximum number of failed simulations allowed in each iteration
-
-'''def run_simulation'''
 
 CONFIG_56 = get_mol_param([20, 8, 6, 6])    # number of biased simulations running in parallel
 CONFIG_14 = 6  # max number of jobs submitted each time
 CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files
 CONFIG_50 = False   # whether we need to preserve original file if water molecules are removed
-
-
-##########################################################################
-############   config for molecule_spec_sutils.py  #######################
-##########################################################################
-
-'''class Sutils'''
 
 CONFIG_10 = get_mol_param([10,10, 10, 10])   # num of bins for get_boundary_points()
 CONFIG_11 = get_mol_param([15,20, 15, 15])  # num of boundary points
@@ -212,16 +214,15 @@ elif CONFIG_17[1] == ReluLayer:
 else:
     raise Exception('Layer not defined')
 
-
 CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
 CONFIG_65 = "US"          # default biasing method
-CONFIG_16 = get_mol_param([500, 2000, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
-CONFIG_8 = get_mol_param([50000, 200000, 200000, 200000])                  # num of simulation steps
+CONFIG_16 = get_mol_param([500, 5000, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
+CONFIG_8 = get_mol_param([50000, 500000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
-CONFIG_9 = get_mol_param([3000, 3000, 3000, 3000])                     # force constant for biased simulations
+CONFIG_9 = get_mol_param([3000, 2000, 3000, 3000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['fixed', 'fixed', 'fixed', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
 CONFIG_54 = 2.50 * get_mol_param([30.0, 20.0, 15.0, 20.0])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
