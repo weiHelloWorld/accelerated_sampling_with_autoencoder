@@ -773,8 +773,8 @@ class autoencoder_Keras(autoencoder):
             raise Exception('no longer supported')
 
         if self._hidden_layers_type[1] == CircularLayer:
-            PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
-                   for item in self._encoder_net.predict(input_data)]
+            PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
+                   for item in self._encoder_net.predict(input_data)])
             assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
         elif self._hidden_layers_type[1] == TanhLayer:
             PCs = self._encoder_net.predict(input_data)
