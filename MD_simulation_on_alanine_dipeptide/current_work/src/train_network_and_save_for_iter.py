@@ -123,6 +123,7 @@ if input_data_type == 'Cartesian':
     print 'applying data augmentation...'
     data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies,
                              is_output_reconstructed_Cartesian=(output_data_type == 'Cartesian'))
+    fraction_of_data_to_be_saved = 1.0 / num_of_copies
 else:
     print "data augmentation not applied"
 
