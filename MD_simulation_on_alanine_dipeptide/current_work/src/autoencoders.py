@@ -255,20 +255,24 @@ class autoencoder(object):
                 f_out.write(',\n')
         return
 
-    def check_PC_consistency(self, another_autoencoder, input_data = None):
+    def check_PC_consistency(self, another_autoencoder, input_data = None, single_component_pair=None):
         from sklearn import linear_model
         assert (isinstance(another_autoencoder, autoencoder))
         if input_data is None:  input_data = self._data_set
         PCs_1 = self.get_PCs(input_data)
         PCs_2 = another_autoencoder.get_PCs(input_data)
+        if not single_component_pair is None:  # in this case, we check consistency of single component of PCs
+            PCs_1 = PCs_1[:, single_component_pair[0]]
+            PCs_2 = PCs_2[:, single_component_pair[1]]
+            print PCs_1.shape, PCs_2.shape
         temp_regression = linear_model.LinearRegression().fit(PCs_1, PCs_2)
         predicted_PCs_2 = temp_regression.predict(PCs_1)
         r_value = temp_regression.score(PCs_1, PCs_2)
         return PCs_1, PCs_2, predicted_PCs_2, r_value
 
     @staticmethod
-    def pairwise_PC_consistency_check(autoencoder_list, input_data=None):
-        result = [[item_1.check_PC_consistency(item_2, input_data=input_data)[3]
+    def pairwise_PC_consistency_check(autoencoder_list, input_data=None, single_component_pair=None):
+        result = [[item_1.check_PC_consistency(item_2, input_data=input_data, single_component_pair=single_component_pair)[3]
                   for item_1 in autoencoder_list] for item_2 in autoencoder_list]
         return np.array(result)
 
