@@ -262,9 +262,9 @@ class autoencoder(object):
         PCs_1 = self.get_PCs(input_data)
         PCs_2 = another_autoencoder.get_PCs(input_data)
         if not single_component_pair is None:  # in this case, we check consistency of single component of PCs
-            PCs_1 = PCs_1[:, single_component_pair[0]]
-            PCs_2 = PCs_2[:, single_component_pair[1]]
-            print PCs_1.shape, PCs_2.shape
+            PCs_1 = PCs_1[:, [single_component_pair[0]]]
+            PCs_2 = PCs_2[:, [single_component_pair[1]]]
+            # print PCs_1.shape, PCs_2.shape
         temp_regression = linear_model.LinearRegression().fit(PCs_1, PCs_2)
         predicted_PCs_2 = temp_regression.predict(PCs_1)
         r_value = temp_regression.score(PCs_1, PCs_2)
@@ -1069,8 +1069,8 @@ def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
     return weight_for_hierarchical_error
 
 # weighted MSE
-if CONFIG_44:
-    weight_for_MSE = get_hierarchical_weights()
+weight_for_MSE = get_hierarchical_weights()
+if CONFIG_44:    
     print "MSE is weighted by %s" % str(weight_for_MSE)
 
 def mse_weighted(y_true, y_pred):
