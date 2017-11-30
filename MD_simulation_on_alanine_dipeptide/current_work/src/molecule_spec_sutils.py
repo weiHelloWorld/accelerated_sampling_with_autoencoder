@@ -2,6 +2,7 @@
 """
 
 from config import *
+import random
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
 
@@ -11,7 +12,8 @@ class Sutils(object):
 
     @staticmethod
     def get_num_of_non_overlapping_hyperspheres_that_filled_explored_phase_space(
-            pdb_file_list, atom_selection, radius, step_interval=1, distance_metric='RMSD'):
+            pdb_file_list, atom_selection, radius, step_interval=1, shuffle_list=False,
+            distance_metric='RMSD'):
         """
         This functions is used to count how many non-overlapping hyperspheres are needed to fill the explored phase
         space, to estimate volumn of explored region
@@ -20,6 +22,7 @@ class Sutils(object):
         :param distance_metric: distance metric of two frames
         :return: number of hyperspheres
         """
+        if shuffle_list: random.shuffle(pdb_file_list)
         index = 0
         positions_list = []
         for sample_file in pdb_file_list:
@@ -38,7 +41,7 @@ class Sutils(object):
 
                 index += 1
 
-        return len(positions_list)
+        return len(positions_list), np.array(positions_list)
 
     @staticmethod
     def mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_file, out_pdb,

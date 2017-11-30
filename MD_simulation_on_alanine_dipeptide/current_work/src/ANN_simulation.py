@@ -1,6 +1,7 @@
 from config import * # configuration file
 from cluster_management import *
 from autoencoders import *
+from helper_func import *
 
 """note that all configurations for a class should be in function __init__(), and take configuration parameters
 from config.py

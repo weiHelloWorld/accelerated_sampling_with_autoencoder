@@ -255,20 +255,24 @@ class autoencoder(object):
                 f_out.write(',\n')
         return
 
-    def check_PC_consistency(self, another_autoencoder, input_data = None):
+    def check_PC_consistency(self, another_autoencoder, input_data = None, single_component_pair=None):
         from sklearn import linear_model
         assert (isinstance(another_autoencoder, autoencoder))
         if input_data is None:  input_data = self._data_set
         PCs_1 = self.get_PCs(input_data)
         PCs_2 = another_autoencoder.get_PCs(input_data)
+        if not single_component_pair is None:  # in this case, we check consistency of single component of PCs
+            PCs_1 = PCs_1[:, [single_component_pair[0]]]
+            PCs_2 = PCs_2[:, [single_component_pair[1]]]
+            # print PCs_1.shape, PCs_2.shape
         temp_regression = linear_model.LinearRegression().fit(PCs_1, PCs_2)
         predicted_PCs_2 = temp_regression.predict(PCs_1)
         r_value = temp_regression.score(PCs_1, PCs_2)
         return PCs_1, PCs_2, predicted_PCs_2, r_value
 
     @staticmethod
-    def pairwise_PC_consistency_check(autoencoder_list, input_data=None):
-        result = [[item_1.check_PC_consistency(item_2, input_data=input_data)[3]
+    def pairwise_PC_consistency_check(autoencoder_list, input_data=None, single_component_pair=None):
+        result = [[item_1.check_PC_consistency(item_2, input_data=input_data, single_component_pair=single_component_pair)[3]
                   for item_1 in autoencoder_list] for item_2 in autoencoder_list]
         return np.array(result)
 
@@ -689,20 +693,25 @@ class autoencoder(object):
                     f_out.write("\n")
 
             # 2nd: trajectory, and projection trajectory in phi-psi space (for reweighting), and histogram
-            num_of_bins = num_of_bins
-            binEdges = np.linspace(-1, 1, num_of_bins)
+            epsilon = 1e-5
+            coords = np.array(coords)
+            binEdges_list = []
             with open(folder_to_store_files + 'hist/hist_binEdges.txt', 'w') as f_out:
-                for _ in range(dimensionality):
+                for item_100 in range(dimensionality):
+                    binEdges = np.linspace(np.min(coords[:, item_100]) - epsilon,
+                                           np.max(coords[:, item_100]) + epsilon, num_of_bins + 1)
+                    binEdges_list.append(binEdges.tolist())
                     for item in binEdges:
                         f_out.write('%f\t' % item)
                     f_out.write('\n')
 
             num_of_bins_proj = 40
-            binEdges_proj = np.array([np.linspace(-np.pi, np.pi, num_of_bins_proj),
-                                      np.linspace(-np.pi, np.pi, num_of_bins_proj)])
+            umbOP = np.array(umbOP)
             with open(folder_to_store_files + 'hist/hist_binEdges_proj.txt', 'w') as f_out:
-                for row in binEdges_proj:
-                    for item in row:
+                for item_100 in range(len(umbOP[0])):
+                    binEdges_proj = np.linspace(np.min(umbOP[:, item_100]) - epsilon,
+                                                np.max(umbOP[:, item_100]) + epsilon, num_of_bins_proj + 1)
+                    for item in binEdges_proj:
                         f_out.write('%f\t' % item)
                     f_out.write('\n')
 
@@ -726,7 +735,7 @@ class autoencoder(object):
                         f_out_2.write("\n")
 
                     temp_hist, _ = np.histogramdd(np.array(coords[start_index:end_index]),
-                                                     bins=[binEdges.tolist()] * dimensionality)
+                                                     bins=binEdges_list)
                     for _1 in temp_hist.flatten():
                         f_out_3.write('%d\t' % _1)
         else:
@@ -773,8 +782,8 @@ class autoencoder_Keras(autoencoder):
             raise Exception('no longer supported')
 
         if self._hidden_layers_type[1] == CircularLayer:
-            PCs = [[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
-                   for item in self._encoder_net.predict(input_data)]
+            PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
+                   for item in self._encoder_net.predict(input_data)])
             assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
         elif self._hidden_layers_type[1] == TanhLayer:
             PCs = self._encoder_net.predict(input_data)
@@ -1060,8 +1069,8 @@ def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
     return weight_for_hierarchical_error
 
 # weighted MSE
-if CONFIG_44:
-    weight_for_MSE = get_hierarchical_weights()
+weight_for_MSE = get_hierarchical_weights()
+if CONFIG_44:    
     print "MSE is weighted by %s" % str(weight_for_MSE)
 
 def mse_weighted(y_true, y_pred):

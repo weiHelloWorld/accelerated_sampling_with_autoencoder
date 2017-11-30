@@ -38,7 +38,7 @@ def main():
 
     while next_job_index < total_num_jobs:
         time.sleep(interval)
-        current_running_python_jobs = filter(lambda x: ' python ' in x,
+        current_running_python_jobs = filter(lambda x: ' python ' in x and not 'python workqueue.py' in x,
                                             subprocess.check_output(['ps', 'aux']).split('\n')
                                             )
         current_running_python_jobs = map(lambda x: ' '.join(x.split()[10:]),    # 11th column is command

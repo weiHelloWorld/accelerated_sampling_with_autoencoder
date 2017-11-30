@@ -22,6 +22,8 @@ PLUMED (ANN included): https://github.com/weiHelloWorld/plumed2
 
 OpenMM-PLUMED force plugin: https://github.com/peastman/openmm-plumed
 
+Bayes WHAM free energy calculation package: https://bitbucket.org/andrewlferguson/bayeswham_python
+
 Some other Python scientific calculation packages (e.g. seaborn, pandas) are also needed, it is recommended to install them with Anaconda: https://www.continuum.io/downloads
 
 For Linux/Ubuntu, you may use following script to install most of these packages:
@@ -164,6 +166,10 @@ TODO
 1. Create a subclass of `autoencoder` for the new structure/backend and do implementation.  Note that all abstract methods (`@abc.abstractmethod`) must be implemented.
 
 2. Include new network information in the configuration file `${root_dir}/src/config.py`.
+
+- How to apply a new potential center selection algorithm?
+
+Modify method `Sutils.get_boundary_points()` in `${root_dir}/src/molecule_spec_sutils.py`.
 
 ## Contact
 

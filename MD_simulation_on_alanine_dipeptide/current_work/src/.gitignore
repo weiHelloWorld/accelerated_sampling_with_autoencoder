@@ -13,4 +13,6 @@ temp_*.sh
 temp*.txt
 temp/**
 *.hdf5
+*.npy
+*.pdf
 
