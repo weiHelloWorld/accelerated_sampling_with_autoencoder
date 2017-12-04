@@ -45,7 +45,8 @@ print "data folder is %s" % str(temp_list_of_directories_contanining_data)
 
 my_coor_data_obj = coordinates_data_files_list(
     list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
-my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
+coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+    lambda x: not 'aligned' in x)
 
 fraction_of_data_to_be_saved = 1   # save all training data by default
 input_data_type, output_data_type = CONFIG_48, CONFIG_76
@@ -55,9 +56,8 @@ if not args.input_file is None:
     data_set = np.loadtxt(args.input_file)
 elif input_data_type == 'cossin' and output_data_type == 'cossin':  # input type
     data_set = np.array(molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
-        my_file_list, step_interval=args.training_interval))
+        coor_data_obj_input.get_list_of_coor_data_files(), step_interval=args.training_interval))
 elif input_data_type == 'Cartesian':
-    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
     scaling_factor = CONFIG_49
     data_set = coor_data_obj_input.get_coor_data(scaling_factor)
     data_set = data_set[::args.training_interval]
@@ -68,7 +68,7 @@ else:
 
 # getting output data
 if not args.output_file is None:
-    data_set = np.loadtxt(args.output_file)
+    output_data_set = np.loadtxt(args.output_file)
 elif output_data_type == 'cossin':   # output type
     output_data_set = data_set   # done above
 elif output_data_type == 'Cartesian':
@@ -91,8 +91,6 @@ elif output_data_type == 'Cartesian':
             output_data_set = np.concatenate([output_data_set_1, output_data_set_2], axis=1)
     assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
 elif output_data_type == 'pairwise_distance':
-    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-        lambda x: not 'aligned' in x)
     output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
         atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
@@ -110,14 +108,15 @@ elif output_data_type == 'combined':
         output_data_set = np.concatenate([4.0 * output_data_set_1, output_data_set_2],
                                          axis=1)  # TODO: may modify this relative weight later
     else: raise Exception('not defined')
-    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-        lambda x: not 'aligned' in x)
     temp_output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
         atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
     output_data_set = np.concatenate([output_data_set, temp_output_data_set], axis=1)
 else:
     raise Exception('error output data type')
+
+# deal with lag time (for time-lagged autoencoder)
+
 
 print ("min/max of output = %f, %f" % (np.min(output_data_set), np.max(output_data_set)))
 assert (len(data_set) == len(output_data_set))
