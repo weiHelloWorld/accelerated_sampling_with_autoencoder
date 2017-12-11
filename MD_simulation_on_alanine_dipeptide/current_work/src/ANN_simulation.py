@@ -11,8 +11,7 @@ class plotting(object):
     """this class implements different plottings
     """
 
-    def __init__(self, network):
-        assert isinstance(network, autoencoder)
+    def __init__(self, network=None):
         self._network = network
         pass
 
