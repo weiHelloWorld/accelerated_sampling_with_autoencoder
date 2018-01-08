@@ -12,7 +12,7 @@ class Sutils(object):
 
     @staticmethod
     def get_num_of_non_overlapping_hyperspheres_that_filled_explored_phase_space(
-            pdb_file_list, atom_selection, radius, step_interval=1, shuffle_list=False,
+            pdb_file_list, atom_selection, radius, step_interval=1, shuffle_list=True,
             distance_metric='RMSD'):
         """
         This functions is used to count how many non-overlapping hyperspheres are needed to fill the explored phase
@@ -28,8 +28,10 @@ class Sutils(object):
         for sample_file in pdb_file_list:
             sample = Universe(sample_file)
             sample_atom_selection = sample.select_atoms(atom_selection)
-
-            for _ in sample.trajectory:
+            frame_index_list = list(range(sample.trajectory.n_frames))
+            if shuffle_list: random.shuffle(frame_index_list)
+            for item_index in frame_index_list:
+                sample.trajectory[item_index]
                 if index % step_interval == 0:
                     current_positions = sample_atom_selection.positions
                     distances_to_previous_frames = np.array(
