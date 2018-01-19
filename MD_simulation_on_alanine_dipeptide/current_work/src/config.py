@@ -71,7 +71,8 @@ CONFIG_57 = [
        2478, 2485, 2492, 2502, 2507, 2523, 2528, 2542, 2552, 2567, 2576,
        2586, 2593, 2600, 2610, 2626, 2632, 2648, 2651, 2661, 2666, 2685,
        2701, 2707, 2714, 2731],
-    get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O')
+    get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O'),
+    list(range(1, 25))
 ]                                          # index list of atoms for training and biased simulations
 if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
     CONFIG_73 = get_mol_param([None, 'name CA',
@@ -239,9 +240,9 @@ CONFIG_22 = 0.002   # simulation time step, in ps
 CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
-if temp_home_directory == "/home/fisiksnju":
+if temp_home_directory == "/home/fisiksnju" or temp_home_directory == "/home/kengyangyao":
     CONFIG_24 = 'local'  # machine to run the simulations
-    CONFIG_25 = '/home/fisiksnju/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
+    CONFIG_25 = temp_home_directory + '/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
 elif temp_home_directory == "/home/weichen9":
     CONFIG_24 = 'cluster'  # machine to run the simulations
     CONFIG_25 = '/home/weichen9/.my_softwares/openmm7/lib/plugins'
