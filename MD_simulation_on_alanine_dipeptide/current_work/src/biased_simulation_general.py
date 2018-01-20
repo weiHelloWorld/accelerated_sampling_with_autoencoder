@@ -93,7 +93,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
                         }[args.molecule]
     water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml', '1y57': 'tip3p.xml',
                         'BetaHairpin': 'tip3p.xml', 'C24':'charmm36/spce.xml'}[args.molecule]
-    water_model = water_field_file.replace('.xml', '')
+    water_model = water_field_file.replace('.xml', '').replace('charmm36/', '')
     ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar, '1y57': 0.5 * .15 * molar,
                       'BetaHairpin': 0 * molar, 'C24': 0 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
@@ -153,7 +153,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
         modeller.addHydrogens(forcefield)
         modeller.addSolvent(forcefield, model=water_model, boxSize=Vec3(box_size, box_size, box_size)*nanometers,
                             ionicStrength=ionic_strength)
-        modeller.addExtraParticles(forcefield)
+        if not water_model == 'spce': modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
