@@ -285,6 +285,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1,
                                              start_index_of_xyz_field=6):
+        index_of_backbone_atoms = [str(item) for item in index_of_backbone_atoms]
         filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
         output_file_list = []
 
@@ -301,11 +302,15 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
                 with open(input_file) as f_in:
                     with open(output_file, 'w') as f_out:
+                        # fix based on this format: https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html
+                        # reason for the fix is sometimes there is no space between two neighboring fields
+                        # for instance, when atom index is greater than 10000, no space between first two fields, leading to wrong parsing
                         for line in f_in:
-                            fields = line.strip().split()
+                            line = line.strip()
+                            fields = [line[:6], line[6:11], line[30:38], line[38:46], line[46:54]]
+                            fields = [item_field.strip() for item_field in fields]
                             if (fields[0] == 'ATOM' or fields[0] == 'HETATM') and fields[1] in index_of_backbone_atoms:
-                                f_out.write(reduce(lambda x, y: x + '\t' + y,
-                                                   fields[start_index_of_xyz_field:start_index_of_xyz_field+3]))
+                                f_out.write(reduce(lambda x, y: x + '\t' + y, fields[2:5]))
                                 f_out.write('\t')
                                 if fields[1] == index_of_backbone_atoms[-1]:
                                     f_out.write('\n')
