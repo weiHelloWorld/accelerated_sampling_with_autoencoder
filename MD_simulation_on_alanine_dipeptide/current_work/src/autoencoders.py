@@ -881,8 +881,8 @@ class autoencoder_Keras(autoencoder):
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             else: raise Exception('error variant')
             # print molecule_net.summary()
-            from keras.utils import plot_model
-            plot_model(molecule_net, to_file='model.png')
+            # from keras.utils import plot_model
+            # plot_model(molecule_net, to_file='model.png')
             loss_function = mse_weighted
         elif num_of_hidden_layers != 3:
             raise Exception('not implemented for this case')
@@ -1074,4 +1074,6 @@ if CONFIG_44:
     print "MSE is weighted by %s" % str(weight_for_MSE)
 
 def mse_weighted(y_true, y_pred):
-    return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)
+    # return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)  # TODO: do this later
+    return K.mean(K.square(y_pred - y_true), axis=-1)
+
