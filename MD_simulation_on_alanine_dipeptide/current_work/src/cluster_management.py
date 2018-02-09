@@ -146,7 +146,7 @@ exit 0
     def monitor_status_and_submit_periodically(num,
                                                num_of_running_jobs_when_allowed_to_stop = 0,
                                                monitor_mode = 'normal',  # monitor_mode determines whether it can go out of first while loop
-                                               ):
+                                               check_error_for_submitted_jobs=True):
         if monitor_mode == 'normal':
             min_num_of_unsubmitted_jobs = 0
         elif monitor_mode == 'always_wait_for_submit':
@@ -159,7 +159,8 @@ exit 0
         # first check if there are unsubmitted jobs
         while len(submitted_job_id) > 0 or num_of_unsubmitted_jobs > min_num_of_unsubmitted_jobs:
             time.sleep(10)
-            cluster_management.get_sge_dot_e_files_in_current_folder_and_handle_jobs_not_finished_successfully()
+            if check_error_for_submitted_jobs:
+                cluster_management.get_sge_dot_e_files_in_current_folder_and_handle_jobs_not_finished_successfully()
             try:
                 temp_submitted_job_id = cluster_management.submit_new_jobs_if_there_are_too_few_jobs(num)
                 submitted_job_id += temp_submitted_job_id
@@ -244,7 +245,7 @@ exit 0
         for item in job_sgefile_name_list:
             status_code = cluster_management.check_whether_job_finishes_successfully(item, latest_version)
             if status_code in (1, 2):
-                if os.path.isfile(dir_to_archive_files + item): 
+                if os.path.isfile(dir_to_archive_files + item):
                     print "restore sge_file: %s" % item
                     subprocess.check_output(['cp', dir_to_archive_files + item, folder_to_store_sge_files])
                     assert (os.path.exists(folder_to_store_sge_files + item))
