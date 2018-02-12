@@ -5,6 +5,7 @@ from config import *
 import random
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
+from helper_func import *
 
 class Sutils(object):
     def __init__(self):
@@ -221,22 +222,11 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def check_center_of_mass_is_at_origin(result):
-        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
-                                           np.average(result[item, 2::3])]
-                                          for item in range(result.shape[0])]
-        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e-5)
+        return Helper_func.check_center_of_mass_is_at_origin(result=result)
 
     @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom
-        if len(coords.shape) == 1:    # convert 1D array (when there is only one coord) to 2D array
-            coords = coords.reshape((1, coords.shape[0]))
-        number_of_atoms = coords.shape[1] / 3
-        coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
-                                     np.average(coords[item, 2::3])] * number_of_atoms
-                                    for item in range(coords.shape[0])]
-        result = coords - np.array(coords_of_center_of_mass)
-        assert Sutils.check_center_of_mass_is_at_origin(result)
-        return result
+        return Helper_func.remove_translation(coords=coords)
 
     @staticmethod
     def rotating_randomly_around_center_of_mass(coords):

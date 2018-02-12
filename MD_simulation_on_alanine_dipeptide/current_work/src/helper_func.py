@@ -47,4 +47,34 @@ class Helper_func(object):
 <AllowPatch name="MET2"/>
 </Residue>""" % (num, num)
         return
-    
+
+    @staticmethod
+    def check_center_of_mass_is_at_origin(result):
+        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
+                                           np.average(result[item, 2::3])]
+                                          for item in range(result.shape[0])]
+        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e-5)
+
+    @staticmethod
+    def remove_translation(coords):  # remove the translational degree of freedom
+        if len(coords.shape) == 1:  # convert 1D array (when there is only one coord) to 2D array
+            coords = coords.reshape((1, coords.shape[0]))
+        number_of_atoms = coords.shape[1] / 3
+        coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
+                                     np.average(coords[item, 2::3])] * number_of_atoms
+                                    for item in range(coords.shape[0])]
+        result = coords - np.array(coords_of_center_of_mass)
+        assert Helper_func.check_center_of_mass_is_at_origin(result)
+        return result
+
+    @staticmethod
+    def get_gyration_tensor_and_principal_moments(coords):
+        coords = Helper_func.remove_translation(coords)
+        temp_coords = coords.reshape(coords.shape[0], coords.shape[1] / 3, 3)
+        gyration = np.zeros((coords.shape[0], 3, 3))
+        for xx in range(3):
+            for yy in range(3):
+                gyration[:, xx, yy] = (temp_coords[:, :, xx] * temp_coords[:, :, yy]).mean(axis=-1)
+        moments_gyration = np.linalg.eig(gyration)[0]
+        moments_gyration.sort(axis=-1)
+        return gyration, moments_gyration[:, ::-1]
