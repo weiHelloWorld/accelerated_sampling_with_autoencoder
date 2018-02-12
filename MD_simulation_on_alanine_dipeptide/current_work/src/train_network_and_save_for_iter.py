@@ -14,8 +14,9 @@ parser.add_argument("--lr_m", type=str, default=None, help="learning rate and mo
 parser.add_argument("--num_PCs", type=int, default=None, help="number of PCs")
 parser.add_argument("--output_file", type=str, default=None, help="file name to save autoencoder")
 parser.add_argument('--data_folder', type=str, default=None, help="folder containing training data")
-parser.add_argument('--input_file', type=str, default=None, help="file containing pre-computed input data")
-parser.add_argument('--output_file', type=str, default=None, help="file containing pre-computed output data")
+parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
+parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data")
+# parser.add_argument('--')
 args = parser.parse_args()
 
 # used to process additional arguments
@@ -52,8 +53,8 @@ fraction_of_data_to_be_saved = 1   # save all training data by default
 input_data_type, output_data_type = CONFIG_48, CONFIG_76
 
 # getting input data
-if not args.input_file is None:
-    data_set = np.loadtxt(args.input_file)
+if not args.in_data is None:
+    data_set = np.load(args.in_data)
 elif input_data_type == 'cossin' and output_data_type == 'cossin':  # input type
     data_set = np.array(molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
         coor_data_obj_input.get_list_of_coor_data_files(), step_interval=args.training_interval))
@@ -67,8 +68,8 @@ else:
     raise Exception('error input type')
 
 # getting output data
-if not args.output_file is None:
-    output_data_set = np.loadtxt(args.output_file)
+if not args.out_data is None:
+    output_data_set = np.load(args.out_data)
 elif output_data_type == 'cossin':   # output type
     output_data_set = data_set   # done above
 elif output_data_type == 'Cartesian':
@@ -124,7 +125,7 @@ use_representative_points_for_training = CONFIG_58
 if use_representative_points_for_training:
     data_set, output_data_set = Sutils.select_representative_points(data_set, output_data_set)
     
-if input_data_type == 'Cartesian':
+if input_data_type == 'Cartesian' and args.in_data is None:
     print 'applying data augmentation...'
     data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies,
                              is_output_reconstructed_Cartesian=(output_data_type == 'Cartesian'))
