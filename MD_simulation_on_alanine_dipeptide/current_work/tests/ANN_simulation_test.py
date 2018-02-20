@@ -472,3 +472,26 @@ class test_get_and_save_cossin_and_metrics_from_a_data_folder():
             temp = np.loadtxt(item)
             assert temp.shape[0] == 38
         return
+
+class test_Helper_func(object):
+    @staticmethod
+    def test_compute_distances_min_image_convention():
+        output_pdb = 'out_for_computing_distances.pdb'
+        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0', 'temp_out',
+                             'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA', '--device', '0', '--output_pdb', output_pdb])
+        import mdtraj as md
+        box_length = 4.5  # in nm
+        temp_t = md.load(output_pdb)
+        temp_t.unitcell_lengths, temp_t.unitcell_angles = box_length * np.ones((20, 3)), 90 * np.ones((20, 3))
+        temp_u = Universe(output_pdb)
+        a_sel = temp_u.select_atoms('name N')
+        b_sel = temp_u.select_atoms('name O and resname HOH')
+        absolute_index = b_sel.atoms.indices[30]
+        b_positions = np.array([b_sel.positions for _ in temp_u.trajectory])
+        b_positions = b_positions.reshape(20, b_positions.shape[1] * b_positions.shape[2])
+        a_positions = np.array([a_sel.positions for _ in temp_u.trajectory])
+        a_positions = a_positions.reshape(20, a_positions.shape[1] * a_positions.shape[2])
+        result = Helper_func.compute_distances_min_image_convention(a_positions, b_positions, 10 * box_length)
+        assert_almost_equal(md.compute_distances(temp_t, [[0, absolute_index]]).flatten(), result[:, 0, 30] / 10, decimal=4)
+        subprocess.check_output(['rm', output_pdb])
+        return 

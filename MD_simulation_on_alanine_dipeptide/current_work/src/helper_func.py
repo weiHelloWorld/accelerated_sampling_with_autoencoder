@@ -103,3 +103,20 @@ class Helper_func(object):
         # print count.shape, temp_in_boundary_region.shape, temp_correction.shape
         count -= (temp_in_boundary_region * temp_correction).sum(axis=-1)
         return count
+
+    @staticmethod
+    def compute_distances_min_image_convention(atoms_pos_1, atoms_pos_2, box_length):
+        # shape of atoms_pos_{1,2}: (num of frames, num of atoms * 3)
+        # output: distance matrix
+        # why don't we use mdtraj?  Because it requires large memory for loading large pdb files
+        # why don't we use MDAnalysis?  Because it is not fast enough (looping over trajectory would take long time)
+        # this function is especially useful when both atoms_pos_1, atoms_pos_2 are not super long, while the number of frames is large, 
+        # since it vectorizes computation over frames
+        temp_dis_2 = np.zeros((atoms_pos_1.shape[0], atoms_pos_1.shape[1] / 3, atoms_pos_2.shape[1] / 3))
+        for index_1 in range(atoms_pos_1.shape[1] / 3):
+            # print index_1
+            for index_2 in range(atoms_pos_2.shape[1] / 3):
+                temp_diff = atoms_pos_1[:, 3 * index_1: 3 * index_1 + 3] - atoms_pos_2[:, 3 * index_2: 3 * index_2 + 3]
+                temp_vec = np.array([(item + box_length / 2.0) % box_length - box_length / 2.0 for item in temp_diff.T])
+                temp_dis_2[:, index_1, index_2] = np.linalg.norm(temp_vec, axis=0)
+        return temp_dis_2
