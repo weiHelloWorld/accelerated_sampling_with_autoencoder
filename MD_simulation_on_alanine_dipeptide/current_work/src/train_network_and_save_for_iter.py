@@ -44,10 +44,11 @@ else:
 
 print "data folder is %s" % str(temp_list_of_directories_contanining_data)
 
-my_coor_data_obj = coordinates_data_files_list(
-    list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
-coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-    lambda x: not 'aligned' in x)
+if (args.in_data is None) and (args.out_data is None):
+    my_coor_data_obj = coordinates_data_files_list(
+        list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
+    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+        lambda x: not 'aligned' in x)
 
 fraction_of_data_to_be_saved = 1   # save all training data by default
 input_data_type, output_data_type = CONFIG_48, CONFIG_76
