@@ -15,6 +15,23 @@ class plotting(object):
         self._network = network
         pass
 
+    def plot_fve_L_method(fve, CV_min, CV_max, fig, ax):
+        temp_fve = np.array(fve).flatten()
+        temp_fve = temp_fve.reshape(CV_max - CV_min, temp_fve.shape[0] / (CV_max - CV_min))
+        evaluation_values = np.mean(temp_fve, axis=-1)
+        optimal_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, range(CV_min, CV_max + 1))
+        x_data = [_ - CV_min for _ in x_data]
+        ax.plot(x_data, y_data_left)
+        ax.plot(x_data, y_data_right)
+        ax.scatter(range(CV_max - CV_min + 1), evaluation_values)
+        df = pd.DataFrame(temp_fve.T)
+        sns.boxplot(df, ax=ax)
+        ax.set_xticklabels(range(CV_min, CV_max + 1))
+        ax.set_ylim([evaluation_values.min() - 0.1, evaluation_values.max() + 0.1])
+        ax.set_xlabel('num of CVs')
+        ax.set_ylabel('FVE')
+        return fig, ax
+
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
                                             fig_object,
                                             axis_object,
