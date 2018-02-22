@@ -85,9 +85,9 @@ class Helper_func(object):
     def get_norm_factor(rcut, sig):
         rcut2 = rcut*rcut
         sig2 = 2.0*sig*sig
-        normconst = np.sqrt( np.pi * sig2 ) * erf( rcut / (sqrt(2.0)*sig) ) - 2*rcut*exp( - rcut2 / sig2 )
+        normconst = np.sqrt( np.pi * sig2 ) * erf( rcut / (sqrt(2.0)*sig) ) - 2*rcut* np.exp( - rcut2 / sig2 )
         preerf = np.sqrt( 0.5 * np.pi * sig * sig ) / normconst
-        prelinear = exp( - rcut2 / sig2 ) / normconst
+        prelinear = np.exp( - rcut2 / sig2 ) / normconst
         return normconst, preerf, prelinear
 
     @staticmethod
@@ -96,13 +96,14 @@ class Helper_func(object):
         normconst, preerf, prelinear = Helper_func.get_norm_factor(rcut, sig)
         hiMinus = r_hi - rcut
         hiPlus = r_hi + rcut
-        count = np.float64((dis < hiPlus).sum(axis=-1))
-        temp_in_boundary_region = ((dis > hiMinus) & (dis < hiPlus))
+        count = np.float64((dis <= hiPlus).sum(axis=-1))
+        temp_in_boundary_region = ((dis > hiMinus) & (dis <= hiPlus))
         temp_correction = ( 0.5 + preerf * erf( np.sqrt(0.5) * (dis - r_hi)/sig ) \
                                              - prelinear * (dis - r_hi))
         # print count.shape, temp_in_boundary_region.shape, temp_correction.shape
         count -= (temp_in_boundary_region * temp_correction).sum(axis=-1)
-        return count
+        actual_count = (dis < r_hi).sum(axis=-1)
+        return count, actual_count
 
     @staticmethod
     def compute_distances_min_image_convention(atoms_pos_1, atoms_pos_2, box_length):

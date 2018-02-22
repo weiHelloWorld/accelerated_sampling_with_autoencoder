@@ -172,6 +172,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
     else:
         raise Exception("parameter error")
 
+    # print modeller.topology.getPeriodicBoxVectors()
+
     system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
     if args.ensemble_type == "NPT" and args.whether_to_add_water_mol_opt == 'explicit':
         system.addForce(MonteCarloBarostat(1*atmospheres, temperature*kelvin, 25))
