@@ -495,3 +495,57 @@ class test_Helper_func(object):
         assert_almost_equal(md.compute_distances(temp_t, [[0, absolute_index]]).flatten(), result[:, 0, 30] / 10, decimal=4)
         subprocess.check_output(['rm', output_pdb])
         return 
+
+
+class test_others(object):
+    @staticmethod
+    def test_SphSh_INDUS_PLUMED_plugin():
+        # test for original version of SphSh_INDUS_PLUMED_plugin provided by Prof. Amish Patel
+        num_frames = 20
+        potential_center = np.random.random(size=3) * 3
+        with open('temp_plumed.txt', 'w') as my_f:
+            my_f.write('''
+SPHSH ATOMS=306-11390:4 XCEN=%f YCEN=%f ZCEN=%f RLOW=-0.5 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.02 LABEL=sph
+RESTRAINT ARG=sph.Ntw AT=5 KAPPA=5 SLOPE=0 LABEL=mypotential
+PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' \
+    % (potential_center[0], potential_center[1], potential_center[2]))  # since there is "TER" separating solute and solvent in pdb file, so index should start with 306, not 307
+        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
+                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NVT', '--platform', 'CUDA',
+                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
+        temp_u = Universe('temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit.pdb')
+        O_sel = temp_u.select_atoms('name O and resname HOH')
+        N_sel = temp_u.select_atoms('resnum 1 and name N')
+        O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)
+        N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
+        distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
+        distances = Helper_func.compute_distances_min_image_convention(10 * np.array([potential_center for _ in range(num_frames)]), O_coords, 45)
+        coarse_count, actual_count = Helper_func.get_coarse_grained_count(distances, 3.11, 0.2, .1)
+        plumed_count = np.loadtxt('NDATA')
+        assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
+        assert_almost_equal(plumed_count[-num_frames:, 2], coarse_count.flatten(), decimal=2)
+        subprocess.check_output(['rm', '-rf', 'temp_plumed', 'NDATA', 'temp_plumed.txt'])
+        return
+
+    @staticmethod
+    def test_SphShMod_INDUS_PLUMED_plugin():
+        num_frames = 20
+        with open('temp_plumed.txt', 'w') as my_f:
+            my_f.write('''
+SPHSHMOD ATOMS=306-11390:4 ATOMREF=1 RLOW=-0.5 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.02 LABEL=sph
+RESTRAINT ARG=sph.Ntw AT=10 KAPPA=5 SLOPE=0 LABEL=mypotential
+PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' )
+        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
+                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NVT', '--platform', 'CUDA',
+                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
+        temp_u = Universe('temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit.pdb')
+        O_sel = temp_u.select_atoms('name O and resname HOH')
+        N_sel = temp_u.select_atoms('resnum 1 and name N')
+        O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)
+        N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
+        distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
+        coarse_count, actual_count = Helper_func.get_coarse_grained_count(distances, 3.11, 0.2, .1)
+        plumed_count = np.loadtxt('NDATA')
+        assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
+        assert_almost_equal(plumed_count[-num_frames:, 2], coarse_count.flatten(), decimal=2)
+        subprocess.check_output(['rm', '-rf', 'temp_plumed', 'NDATA', 'temp_plumed.txt'])
+        return
