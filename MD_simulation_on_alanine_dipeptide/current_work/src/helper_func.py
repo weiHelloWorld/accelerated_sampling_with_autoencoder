@@ -121,3 +121,11 @@ class Helper_func(object):
                 temp_vec = np.array([(item + box_length / 2.0) % box_length - box_length / 2.0 for item in temp_diff.T])
                 temp_dis_2[:, index_1, index_2] = np.linalg.norm(temp_vec, axis=0)
         return temp_dis_2
+
+    @staticmethod
+    def get_index_list_of_O_atom_in_water(pdb_file, ignore_TER_line):
+        """this is used for solvent analysis, e.g. biased simulation with PLUMED"""
+        temp_u = Universe(pdb_file)
+        atom_sel = temp_u.select_atoms('resname HOH and name O')
+        if ignore_TER_line: return atom_sel.indices + 1
+        else: raise Exception('double check your pdb')
