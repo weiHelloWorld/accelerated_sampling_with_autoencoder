@@ -129,3 +129,18 @@ class Helper_func(object):
         atom_sel = temp_u.select_atoms('resname HOH and name O')
         if ignore_TER_line: return atom_sel.indices + 1
         else: raise Exception('double check your pdb')
+
+    @staticmethod
+    def get_list_of_cg_count_for_atom_list(pdb_file, atom_selection, box_length, r_hi, rcut, sig):
+        """ cg = coarse grained, atom list is specified by atom_selection """
+        temp_u = Universe(pdb_file)
+        water_pos, atoms_pos = [], []
+        water_sel = temp_u.select_atoms('resname HOH and name O')
+        atoms_sel = temp_u.select_atoms(atom_selection)
+        for _ in temp_u.trajectory:
+            water_pos.append(water_sel.positions.flatten())
+            atoms_pos.append(atoms_sel.positions.flatten())
+        atoms_pos = np.array(atoms_pos)
+        water_pos = np.array(water_pos)
+        distances = Helper_func.compute_distances_min_image_convention(atoms_pos_1=atoms_pos, atoms_pos_2=water_pos, box_length=box_length)
+        return Helper_func.get_coarse_grained_count(distances, r_hi, rcut, sig)
