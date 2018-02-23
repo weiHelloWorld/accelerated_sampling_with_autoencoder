@@ -414,7 +414,7 @@ class test_biased_simulation(object):
         autoencoder_pkl_file = 'dependency/test_biased_simulation/network_9.pkl'
         output_folder = 'temp_output_test_biased_simulation'
         a = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
-        a.write_expression_script_for_plumed('temp_info.txt')
+        a.write_expression_script_for_plumed('temp_info.txt', mode='ANN')
         subprocess.check_output(
 'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d --equilibration_steps 0'
                                 % (output_folder, biasfactor, use_well_tempered), shell=True)
@@ -477,7 +477,7 @@ class test_Helper_func(object):
     @staticmethod
     def test_compute_distances_min_image_convention():
         output_pdb = 'out_for_computing_distances.pdb'
-        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0', 'temp_out',
+        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0', 'temp_out_12345',
                              'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA', '--device', '0', '--output_pdb', output_pdb])
         import mdtraj as md
         box_length = 4.5  # in nm
@@ -493,7 +493,7 @@ class test_Helper_func(object):
         a_positions = a_positions.reshape(20, a_positions.shape[1] * a_positions.shape[2])
         result = Helper_func.compute_distances_min_image_convention(a_positions, b_positions, 10 * box_length)
         assert_almost_equal(md.compute_distances(temp_t, [[0, absolute_index]]).flatten(), result[:, 0, 30] / 10, decimal=4)
-        subprocess.check_output(['rm', output_pdb])
+        subprocess.check_output(['rm', '-rf', output_pdb, 'temp_out_12345'])
         return 
 
 

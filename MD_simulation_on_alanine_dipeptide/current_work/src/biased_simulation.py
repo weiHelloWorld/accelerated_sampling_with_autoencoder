@@ -173,12 +173,18 @@ def run_simulation(force_constant):
                 system.addForce(force)
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
-        plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed()
+        plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed(scaling_factor=5.0)
         with open(autoencoder_info_file, 'r') as f_in:
             plumed_force_string += f_in.read()
 
         # note that dimensionality of MTD is determined by potential_center string
-        mtd_output_layer_string = ['l_2_out_%d' % item for item in range(len(potential_center))]
+        plumed_script_ANN_mode = 'ANN'
+        if plumed_script_ANN_mode == 'native':
+            mtd_output_layer_string = ['l_2_out_%d' % item for item in range(len(potential_center))]
+        elif plumed_script_ANN_mode == 'ANN':
+            mtd_output_layer_string = ['ann_force.%d' % item for item in range(len(potential_center))]
+        else: raise Exception('mode error')
+
         mtd_output_layer_string = ','.join(mtd_output_layer_string)
         mtd_sigma_string = ','.join([str(args.MTD_sigma) for _ in range(len(potential_center))])
         if args.MTD_WT:
@@ -190,6 +196,7 @@ metad: METAD ARG=%s PACE=%d HEIGHT=%f SIGMA=%s FILE=temp_MTD_hills.txt %s
 PRINT STRIDE=%d ARG=%s,metad.bias FILE=temp_MTD_out.txt
 """ % (mtd_output_layer_string, args.MTD_pace, args.MTD_height, mtd_sigma_string, mtd_well_tempered_string,
        record_interval, mtd_output_layer_string)
+        # print plumed_force_string
         system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "SMD":
         # TODO: this is temporary version
