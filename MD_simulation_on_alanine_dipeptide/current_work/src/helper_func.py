@@ -169,3 +169,14 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             arg_string, pc_string, kappa_string, arg_string_2, arg_string, out_plumed_file
         )
         return result
+
+    @staticmethod
+    def get_radial_distribution(distances, num, nbins, dr, length):
+        hist = np.zeros(nbins, )
+        for item in distances:
+            temp_target_index = int(item / dr)
+            if temp_target_index < nbins:
+                hist[temp_target_index] += 1.0 / (4 / 3.0 * np.pi) / (
+                            ((temp_target_index + 1) * dr) ** 3 - ((temp_target_index + 0) * dr) ** 3)
+        return hist / (num / length ** 3)
+    

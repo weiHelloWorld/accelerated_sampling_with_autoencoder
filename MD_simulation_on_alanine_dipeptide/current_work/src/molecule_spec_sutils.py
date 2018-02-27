@@ -568,7 +568,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             assert (len(p_distances) == num_atoms * (num_atoms - 1) / 2)
             result += [p_distances]
 
-        return result
+        return np.array(result)
 
     @staticmethod
     def get_residue_relative_position_list(sample_file):
