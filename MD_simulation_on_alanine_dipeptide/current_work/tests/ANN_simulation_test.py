@@ -323,9 +323,9 @@ class test_autoencoder_Keras(object):
 
         for is_hi in [0, 1]:
             model = autoencoder_Keras(1447, data,
-                                      node_num=[8, 15, 2, 15, 8],
-                                      hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
-                                      network_parameters = [0.02, 0.9,0, True, [0.001]* 4],
+                                      node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
+                                      hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer],
+                                      network_parameters = [0.02, 0.9,0, True, [0.001]* 8],
                                       batch_size=100, hierarchical=is_hi
                                       )
             model.train()

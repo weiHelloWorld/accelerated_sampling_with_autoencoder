@@ -777,6 +777,7 @@ class autoencoder_Keras(autoencoder):
         return result
 
     def get_PCs(self, input_data=None):
+        index_CV_layer = (len(self._node_num) - 1) / 2
         if input_data is None: input_data = self._data_set
         if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
             raise Exception('no longer supported')
@@ -784,10 +785,10 @@ class autoencoder_Keras(autoencoder):
         if self._hidden_layers_type[1] == CircularLayer:
             PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in self._encoder_net.predict(input_data)])
-            assert (len(PCs[0]) == self._node_num[2] / 2), (len(PCs[0]), self._node_num[2] / 2)
+            assert (len(PCs[0]) == self._node_num[index_CV_layer] / 2), (len(PCs[0]), self._node_num[index_CV_layer] / 2)
         elif self._hidden_layers_type[1] == TanhLayer:
             PCs = self._encoder_net.predict(input_data)
-            assert (len(PCs[0]) == self._node_num[2])
+            assert (len(PCs[0]) == self._node_num[index_CV_layer])
         else:
             raise Exception("PC layer type error")
         return PCs
@@ -812,10 +813,12 @@ class autoencoder_Keras(autoencoder):
             output_data_set = data
 
         num_of_hidden_layers = len(self._hidden_layers_type)
+        index_CV_layer = (len(node_num) - 1) / 2
+        num_CVs = node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer else \
+            node_num[index_CV_layer]
         if self._hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
             temp_output_shape = output_data_set.shape
-            num_CVs = node_num[2] / 2 if self._hidden_layers_type[1] == CircularLayer else node_num[2]
             output_data_set = np.repeat(output_data_set, num_CVs, axis=0).reshape(temp_output_shape[0],
                                         temp_output_shape[1] * num_CVs)   # repeat output for hierarchical case
             # check if the output data are correct
@@ -829,49 +832,60 @@ class autoencoder_Keras(autoencoder):
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            if self._hidden_layers_type[1] == CircularLayer:
-                x = Dense(node_num[2], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-                x = Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],))(x)
+            for item in range(2, index_CV_layer):
+                x = Dense(node_num[item], activation='tanh', kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
+            if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+                x = Dense(node_num[index_CV_layer], activation='linear',
+                            kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
+                x = Reshape((num_CVs, 2), input_shape=(node_num[index_CV_layer],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
-                encoded = Reshape((node_num[2],))(x)
-                encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(node_num[2] / 2)]
-            elif self._hidden_layers_type[1] == TanhLayer:
-                encoded = Dense(node_num[2], activation='tanh',
-                                kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(node_num[2])]
+                encoded = Reshape((node_num[index_CV_layer],))(x)
+                encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(num_CVs)]
+            elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+                encoded = Dense(node_num[index_CV_layer], activation='tanh',
+                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
+                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(num_CVs)]
             else: raise Exception('layer error')
 
             if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
-                x_next = [Dense(node_num[3], activation='linear',
-                                kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
+                x_next = [Dense(node_num[index_CV_layer + 1], activation='linear',
+                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(item) for item in encoded_split]
                 x_next_1 = [x_next[0]]
                 for item in range(2, len(x_next) + 1):
                     x_next_1.append(layers.Add()(x_next[:item]))
                 x_next_1 = [temp_lambda_tanh_layer(item) for item in x_next_1]
                 assert (len(x_next) == len(x_next_1))
-                shared_final_layer = Dense(node_num[4], activation=output_layer_activation,
-                                           kernel_regularizer=l2(self._network_parameters[4][3]))
+                for item_index in range(index_CV_layer + 2, len(node_num) - 1):
+                    x_next_1 = [Dense(node_num[item_index], activation='tanh', kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(item_2)
+                                for item_2 in x_next_1]
+                shared_final_layer = Dense(node_num[-1], activation=output_layer_activation,
+                                           kernel_regularizer=l2(self._network_parameters[4][-1]))
                 outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             elif hierarchical_variant == 1:   # simplified version, no shared layer after CV (encoded) layer
                 concat_layers = [encoded_split[0]]
                 concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, num_CVs + 1)]
-                x = [Dense(node_num[3], activation='tanh',
-                                kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in concat_layers]
-                x = [Dense(node_num[4], activation=output_layer_activation,
-                                kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
+                x = [Dense(node_num[index_CV_layer + 1], activation='tanh',
+                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(item) for item in concat_layers]
+                for item_index in range(index_CV_layer + 2, len(node_num) - 1):
+                    x = [Dense(node_num[item_index], activation='tanh',
+                               kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(item) for item in x]
+                x = [Dense(node_num[-1], activation=output_layer_activation,
+                                kernel_regularizer=l2(self._network_parameters[4][-1]))(item) for item in x]
                 outputs_net = layers.Concatenate()(x)
                 encoder_net = Model(inputs=inputs_net, outputs=encoded)
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             elif hierarchical_variant == 2:
                 # boosted hierarchical autoencoders, CV i in encoded layer learns remaining error that has
                 # not been learned by previous CVs
-                x = [Dense(node_num[3], activation='tanh',
-                           kernel_regularizer=l2(self._network_parameters[4][2]))(item) for item in encoded_split]
-                x = [Dense(node_num[4], activation=output_layer_activation,
-                           kernel_regularizer=l2(self._network_parameters[4][3]))(item) for item in x]
+                x = [Dense(node_num[index_CV_layer + 1], activation='tanh',
+                           kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(item) for item in encoded_split]
+                for item_index in range(index_CV_layer + 2, len(node_num) - 1):
+                    x = [Dense(node_num[item_index], activation='tanh',
+                               kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(item) for item in x]
+                x = [Dense(node_num[-1], activation=output_layer_activation,
+                           kernel_regularizer=l2(self._network_parameters[4][-1]))(item) for item in x]
                 x_out = [x[0]]
                 for item in range(2, len(x) + 1):
                     x_out.append(layers.Add()(x[:item]))
@@ -881,33 +895,39 @@ class autoencoder_Keras(autoencoder):
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             else: raise Exception('error variant')
             # print molecule_net.summary()
-            # from keras.utils import plot_model
-            # plot_model(molecule_net, to_file='model.png')
             loss_function = mse_weighted
-        elif num_of_hidden_layers != 3:
-            raise Exception('not implemented for this case')
+        # elif num_of_hidden_layers != 3:
+        #     raise Exception('not implemented for this case')
         else:
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            if self._hidden_layers_type[1] == CircularLayer:
-                x = Dense(node_num[2], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][1]))(x)
-                x = Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],))(x)
+            for item in range(2, index_CV_layer):
+                x = Dense(node_num[item], activation='tanh', kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
+            if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+                x = Dense(node_num[index_CV_layer], activation='linear',
+                            kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
+                x = Reshape((node_num[index_CV_layer] / 2, 2), input_shape=(node_num[index_CV_layer],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
-                encoded = Reshape((node_num[2],))(x)
-            elif self._hidden_layers_type[1] == TanhLayer:
-                encoded = Dense(node_num[2], activation='tanh',
-                            kernel_regularizer=l2(self._network_parameters[4][1]))(x)
+                encoded = Reshape((node_num[index_CV_layer],))(x)
+            elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+                encoded = Dense(node_num[index_CV_layer], activation='tanh',
+                            kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
             else:
                 raise Exception('CV layer type error')
-            x = Dense(node_num[3], activation='tanh',
-                      kernel_regularizer=l2(self._network_parameters[4][2]))(encoded)
-            x = Dense(node_num[4], activation=output_layer_activation,
-                      kernel_regularizer=l2(self._network_parameters[4][3]))(x)
+            x = Dense(node_num[index_CV_layer + 1], activation='tanh',
+                      kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(encoded)
+            for item_index in range(index_CV_layer + 2, len(node_num)):
+                x = Dense(node_num[item_index], activation=output_layer_activation,
+                          kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
             loss_function = 'mean_squared_error'
+
+        try:
+            from keras.utils import plot_model
+            plot_model(molecule_net, show_shapes=True, to_file='model.png')
+        except: pass
 
         molecule_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer=SGD(lr=self._network_parameters[0],
