@@ -29,7 +29,8 @@ if not args.lr_m is None:
     additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, CONFIG_4[4]]
 if not args.num_PCs is None:
     temp_node_num = CONFIG_3[:]  # deep copy list
-    temp_node_num[2] = args.num_PCs  # FIXME: fix for multi-hidden layer cases
+    index_CV_layer = (len(temp_node_num) - 1) / 2
+    temp_node_num[index_CV_layer] = args.num_PCs
     additional_argument_list['node_num'] = temp_node_num
 
 num_of_copies = args.num_of_copies
