@@ -108,13 +108,11 @@ class autoencoder(object):
             if not self._output_data_set is None:        # for backward compatibility
                 self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]
 
-        if os.path.isfile(filename):  # backup file if previous one exists
-            os.rename(filename, filename.split('.pkl')[0] + "_bak_" + datetime.datetime.now().strftime(
-                "%Y_%m_%d_%H_%M_%S") + '.pkl')
-
         hdf5_file_name = filename.replace('.pkl', '.hdf5')
         hdf5_file_name_encoder = hdf5_file_name.replace('.hdf5', '_encoder.hdf5')
         hdf5_file_name_decoder = hdf5_file_name.replace('.hdf5', '_decoder.hdf5')
+        for item_filename in [filename, hdf5_file_name, hdf5_file_name_encoder, hdf5_file_name_decoder]:
+            Helper_func.backup_rename_file_if_exists(item_filename)
         self._molecule_net.save(hdf5_file_name)
         self._encoder_net.save(hdf5_file_name_encoder)
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
@@ -926,6 +924,7 @@ class autoencoder_Keras(autoencoder):
 
         try:
             from keras.utils import plot_model
+            Helper_func.backup_rename_file_if_exists('model.png')
             plot_model(molecule_net, show_shapes=True, to_file='model.png')
         except: pass
 

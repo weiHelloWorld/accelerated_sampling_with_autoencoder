@@ -179,4 +179,12 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 hist[temp_target_index] += 1.0 / (4 / 3.0 * np.pi) / (
                             ((temp_target_index + 1) * dr) ** 3 - ((temp_target_index + 0) * dr) ** 3)
         return hist / (num / length ** 3)
-    
+
+    @staticmethod
+    def backup_rename_file_if_exists(filename):
+        extension = '.' + filename.split('.')[-1]
+        if os.path.isfile(filename):  # backup file if previous one exists
+            new_filename = filename + ".bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + extension
+            os.rename(filename, new_filename)
+        else: new_filename = None
+        return new_filename

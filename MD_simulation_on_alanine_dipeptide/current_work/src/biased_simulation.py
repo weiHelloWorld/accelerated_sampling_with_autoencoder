@@ -94,11 +94,8 @@ def run_simulation(force_constant):
     state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
 
     # check if the file exist
-    if os.path.isfile(pdb_reporter_file):
-        os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
-
-    if os.path.isfile(state_data_reporter_file):
-        os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+    for item_filename in [pdb_reporter_file, state_data_reporter_file]:
+        Helper_func.backup_rename_file_if_exists(item_filename)
 
     k1 = force_constant
     k2 = force_constant

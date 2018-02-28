@@ -126,11 +126,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
         checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
 
     # check existence
-    if os.path.isfile(pdb_reporter_file):
-        os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
-
-    if os.path.isfile(state_data_reporter_file):
-        os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+    for item_filename in [pdb_reporter_file, state_data_reporter_file]:
+        Helper_func.backup_rename_file_if_exists(item_filename)
 
     flag_random_seed = 0 # whether we need to fix this random seed
     box_size = {'Trp_cage': 4.5, '2src': 8.0, '1y57': 8.0,
@@ -307,8 +304,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     simulation.step(number_of_simulation_steps)
 
     if args.checkpoint:
-        if os.path.isfile(checkpoint_file):
-            os.rename(checkpoint_file, checkpoint_file.split('.chk')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".chk")
+        Helper_func.backup_rename_file_if_exists(checkpoint_file)
         simulation.saveCheckpoint(checkpoint_file)
 
     print('Done!')
