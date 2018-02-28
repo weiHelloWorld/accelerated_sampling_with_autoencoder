@@ -802,7 +802,8 @@ class autoencoder_Keras(autoencoder):
         model = Model(input=inputs, output=x)
         return model.predict(input_PC)
 
-    def train(self):
+    def train(self, hierarchical=None, hierarchical_variant = CONFIG_77):
+        if hierarchical is None: hierarchical = self._hierarchical
         output_layer_activation = layer_type_to_name_mapping[self._out_layer_type].lower()
         node_num = self._node_num
         data = self._data_set
@@ -816,7 +817,7 @@ class autoencoder_Keras(autoencoder):
         index_CV_layer = (len(node_num) - 1) / 2
         num_CVs = node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer else \
             node_num[index_CV_layer]
-        if self._hierarchical:
+        if hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
             temp_output_shape = output_data_set.shape
             output_data_set = np.repeat(output_data_set, num_CVs, axis=0).reshape(temp_output_shape[0],
@@ -828,7 +829,6 @@ class autoencoder_Keras(autoencoder):
                     temp_data_for_checking[item * temp_output_shape[1]: (item + 1) * temp_output_shape[1]],
                     temp_data_for_checking[:temp_output_shape[1]])
             self._output_data_set = output_data_set
-            hierarchical_variant = CONFIG_77
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh',
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
