@@ -321,23 +321,21 @@ class test_autoencoder_Keras(object):
         data = self._data
         dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
 
-        for is_hi in [0, 1]:
+        for is_hi, hier_var in [(0, 0), (1,0), (1,1), (1,2)]:
             model = autoencoder_Keras(1447, data,
                                       node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
                                       hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer],
                                       network_parameters = [0.02, 0.9,0, True, [0.001]* 8],
                                       batch_size=100, hierarchical=is_hi
                                       )
-            model.train()
-
+            model.train(hierarchical_variant=hier_var)
             PCs = model.get_PCs()
             [x, y] = zip(*PCs)
-
             psi = [item[2] for item in dihedrals]
             fig, ax = plt.subplots()
             ax.scatter(x, y, c=psi, cmap='gist_rainbow')
 
-            fig.savefig('try_keras_noncircular_hierarchical_%d.png' % is_hi)
+            fig.savefig('try_keras_noncircular_hierarchical_%d_%d.png' % (is_hi, hier_var))
         return
 
     def test_train_2(self):
