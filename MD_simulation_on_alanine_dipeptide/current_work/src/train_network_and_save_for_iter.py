@@ -119,8 +119,8 @@ else:
 
 # deal with lag time (for time-lagged autoencoder)
 
-
-print ("min/max of output = %f, %f" % (np.min(output_data_set), np.max(output_data_set)))
+print ("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
+                                                                  np.min(data_set), np.max(data_set)))
 assert (len(data_set) == len(output_data_set))
 use_representative_points_for_training = CONFIG_58
 if use_representative_points_for_training:
