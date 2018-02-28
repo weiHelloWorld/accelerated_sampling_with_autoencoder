@@ -334,6 +334,7 @@ class test_autoencoder_Keras(object):
             psi = [item[2] for item in dihedrals]
             fig, ax = plt.subplots()
             ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+            model.save_into_file('try_keras_noncircular_hierarchical_%d_%d.pkl' % (is_hi, hier_var))
 
             fig.savefig('try_keras_noncircular_hierarchical_%d_%d.png' % (is_hi, hier_var))
         return

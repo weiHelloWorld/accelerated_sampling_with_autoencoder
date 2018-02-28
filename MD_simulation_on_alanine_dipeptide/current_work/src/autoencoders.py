@@ -130,9 +130,10 @@ class autoencoder(object):
         """
         this function generates expression of PCs in terms of inputs
         """
-        # FIXME: the expression no longer works, since I made input list for input layer of autoencoder consistent
+        # FIXME: 1. the expression no longer works, since I made input list for input layer of autoencoder consistent
         # for both alanine dipeptide and trp-cage, always [cos, sin, cos, sin ....],
         # which is consistent with ANN_Force, instead of [cos, cos, cos, cos, sin, sin, sin, sin]
+        # FIXME: 2. this does not support multi-hidden layer cases
         type_of_middle_hidden_layer = self._hidden_layers_type[1]
 
         node_num = self._node_num
@@ -191,12 +192,12 @@ class autoencoder(object):
         return
 
     def get_expression_script_for_plumed(self, mode="native"):
+        index_CV_layer = (len(self._node_num) - 1) / 2
         plumed_script = ''
         if mode == "native":  # using native implementation by PLUMED (using COMBINE and MATHEVAL)
             plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
-
-            activation_function_list = ['tanh', 'tanh']
-            for layer_index in [1, 2]:
+            activation_function_list = ['tanh'] * index_CV_layer
+            for layer_index in range(1, index_CV_layer + 1):
                 for item in range(self._node_num[layer_index]):
                     plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
                     plumed_script += "%s" % \
@@ -212,7 +213,7 @@ class autoencoder(object):
                     plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=%s(x) PERIODIC=NO\n' % (
                         layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
         elif mode == "ANN":  # using ANN class
-            temp_num_of_layers_used = 3
+            temp_num_of_layers_used = index_CV_layer + 1
             temp_input_string = ','.join(['l_0_out_%d' % item for item in range(self._node_num[0])])
             temp_num_nodes_string = ','.join([str(item) for item in self._node_num[:temp_num_of_layers_used]])
             temp_layer_type_string = map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2])
@@ -241,14 +242,13 @@ class autoencoder(object):
         return
 
     def write_coefficients_of_connections_into_file(self, out_file=None):
+        index_CV_layer = (len(self._node_num) - 1) / 2
         if out_file is None: out_file = self._autoencoder_info_file
-
         with open(out_file, 'w') as f_out:
-            for item in [0, 1]:
+            for item in range(index_CV_layer):
                 f_out.write(str(list(self._connection_between_layers_coeffs[item])))
                 f_out.write(',\n')
-
-            for item in [0, 1]:
+            for item in range(index_CV_layer):
                 f_out.write(str(list(self._connection_with_bias_layers_coeffs[item])))
                 f_out.write(',\n')
         return
@@ -371,6 +371,7 @@ class autoencoder(object):
 
     def get_fraction_of_variance_explained(self, num_of_PCs=None, hierarchical_FVE=False):
         """ here num_of_PCs is the same with that in get_training_error() """
+        index_CV_layer = (len(self._node_num) - 1) / 2
         input_data = np.array(self._data_set)
         actual_output_data = self.get_output_data(num_of_PCs)
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
@@ -381,7 +382,8 @@ class autoencoder(object):
         var_of_output = sum(np.var(expected_output_data, axis=0))
         var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
         if self._hierarchical:
-            num_PCs = self._node_num[2] / 2 if self._hidden_layers_type[1] == CircularLayer else self._node_num[2]
+            num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer \
+                else self._node_num[index_CV_layer]
             length_for_hierarchical_component = expected_output_data.shape[1] / num_PCs
             hierarchical_actual_output_list = [actual_output_data[:,
                                     item * length_for_hierarchical_component:
@@ -760,31 +762,17 @@ class autoencoder_Keras(autoencoder):
         if input_data is None: input_data = self._data_set
         return self._molecule_net.predict(input_data)
 
-    def get_mid_result(self, input_data=None):
-        """The out format of this function is different from that in Pybrain implementation"""
-        if input_data is None: input_data = self._data_set
-        temp_model = Sequential()
-        temp_model_bak = temp_model
-        result = []
-        for item in self._molecule_net_layers[:-2]:
-            temp_model = temp_model_bak
-            temp_model.add(item)
-            temp_model_bak = copy.deepcopy(temp_model)   # this backup is required to get the correct results, no idea why
-            result.append(temp_model.predict(input_data))
-
-        return result
-
     def get_PCs(self, input_data=None):
         index_CV_layer = (len(self._node_num) - 1) / 2
         if input_data is None: input_data = self._data_set
         if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
             raise Exception('no longer supported')
 
-        if self._hidden_layers_type[1] == CircularLayer:
+        if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
             PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in self._encoder_net.predict(input_data)])
             assert (len(PCs[0]) == self._node_num[index_CV_layer] / 2), (len(PCs[0]), self._node_num[index_CV_layer] / 2)
-        elif self._hidden_layers_type[1] == TanhLayer:
+        elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
             PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[index_CV_layer])
         else:
@@ -792,10 +780,11 @@ class autoencoder_Keras(autoencoder):
         return PCs
 
     def get_outputs_from_PC(self, input_PC):
-        if self._hidden_layers_type[1] == CircularLayer: raise Exception('not implemented')
-        inputs = Input(shape=(self._node_num[2],))
+        index_CV_layer = (len(self._node_num) - 1) / 2
+        if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer: raise Exception('not implemented')
+        inputs = Input(shape=(self._node_num[index_CV_layer],))
         x = inputs
-        for item in self._molecule_net_layers[-2:]:
+        for item in self._molecule_net_layers[-index_CV_layer:]:
             x = item(x)     # using functional API
         model = Model(input=inputs, output=x)
         return model.predict(input_PC)

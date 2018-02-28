@@ -192,6 +192,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
             with open(autoencoder_info_file, 'r') as f_in:
                 content = f_in.readlines()
 
+            # TODO: need to fix following for multi-hidden layer cases
             force.set_coeffients_of_connections(
                 [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]])
 
