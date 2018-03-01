@@ -114,10 +114,6 @@ elif output_data_type == 'combined':
 else:
     raise Exception('error output data type')
 
-# deal with lag time (for time-lagged autoencoder)
-
-print ("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
-                                                                  np.min(data_set), np.max(data_set)))
 assert (len(data_set) == len(output_data_set))
 use_representative_points_for_training = CONFIG_58
 if use_representative_points_for_training:
@@ -136,17 +132,20 @@ if not scaling_factor_for_expected_output is None:
     print "expected output is weighted by %s" % str(scaling_factor_for_expected_output)
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
 
+temp_node_num = CONFIG_3[:]  # deep copy list
 if not args.num_PCs is None:
-    temp_node_num = CONFIG_3[:]  # deep copy list
     index_CV_layer = (len(temp_node_num) - 1) / 2
     temp_node_num[index_CV_layer] = args.num_PCs
-    if args.auto_dim: temp_node_num[0], temp_node_num[-1] = data_set.shape[1], output_data_set.shape[1]
-    additional_argument_list['node_num'] = temp_node_num
+if args.auto_dim: temp_node_num[0], temp_node_num[-1] = data_set.shape[1], output_data_set.shape[1]
+additional_argument_list['node_num'] = temp_node_num
 
 if args.auto_scale:
     data_set /= (np.max(np.abs(data_set)).astype(np.float))
     output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
     assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
+
+print ("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
+                                                                  np.min(data_set), np.max(data_set)))
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
