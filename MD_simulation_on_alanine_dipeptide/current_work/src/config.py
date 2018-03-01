@@ -81,10 +81,9 @@ if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
 
 CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_78 = LinearLayer                    # output layer type
-
+CONFIG_79 = False                         # determine dimensionality of input/output of autoencoder automatically
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'pybrain':
-    CONFIG_4 = [0.002, 0.4, 0.1, 1]  # network parameters, includes [learningrate,momentum, weightdecay, lrdecay]
     raise Exception("Warning: PyBrain is no longer supported!  " + WARNING_INFO)
 elif CONFIG_45 == 'keras':
     if CONFIG_76 == 'cossin':

@@ -16,7 +16,8 @@ parser.add_argument("--output_file", type=str, default=None, help="file name to 
 parser.add_argument('--data_folder', type=str, default=None, help="folder containing training data")
 parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
 parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data")
-# parser.add_argument('--')
+parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
+parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
 args = parser.parse_args()
 
 # used to process additional arguments
@@ -27,11 +28,6 @@ if not args.lr_m is None:
     temp_lr = float(args.lr_m.strip().split(',')[0])
     temp_momentum = float(args.lr_m.strip().split(',')[1])
     additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, CONFIG_4[4]]
-if not args.num_PCs is None:
-    temp_node_num = CONFIG_3[:]  # deep copy list
-    index_CV_layer = (len(temp_node_num) - 1) / 2
-    temp_node_num[index_CV_layer] = args.num_PCs
-    additional_argument_list['node_num'] = temp_node_num
 
 num_of_copies = args.num_of_copies
 if args.data_folder is None:
@@ -139,6 +135,18 @@ scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to p
 if not scaling_factor_for_expected_output is None:
     print "expected output is weighted by %s" % str(scaling_factor_for_expected_output)
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
+
+if not args.num_PCs is None:
+    temp_node_num = CONFIG_3[:]  # deep copy list
+    index_CV_layer = (len(temp_node_num) - 1) / 2
+    temp_node_num[index_CV_layer] = args.num_PCs
+    if args.auto_dim: temp_node_num[0], temp_node_num[-1] = data_set.shape[1], output_data_set.shape[1]
+    additional_argument_list['node_num'] = temp_node_num
+
+if args.auto_scale:
+    data_set /= (np.max(np.abs(data_set)).astype(np.float))
+    output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
+    assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
