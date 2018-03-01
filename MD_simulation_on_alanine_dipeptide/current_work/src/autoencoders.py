@@ -945,7 +945,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         if self._enable_early_stopping:
             call_back_list += [earlyStopping]
 
-        molecule_net.fit(data, output_data_set, epochs=self._max_num_of_training, batch_size=self._batch_size,
+        train_history = molecule_net.fit(data, output_data_set, epochs=self._max_num_of_training, batch_size=self._batch_size,
                          verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
         dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
@@ -963,7 +963,15 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         self._molecule_net = molecule_net
         self._molecule_net_layers = molecule_net.layers
         self._encoder_net = encoder_net
-        return self
+        try:
+            fig, axes = plt.subplots(1, 2)
+            axes[0].plot(train_history.history['loss'])
+            axes[1].plot(train_history.history['val_loss'])
+            png_file = self._filename_to_save_network.replace('.pkl', '.png')
+            Helper_func.backup_rename_file_if_exists(png_file)
+            fig.savefig(png_file)
+        except: print "training history not plotted!"; pass
+        return self, train_history
 
     def train_bak(self):
         """this is kept for old version"""
