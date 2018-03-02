@@ -18,7 +18,7 @@ Sklearn: https://github.com/scikit-learn/scikit-learn
 
 Nose testing framework: https://github.com/nose-devs/nose
 
-PLUMED (ANN included): https://github.com/weiHelloWorld/plumed2 
+PLUMED (ANN included): https://github.com/plumed/plumed2 + https://github.com/weiHelloWorld/plumed_additional
 
 OpenMM-PLUMED force plugin: https://github.com/peastman/openmm-plumed
 
@@ -58,7 +58,7 @@ echo "you may need to install following packages manually: PLUMED, OpenMM-plumed
 
 ## Installation and preparation
 
-No installation is required.  You may simply have all dependent packages installed and checkout this repository (or download the package with dependency files here: https://drive.google.com/a/illinois.edu/file/d/0B6OOQc-KDdimbklIbkd1cjhnSWs/view?usp=sharing).  Reference pdb files for simulation are needed.
+No installation is required.  You may simply have all dependent packages installed and checkout this repository (currently some dependency files for testing are not included, I will update them later.  Let me know if you need a copy of them).  Reference pdb files for simulation are needed.
 
 It is **highly recommended** to run tests before running code to make sure packages are correctly installed.
 
