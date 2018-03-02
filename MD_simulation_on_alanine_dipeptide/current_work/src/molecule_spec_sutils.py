@@ -5,6 +5,7 @@ from config import *
 import random
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
+from helper_func import *
 
 class Sutils(object):
     def __init__(self):
@@ -12,7 +13,7 @@ class Sutils(object):
 
     @staticmethod
     def get_num_of_non_overlapping_hyperspheres_that_filled_explored_phase_space(
-            pdb_file_list, atom_selection, radius, step_interval=1, shuffle_list=False,
+            pdb_file_list, atom_selection, radius, step_interval=1, shuffle_list=True,
             distance_metric='RMSD'):
         """
         This functions is used to count how many non-overlapping hyperspheres are needed to fill the explored phase
@@ -28,8 +29,10 @@ class Sutils(object):
         for sample_file in pdb_file_list:
             sample = Universe(sample_file)
             sample_atom_selection = sample.select_atoms(atom_selection)
-
-            for _ in sample.trajectory:
+            frame_index_list = list(range(sample.trajectory.n_frames))
+            if shuffle_list: random.shuffle(frame_index_list)
+            for item_index in frame_index_list:
+                sample.trajectory[item_index]
                 if index % step_interval == 0:
                     current_positions = sample_atom_selection.positions
                     distances_to_previous_frames = np.array(
@@ -123,7 +126,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def create_subclass_instance_using_name(name):
-        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(), 'Src_kinase': Src_kinase(), 'BetaHairpin': BetaHairpin()}[name]
+        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(),
+                'Src_kinase': Src_kinase(), 'BetaHairpin': BetaHairpin(), 'C24': C24()}[name]
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
@@ -218,22 +222,11 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def check_center_of_mass_is_at_origin(result):
-        coords_of_center_of_mass_after = [[np.average(result[item, ::3]), np.average(result[item, 1::3]),
-                                           np.average(result[item, 2::3])]
-                                          for item in range(result.shape[0])]
-        return np.all(np.abs(np.array(coords_of_center_of_mass_after).flatten()) < 1e-5)
+        return Helper_func.check_center_of_mass_is_at_origin(result=result)
 
     @staticmethod
     def remove_translation(coords):   # remove the translational degree of freedom
-        if len(coords.shape) == 1:    # convert 1D array (when there is only one coord) to 2D array
-            coords = coords.reshape((1, coords.shape[0]))
-        number_of_atoms = coords.shape[1] / 3
-        coords_of_center_of_mass = [[np.average(coords[item, ::3]), np.average(coords[item, 1::3]),
-                                     np.average(coords[item, 2::3])] * number_of_atoms
-                                    for item in range(coords.shape[0])]
-        result = coords - np.array(coords_of_center_of_mass)
-        assert Sutils.check_center_of_mass_is_at_origin(result)
-        return result
+        return Helper_func.remove_translation(coords=coords)
 
     @staticmethod
     def rotating_randomly_around_center_of_mass(coords):
@@ -280,7 +273,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return result
 
     @staticmethod
-    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
+    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1,
+                                             start_index_of_xyz_field=6):
+        index_of_backbone_atoms = [str(item) for item in index_of_backbone_atoms]
         filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
         output_file_list = []
 
@@ -297,10 +292,15 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
                 with open(input_file) as f_in:
                     with open(output_file, 'w') as f_out:
+                        # fix based on this format: https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html
+                        # reason for the fix is sometimes there is no space between two neighboring fields
+                        # for instance, when atom index is greater than 10000, no space between first two fields, leading to wrong parsing
                         for line in f_in:
-                            fields = line.strip().split()
+                            line = line.strip()
+                            fields = [line[:6], line[6:11], line[30:38], line[38:46], line[46:54]]
+                            fields = [item_field.strip() for item_field in fields]
                             if (fields[0] == 'ATOM' or fields[0] == 'HETATM') and fields[1] in index_of_backbone_atoms:
-                                f_out.write(reduce(lambda x, y: x + '\t' + y, fields[6:9]))
+                                f_out.write(reduce(lambda x, y: x + '\t' + y, fields[2:5]))
                                 f_out.write('\t')
                                 if fields[1] == index_of_backbone_atoms[-1]:
                                     f_out.write('\n')
@@ -417,7 +417,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
         # now sort these grids (that has no points in it)
         # based on total number of points in its neighbors
-        
+
         temp_seperate_index = []
 
         for _ in range(dimensionality):
@@ -568,7 +568,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             assert (len(p_distances) == num_atoms * (num_atoms - 1) / 2)
             result += [p_distances]
 
-        return result
+        return np.array(result)
 
     @staticmethod
     def get_residue_relative_position_list(sample_file):
@@ -598,7 +598,7 @@ class Alanine_dipeptide(Sutils):
     def __init__(self):
         super(Alanine_dipeptide, self).__init__()
         return
-        
+
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
         num_of_coordinates = len(list(a_coordinate)) / 3
@@ -658,7 +658,7 @@ class Alanine_dipeptide(Sutils):
             temp_angle = []
             for ii in range(4):
                 temp_angle += [np.arccos(item[2 * ii]) * np.sign(item[2 * ii + 1])]
-            
+
             result += [list(temp_angle)]
         return result
 
@@ -693,7 +693,7 @@ class Trp_cage(Sutils):
     def __init__(self):
         super(Trp_cage, self).__init__()
         return
-        
+
     @staticmethod
     def get_cossin_of_a_dihedral_from_four_atoms(coord_1, coord_2, coord_3, coord_4):
         """each parameter is a 3D Cartesian coordinates of an atom"""
@@ -718,7 +718,7 @@ class Trp_cage(Sutils):
 
         sin_of_angle = sqrt(np.dot(sin_of_angle_vec, sin_of_angle_vec)) * np.sign(sin_of_angle_vec[component_index] * diff_coordinates_mid[index][component_index])
         try:
-            assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)  
+            assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)
         except:
             print ("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2))
             # print ("coordinates of four atoms are:")
@@ -736,8 +736,8 @@ class Trp_cage(Sutils):
         # FIXME: how to write unit test for this function?
         # TODO: to be tested
         total_num_of_residues = 20
-        list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], 
-                                                [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]], 
+        list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2],
+                                                [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]],
                                                 list(range(total_num_of_residues)))
         list_of_idx_four_atoms = reduce(lambda x, y: x + y, list_of_idx_four_atoms)
         list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
@@ -994,7 +994,7 @@ class Trp_cage(Sutils):
             expression_for_input_of_this_molecule += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
             expression_for_input_of_this_molecule += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, index)
             expression_for_input_of_this_molecule += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, index)
-            expression_for_input_of_this_molecule += 'dihedral_angle_%d = dihedral(p%s, p%s, p%s, p%s);\n' % (index, 
+            expression_for_input_of_this_molecule += 'dihedral_angle_%d = dihedral(p%s, p%s, p%s, p%s);\n' % (index,
                                                 index_of_backbone_atoms[item[0]], index_of_backbone_atoms[item[1]],
                                                 index_of_backbone_atoms[item[2]], index_of_backbone_atoms[item[3]])  # using backbone atoms
 
@@ -1060,4 +1060,18 @@ class BetaHairpin(Sutils):
         output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
                                                                        step_interval=step_interval)
 
+        return output_file_list
+
+class C24(Sutils):
+    def __init__(self):
+        super(C24, self).__init__()
+        return
+
+    @staticmethod
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
+        index_of_backbone_atoms = [str(item) for item in CONFIG_57[4]]
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms,
+                                                                       path_for_pdb=path_for_pdb,
+                                                                       step_interval=step_interval,
+                                                                       start_index_of_xyz_field=5)
         return output_file_list

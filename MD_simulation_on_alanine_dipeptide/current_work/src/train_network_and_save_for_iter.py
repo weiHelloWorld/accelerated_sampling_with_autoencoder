@@ -14,8 +14,10 @@ parser.add_argument("--lr_m", type=str, default=None, help="learning rate and mo
 parser.add_argument("--num_PCs", type=int, default=None, help="number of PCs")
 parser.add_argument("--output_file", type=str, default=None, help="file name to save autoencoder")
 parser.add_argument('--data_folder', type=str, default=None, help="folder containing training data")
-parser.add_argument('--input_file', type=str, default=None, help="file containing pre-computed input data")
-parser.add_argument('--output_file', type=str, default=None, help="file containing pre-computed output data")
+parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
+parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data")
+parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
+parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
 args = parser.parse_args()
 
 # used to process additional arguments
@@ -26,10 +28,6 @@ if not args.lr_m is None:
     temp_lr = float(args.lr_m.strip().split(',')[0])
     temp_momentum = float(args.lr_m.strip().split(',')[1])
     additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, CONFIG_4[4]]
-if not args.num_PCs is None:
-    temp_node_num = CONFIG_3[:]  # deep copy list
-    temp_node_num[2] = args.num_PCs
-    additional_argument_list['node_num'] = temp_node_num
 
 num_of_copies = args.num_of_copies
 if args.data_folder is None:
@@ -43,21 +41,22 @@ else:
 
 print "data folder is %s" % str(temp_list_of_directories_contanining_data)
 
-my_coor_data_obj = coordinates_data_files_list(
-    list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
-my_file_list = my_coor_data_obj.get_list_of_coor_data_files()
+if (args.in_data is None) and (args.out_data is None):
+    my_coor_data_obj = coordinates_data_files_list(
+        list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
+    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
+        lambda x: not 'aligned' in x)
 
 fraction_of_data_to_be_saved = 1   # save all training data by default
 input_data_type, output_data_type = CONFIG_48, CONFIG_76
 
 # getting input data
-if not args.input_file is None:
-    data_set = np.loadtxt(args.input_file)
+if not args.in_data is None:
+    data_set = np.load(args.in_data)
 elif input_data_type == 'cossin' and output_data_type == 'cossin':  # input type
     data_set = np.array(molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
-        my_file_list, step_interval=args.training_interval))
+        coor_data_obj_input.get_list_of_coor_data_files(), step_interval=args.training_interval))
 elif input_data_type == 'Cartesian':
-    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not 'aligned' in x)
     scaling_factor = CONFIG_49
     data_set = coor_data_obj_input.get_coor_data(scaling_factor)
     data_set = data_set[::args.training_interval]
@@ -67,8 +66,8 @@ else:
     raise Exception('error input type')
 
 # getting output data
-if not args.output_file is None:
-    data_set = np.loadtxt(args.output_file)
+if not args.out_data is None:
+    output_data_set = np.load(args.out_data)
 elif output_data_type == 'cossin':   # output type
     output_data_set = data_set   # done above
 elif output_data_type == 'Cartesian':
@@ -91,8 +90,6 @@ elif output_data_type == 'Cartesian':
             output_data_set = np.concatenate([output_data_set_1, output_data_set_2], axis=1)
     assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
 elif output_data_type == 'pairwise_distance':
-    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-        lambda x: not 'aligned' in x)
     output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
         atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
@@ -110,8 +107,6 @@ elif output_data_type == 'combined':
         output_data_set = np.concatenate([4.0 * output_data_set_1, output_data_set_2],
                                          axis=1)  # TODO: may modify this relative weight later
     else: raise Exception('not defined')
-    coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
-        lambda x: not 'aligned' in x)
     temp_output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
         atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
@@ -119,13 +114,12 @@ elif output_data_type == 'combined':
 else:
     raise Exception('error output data type')
 
-print ("min/max of output = %f, %f" % (np.min(output_data_set), np.max(output_data_set)))
 assert (len(data_set) == len(output_data_set))
 use_representative_points_for_training = CONFIG_58
 if use_representative_points_for_training:
     data_set, output_data_set = Sutils.select_representative_points(data_set, output_data_set)
     
-if input_data_type == 'Cartesian':
+if input_data_type == 'Cartesian' and args.in_data is None:
     print 'applying data augmentation...'
     data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies,
                              is_output_reconstructed_Cartesian=(output_data_type == 'Cartesian'))
@@ -137,6 +131,21 @@ scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to p
 if not scaling_factor_for_expected_output is None:
     print "expected output is weighted by %s" % str(scaling_factor_for_expected_output)
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
+
+temp_node_num = CONFIG_3[:]  # deep copy list
+if not args.num_PCs is None:
+    index_CV_layer = (len(temp_node_num) - 1) / 2
+    temp_node_num[index_CV_layer] = args.num_PCs
+if args.auto_dim: temp_node_num[0], temp_node_num[-1] = data_set.shape[1], output_data_set.shape[1]
+additional_argument_list['node_num'] = temp_node_num
+
+if args.auto_scale:
+    data_set /= (np.max(np.abs(data_set)).astype(np.float))
+    output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
+    assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
+
+print ("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
+                                                                  np.min(data_set), np.max(data_set)))
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,

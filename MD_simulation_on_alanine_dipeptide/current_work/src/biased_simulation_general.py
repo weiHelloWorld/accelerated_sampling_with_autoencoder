@@ -88,10 +88,14 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     assert(os.path.exists(folder_to_store_output_files))
 
-    force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml', '1y57': 'amber03.xml', 'BetaHairpin': 'amber03.xml'}[args.molecule]
-    water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml', '1y57': 'tip3p.xml', 'BetaHairpin': 'tip3p.xml'}[args.molecule]
-    water_model = water_field_file.replace('.xml', '')
-    ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar, '1y57': 0.5 * .15 * molar, 'BetaHairpin': 0 * molar}[args.molecule]
+    force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml', '1y57': 'amber03.xml',
+                        'BetaHairpin': 'amber03.xml', 'C24':'charmm36.xml'
+                        }[args.molecule]
+    water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml', '1y57': 'tip3p.xml',
+                        'BetaHairpin': 'tip3p.xml', 'C24':'charmm36/spce.xml'}[args.molecule]
+    water_model = water_field_file.replace('.xml', '').replace('charmm36/', '')
+    ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar, '1y57': 0.5 * .15 * molar,
+                      'BetaHairpin': 0 * molar, 'C24': 0 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
@@ -102,7 +106,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
         input_pdb_file_of_molecule = {'Trp_cage': '../resources/1l2y.pdb',
                                       '2src': '../resources/2src.pdb',
                                       '1y57': '../resources/1y57.pdb',
-                                      'BetaHairpin': '../resources/BetaHairpin.pdb'}[args.molecule]
+                                      'BetaHairpin': '../resources/BetaHairpin.pdb',
+                                      'C24': '../resources/C24.pdb'}[args.molecule]
     else:
         input_pdb_file_of_molecule = args.starting_pdb_file
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
@@ -121,19 +126,18 @@ def run_simulation(force_constant, number_of_simulation_steps):
         checkpoint_file = checkpoint_file.replace(str(force_constant), str(args.force_constant))
 
     # check existence
-    if os.path.isfile(pdb_reporter_file):
-        os.rename(pdb_reporter_file, pdb_reporter_file.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb") # ensure the file extension stays the same
-
-    if os.path.isfile(state_data_reporter_file):
-        os.rename(state_data_reporter_file, state_data_reporter_file.split('.txt')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".txt")
+    for item_filename in [pdb_reporter_file, state_data_reporter_file]:
+        Helper_func.backup_rename_file_if_exists(item_filename)
 
     flag_random_seed = 0 # whether we need to fix this random seed
-    box_size = {'Trp_cage': 4.5, '2src': 8.0, '1y57': 8.0, 'BetaHairpin': 5}[args.molecule]
+    box_size = {'Trp_cage': 4.5, '2src': 8.0, '1y57': 8.0,
+                'BetaHairpin': 5, 'C24': 5}[args.molecule]
     time_step = CONFIG_22       # simulation time step, in ps
 
     index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1],
                                '2src': CONFIG_57[2], '1y57': CONFIG_57[2],
-                               'BetaHairpin': CONFIG_57[3]}[args.molecule]
+                               'BetaHairpin': CONFIG_57[3],
+                               'C24': CONFIG_57[4]}[args.molecule]
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
@@ -146,7 +150,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
         modeller.addHydrogens(forcefield)
         modeller.addSolvent(forcefield, model=water_model, boxSize=Vec3(box_size, box_size, box_size)*nanometers,
                             ionicStrength=ionic_strength)
-        modeller.addExtraParticles(forcefield)
+        if not water_model == 'spce': modeller.addExtraParticles(forcefield)
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints, ewaldErrorTolerance = 0.0005)
     elif args.whether_to_add_water_mol_opt == 'implicit':
@@ -164,6 +168,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
                                          constraints = simulation_constraints)
     else:
         raise Exception("parameter error")
+
+    # print modeller.topology.getPeriodicBoxVectors()
 
     system.addForce(AndersenThermostat(temperature*kelvin, 1/picosecond))
     if args.ensemble_type == "NPT" and args.whether_to_add_water_mol_opt == 'explicit':
@@ -186,6 +192,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
             with open(autoencoder_info_file, 'r') as f_in:
                 content = f_in.readlines()
 
+            # TODO: need to fix following for multi-hidden layer cases
             force.set_coeffients_of_connections(
                 [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]])
 
@@ -298,8 +305,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     simulation.step(number_of_simulation_steps)
 
     if args.checkpoint:
-        if os.path.isfile(checkpoint_file):
-            os.rename(checkpoint_file, checkpoint_file.split('.chk')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".chk")
+        Helper_func.backup_rename_file_if_exists(checkpoint_file)
         simulation.saveCheckpoint(checkpoint_file)
 
     print('Done!')

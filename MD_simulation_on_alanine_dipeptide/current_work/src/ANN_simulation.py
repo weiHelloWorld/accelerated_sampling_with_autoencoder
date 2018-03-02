@@ -11,10 +11,26 @@ class plotting(object):
     """this class implements different plottings
     """
 
-    def __init__(self, network):
-        assert isinstance(network, autoencoder)
+    def __init__(self, network=None):
         self._network = network
         pass
+
+    def plot_fve_L_method(fve, CV_min, CV_max, fig, ax):
+        temp_fve = np.array(fve).flatten()
+        temp_fve = temp_fve.reshape(CV_max - CV_min, temp_fve.shape[0] / (CV_max - CV_min))
+        evaluation_values = np.mean(temp_fve, axis=-1)
+        optimal_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, range(CV_min, CV_max + 1))
+        x_data = [_ - CV_min for _ in x_data]
+        ax.plot(x_data, y_data_left)
+        ax.plot(x_data, y_data_right)
+        ax.scatter(range(CV_max - CV_min + 1), evaluation_values)
+        df = pd.DataFrame(temp_fve.T)
+        sns.boxplot(df, ax=ax)
+        ax.set_xticklabels(range(CV_min, CV_max + 1))
+        ax.set_ylim([evaluation_values.min() - 0.1, evaluation_values.max() + 0.1])
+        ax.set_xlabel('num of CVs')
+        ax.set_ylabel('FVE')
+        return fig, ax
 
     def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
                                             fig_object,
@@ -54,19 +70,6 @@ class plotting(object):
 
             (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
             labels = ["PC1", "PC2"]
-
-        elif plotting_space == "phipsi":
-            assert (isinstance(molecule_type, Alanine_dipeptide))
-            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(input_data)
-
-            (x,y) = ([item[1] for item in temp_dihedrals], [item[2] for item in temp_dihedrals])
-            labels = ["phi", "psi"]
-        elif plotting_space == "1st_4th_dihedrals":
-            assert (isinstance(molecule_type, Alanine_dipeptide))
-            temp_dihedrals = molecule_type.get_many_dihedrals_from_cossin(input_data)
-
-            (x,y) = ([item[0] for item in temp_dihedrals], [item[3] for item in temp_dihedrals])
-            labels = ["dihedral_1", "dihedral_4"]
         else:
             raise Exception('plotting_space not defined!')
 
@@ -75,18 +78,6 @@ class plotting(object):
             coloring = 'red'
         elif color_option == 'step':
             coloring = list(range(len(x)))
-        elif color_option == 'phi':
-            assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[1] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
-        elif color_option == 'psi':
-            assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[2] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
-        elif color_option == '1st_dihedral':
-            assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[0] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
-        elif color_option == '4th_dihedral':
-            assert (isinstance(molecule_type, Alanine_dipeptide))
-            coloring = [item[3] for item in molecule_type.get_many_dihedrals_from_cossin(input_data)]
         elif color_option == 'other':
             assert (len(other_coloring) == len(x)), (len(other_coloring), len(x))
             coloring = other_coloring
@@ -201,21 +192,16 @@ class plotting(object):
 
         return fig_object, axis_object, im
 
-    def density_plotting(self,fig_object, axis_object,
+    def density_plotting(self, fig_object, axis_object,
                          network=None,
-                         cossin_data_for_plotting=None,
+                         data_for_plotting=None,
                          n_levels=40
                          ):
-
         if network is None: network = self._network
+        temp_data = self._network._data_set if data_for_plotting in None else data_for_plotting
 
-        if cossin_data_for_plotting is None:
-            cossin_data = self._network._data_set
-        else:
-            cossin_data = cossin_data_for_plotting
-
-        x = [item[0] for item in network.get_PCs(cossin_data)]
-        y = [item[1] for item in network.get_PCs(cossin_data)]
+        x = [item[0] for item in network.get_PCs(temp_data)]
+        y = [item[1] for item in network.get_PCs(temp_data)]
 
         df = pd.DataFrame({'x': x, 'y': y})
         sns.kdeplot(df.x, df.y, ax=axis_object, n_levels=n_levels)

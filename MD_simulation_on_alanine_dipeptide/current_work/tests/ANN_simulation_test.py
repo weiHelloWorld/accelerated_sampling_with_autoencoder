@@ -321,24 +321,23 @@ class test_autoencoder_Keras(object):
         data = self._data
         dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
 
-        for is_hi in [0, 1]:
+        for is_hi, hier_var in [(0, 0), (1,0), (1,1), (1,2)]:
             model = autoencoder_Keras(1447, data,
-                                      node_num=[8, 15, 2, 15, 8],
-                                      hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
-                                      network_parameters = [0.02, 0.9,0, True, [0.001]* 4],
+                                      node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
+                                      hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer],
+                                      network_parameters = [0.02, 0.9,0, True, [0.001]* 8],
                                       batch_size=100, hierarchical=is_hi
                                       )
-            model.train()
-
+            _, history = model.train(hierarchical_variant=hier_var)
             PCs = model.get_PCs()
             [x, y] = zip(*PCs)
-
             psi = [item[2] for item in dihedrals]
             fig, ax = plt.subplots()
             ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+            model.save_into_file('try_keras_noncircular_hierarchical_%d_%d.pkl' % (is_hi, hier_var))
 
-            fig.savefig('try_keras_noncircular_hierarchical_%d.png' % is_hi)
-        return
+            fig.savefig('try_keras_noncircular_hierarchical_%d_%d.png' % (is_hi, hier_var))
+        return history
 
     def test_train_2(self):
         data = self._data
@@ -414,7 +413,7 @@ class test_biased_simulation(object):
         autoencoder_pkl_file = 'dependency/test_biased_simulation/network_9.pkl'
         output_folder = 'temp_output_test_biased_simulation'
         a = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
-        a.write_expression_script_for_plumed('temp_info.txt')
+        a.write_expression_script_for_plumed('temp_info.txt', mode='ANN')
         subprocess.check_output(
 'python ../src/biased_simulation.py 50 50000 0 %s temp_info.txt pc_0,0 --MTD_pace 100 --platform CPU --bias_method MTD --MTD_biasfactor %f --MTD_WT %d --equilibration_steps 0'
                                 % (output_folder, biasfactor, use_well_tempered), shell=True)
@@ -471,4 +470,81 @@ class test_get_and_save_cossin_and_metrics_from_a_data_folder():
         for item in subprocess.check_output(['find', 'dependency/temp_Trp_cage_data', '-name', 'info*']).strip().split():
             temp = np.loadtxt(item)
             assert temp.shape[0] == 38
+        return
+
+class test_Helper_func(object):
+    @staticmethod
+    def test_compute_distances_min_image_convention():
+        output_pdb = 'out_for_computing_distances.pdb'
+        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0', 'temp_out_12345',
+                             'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA', '--device', '0', '--output_pdb', output_pdb])
+        import mdtraj as md
+        box_length = 4.5  # in nm
+        temp_t = md.load(output_pdb)
+        temp_t.unitcell_lengths, temp_t.unitcell_angles = box_length * np.ones((20, 3)), 90 * np.ones((20, 3))
+        temp_u = Universe(output_pdb)
+        a_sel = temp_u.select_atoms('name N')
+        b_sel = temp_u.select_atoms('name O and resname HOH')
+        absolute_index = b_sel.atoms.indices[30]
+        b_positions = np.array([b_sel.positions for _ in temp_u.trajectory])
+        b_positions = b_positions.reshape(20, b_positions.shape[1] * b_positions.shape[2])
+        a_positions = np.array([a_sel.positions for _ in temp_u.trajectory])
+        a_positions = a_positions.reshape(20, a_positions.shape[1] * a_positions.shape[2])
+        result = Helper_func.compute_distances_min_image_convention(a_positions, b_positions, 10 * box_length)
+        assert_almost_equal(md.compute_distances(temp_t, [[0, absolute_index]]).flatten(), result[:, 0, 30] / 10, decimal=4)
+        subprocess.check_output(['rm', '-rf', output_pdb, 'temp_out_12345'])
+        return 
+
+
+class test_others(object):
+    @staticmethod
+    def test_SphSh_INDUS_PLUMED_plugin():
+        # test for original version of SphSh_INDUS_PLUMED_plugin provided by Prof. Amish Patel
+        num_frames = 20
+        potential_center = np.random.random(size=3) * 3
+        with open('temp_plumed.txt', 'w') as my_f:
+            my_f.write('''
+SPHSH ATOMS=306-11390:4 XCEN=%f YCEN=%f ZCEN=%f RLOW=-0.5 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.02 LABEL=sph
+RESTRAINT ARG=sph.Ntw AT=5 KAPPA=5 SLOPE=0 LABEL=mypotential
+PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' \
+    % (potential_center[0], potential_center[1], potential_center[2]))  # since there is "TER" separating solute and solvent in pdb file, so index should start with 306, not 307
+        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
+                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NVT', '--platform', 'CUDA',
+                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
+        temp_u = Universe('temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit.pdb')
+        O_sel = temp_u.select_atoms('name O and resname HOH')
+        N_sel = temp_u.select_atoms('resnum 1 and name N')
+        O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)
+        N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
+        distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
+        distances = Helper_func.compute_distances_min_image_convention(10 * np.array([potential_center for _ in range(num_frames)]), O_coords, 45)
+        coarse_count, actual_count = Helper_func.get_coarse_grained_count(distances, 3.11, 0.2, .1)
+        plumed_count = np.loadtxt('NDATA')
+        assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
+        assert_almost_equal(plumed_count[-num_frames:, 2], coarse_count.flatten(), decimal=2)
+        subprocess.check_output(['rm', '-rf', 'temp_plumed', 'NDATA', 'temp_plumed.txt'])
+        return
+
+    @staticmethod
+    def test_SphShMod_INDUS_PLUMED_plugin():
+        num_frames = 20
+        with open('temp_plumed.txt', 'w') as my_f:
+            my_f.write('''
+SPHSHMOD ATOMS=306-11390:4 ATOMREF=1 RLOW=-0.5 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.02 LABEL=sph
+RESTRAINT ARG=sph.Ntw AT=10 KAPPA=5 SLOPE=0 LABEL=mypotential
+PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' )
+        subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
+                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NVT', '--platform', 'CUDA',
+                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
+        temp_u = Universe('temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit.pdb')
+        O_sel = temp_u.select_atoms('name O and resname HOH')
+        N_sel = temp_u.select_atoms('resnum 1 and name N')
+        O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)
+        N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
+        distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
+        coarse_count, actual_count = Helper_func.get_coarse_grained_count(distances, 3.11, 0.2, .1)
+        plumed_count = np.loadtxt('NDATA')
+        assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
+        assert_almost_equal(plumed_count[-num_frames:, 2], coarse_count.flatten(), decimal=2)
+        subprocess.check_output(['rm', '-rf', 'temp_plumed', 'NDATA', 'temp_plumed.txt'])
         return

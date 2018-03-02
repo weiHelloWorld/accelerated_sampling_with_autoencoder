@@ -1,4 +1,5 @@
 from config import *
+from helper_func import *
 
 class coordinates_data_files_list(object):
     def __init__(self,
@@ -57,10 +58,7 @@ class coordinates_data_files_list(object):
         first we select a few points interactively in the scatter plot, and get corresponding index in the data point
         list, the we find the corresponding pdb frames with the index
         """
-        if os.path.isfile(out_file_name):  # backup files
-            os.rename(out_file_name,
-                      out_file_name.split('.pdb')[0] + "_bak_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".pdb")
-
+        Helper_func.backup_rename_file_if_exists(out_file_name)
         list_of_coor_index.sort()
         pdb_files = self.get_list_of_corresponding_pdb_files()
         accum_sum = np.cumsum(np.array(self._list_of_line_num_of_coor_data_file))  # use accumulative sum to find corresponding pdb files
