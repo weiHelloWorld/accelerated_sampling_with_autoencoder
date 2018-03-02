@@ -967,7 +967,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history.history['loss'])
             axes[1].plot(train_history.history['val_loss'])
-            png_file = self._filename_to_save_network.replace('.pkl', '.png')
+            png_file = 'history.png'
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
         except: print "training history not plotted!"; pass

@@ -16,6 +16,6 @@ momentum_list = np.arange(momentum_list[0], momentum_list[1], momentum_list[2])
 for index in range(args.num_each_param):
     for lr in lr_list:
         for momentum in momentum_list:
-            print "python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %.2f,%.2f --output_file temp_%.2f_%.2f_%d.pkl --in_data %s --out_data %s" % (
+            print "OMP_NUM_THREADS=6 python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %.2f,%.2f --output_file temp_%.2f_%.2f_%d.pkl --in_data %s --out_data %s" % (
                 lr, momentum, lr, momentum, index, args.in_data, args.out_data
             )

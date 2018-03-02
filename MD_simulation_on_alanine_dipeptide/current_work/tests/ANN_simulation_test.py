@@ -31,10 +31,10 @@ class test_Sutils(object):
 
     @staticmethod
     def test_write_some_frames_into_a_new_file():
-        input_pdb = 'dependency/temp_output_0.pdb'
-        output_pdb = "dependency/temp_output_0_interval_3.pdb"
+        input_pdb = '../tests/dependency/temp_output_0.pdb'
+        output_pdb = "../tests/dependency/temp_output_0_interval_3.pdb"
         output_coor = output_pdb.replace('.pdb', '_coordinates.txt')
-        actual_output_coor = 'dependency/temp_output_0_coor.txt'
+        actual_output_coor = '../tests/dependency/temp_output_0_coor.txt'
         for interval in range(3, 10):
             Sutils.write_some_frames_into_a_new_file(input_pdb, 0, 0, interval, output_pdb)
             if os.path.exists(output_coor):
@@ -132,7 +132,7 @@ class test_Sutils(object):
 
     @staticmethod
     def test_rotating_coordinates():
-        data = np.loadtxt('dependency/temp_Trp_cage_data/1l2y_coordinates.txt').reshape((38, 60, 3))[0]
+        data = np.loadtxt('../tests/dependency/temp_Trp_cage_data/1l2y_coordinates.txt').reshape((38, 60, 3))[0]
         actual = Sutils.rotating_coordinates(data, [0,0,0], [0,0,1], np.pi / 2)
         expected = np.array([data[:, 1], - data[:,0], data[:,2]]).T
         assert_almost_equal(expected, actual)
@@ -148,11 +148,11 @@ class test_Sutils(object):
 class test_Alanine_dipeptide(object):
     @staticmethod
     def test_get_many_cossin_from_coordiantes_in_list_of_files():
-        list_of_files = ['dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
+        list_of_files = ['../tests/dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
         actual = Alanine_dipeptide().get_many_cossin_from_coordinates_in_list_of_files(list_of_files)
         assert_equal(100, len(actual))
         assert_equal(8, len(actual[0]))
-        expected = np.loadtxt('dependency/output_cossin.txt')
+        expected = np.loadtxt('../tests/dependency/output_cossin.txt')
         assert_almost_equal(expected, actual)
         return
 
@@ -171,17 +171,17 @@ class test_Alanine_dipeptide(object):
 
     @staticmethod
     def test_get_many_dihedrals_from_coordinates_in_file():
-        list_of_files = ['dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
+        list_of_files = ['../tests/dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
         actual = Alanine_dipeptide.get_many_dihedrals_from_coordinates_in_file(list_of_files)
-        expected = np.loadtxt('dependency/output_dihedrals.txt')
+        expected = np.loadtxt('../tests/dependency/output_dihedrals.txt')
         assert_almost_equal(actual, expected)
         return
 
     @staticmethod
     def test_generate_coordinates_from_pdb_files():
-        pdb_file_name = 'dependency/temp_output_0.pdb'
+        pdb_file_name = '../tests/dependency/temp_output_0.pdb'
         actual_output_file = pdb_file_name.replace('.pdb', '_coordinates.txt')
-        expected_output_files = 'dependency/temp_output_0_coor.txt'
+        expected_output_files = '../tests/dependency/temp_output_0_coor.txt'
         for interval in range(1, 10):
             if interval != 1:
                 actual_output_file = pdb_file_name.replace('.pdb', '_int_%d_coordinates.txt' % interval)
@@ -216,7 +216,7 @@ class test_Trp_cage(object):
 
     @staticmethod
     def test_get_non_repeated_pairwise_distance_as_list_of_alpha_carbon():
-        pdb_file_list = ['dependency/temp_Trp_cage_data/1l2y.pdb']
+        pdb_file_list = ['../tests/dependency/temp_Trp_cage_data/1l2y.pdb']
         a = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(pdb_file_list)
         a = [item.reshape(400, 1) for item in a]
         b = Trp_cage.get_non_repeated_pairwise_distance(pdb_file_list)
@@ -228,14 +228,14 @@ class test_Trp_cage(object):
 
     @staticmethod
     def test_get_pairwise_distance_matrices_of_alpha_carbon():
-        actual = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(['dependency/temp_Trp_cage_data/1l2y.pdb'])[0]
-        expected = np.loadtxt("dependency/test_get_pairwise_distance_matrices_of_alpha_carbon.txt")
+        actual = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(['../tests/dependency/temp_Trp_cage_data/1l2y.pdb'])[0]
+        expected = np.loadtxt("../tests/dependency/test_get_pairwise_distance_matrices_of_alpha_carbon.txt")
         assert_almost_equal(actual, expected)
         return
 
     @staticmethod
     def test_rotating_dihedral_angles_and_save_to_pdb():
-        pdb_file = 'dependency/temp_Trp_cage_data/1l2y.pdb'
+        pdb_file = '../tests/dependency/temp_Trp_cage_data/1l2y.pdb'
         output = 'temp_rotating_out.pdb'
         target_dihedrals_list = [np.ones((38, 38)), np.zeros((38, 38))]
         for target_dihedrals in target_dihedrals_list:
@@ -251,8 +251,8 @@ class test_Trp_cage(object):
 class test_cluster_management(object):
     @staticmethod
     def test_create_sge_files_from_a_file_containing_commands():
-        input_file = 'dependency/command_file.txt'
-        folder_to_store_sge_files = 'dependency/out_sge/'
+        input_file = '../tests/dependency/command_file.txt'
+        folder_to_store_sge_files = '../tests/dependency/out_sge/'
         if os.path.exists(folder_to_store_sge_files):
             subprocess.check_output(['rm', '-rf', folder_to_store_sge_files])
 
@@ -284,7 +284,7 @@ class test_cluster_management(object):
 class test_coordinates_data_files_list(object):
     @staticmethod
     def test__init__():
-        folder = 'dependency/temp_data'
+        folder = '../tests/dependency/temp_data'
         num_of_coor_files = len(subprocess.check_output(['find', folder, '-name', "*_coordinates.txt"]).strip().split())
         a = coordinates_data_files_list([folder])
         assert len(a.get_list_of_coor_data_files()) == num_of_coor_files - 1      # one file is empty
@@ -295,7 +295,7 @@ class test_coordinates_data_files_list(object):
 
     @staticmethod
     def test_create_sub_coor_data_files_list_using_filter_conditional():
-        folder = 'dependency/temp_data'
+        folder = '../tests/dependency/temp_data'
         a = coordinates_data_files_list([folder])
         a_sub = a.create_sub_coor_data_files_list_using_filter_conditional(lambda x: '0.7' in x)
         for item in a_sub.get_list_of_coor_data_files():
@@ -304,7 +304,7 @@ class test_coordinates_data_files_list(object):
 
     @staticmethod
     def test_get_pdb_name_and_corresponding_frame_index_with_global_coor_index():
-        _1 = coordinates_data_files_list(['dependency/temp_data/'])
+        _1 = coordinates_data_files_list(['../tests/dependency/temp_data/'])
         pdb_files = _1.get_list_of_corresponding_pdb_files()
         for item in range(1, 602, 100):
             assert (_1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(item) == (pdb_files[item / 100], 1))
@@ -313,7 +313,7 @@ class test_coordinates_data_files_list(object):
 
 class test_autoencoder_Keras(object):
     def __init__(self):
-        my_file_list = coordinates_data_files_list(['dependency/noncircular_alanine_exploration_data/'])
+        my_file_list = coordinates_data_files_list(['../tests/dependency/noncircular_alanine_exploration_data/'])
         self._data = np.array(Alanine_dipeptide.get_many_cossin_from_coordinates_in_list_of_files(
             my_file_list.get_list_of_coor_data_files()))
 
@@ -368,7 +368,8 @@ class test_autoencoder_Keras(object):
                                   network_parameters=[0.02, 0.9,0, True, [0.001]* 4],
                                   batch_size=50
                                   )
-        model.train().save_into_file('test_save_into_file.pkl')
+        model.train()
+        model.save_into_file('test_save_into_file.pkl')
         model.save_into_file('test_save_into_file_fraction.pkl', fraction_of_data_to_be_saved=0.5)
         return
 
@@ -377,7 +378,7 @@ class test_biased_simulation(object):
     @staticmethod
     def helper_biased_simulation_alanine_dipeptide(potential_center):
         autoencoder_coeff_file = 'autoencoder_info_9.txt'
-        autoencoder_pkl_file = 'dependency/test_biased_simulation/network_9.pkl'
+        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_9.pkl'
         my_network = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         assert (isinstance(my_network, autoencoder))
         my_network.write_coefficients_of_connections_into_file(autoencoder_coeff_file)
@@ -410,7 +411,7 @@ class test_biased_simulation(object):
 
     @staticmethod
     def test_biased_simulation_alanine_dipeptide_with_metadynamics(use_well_tempered=0, biasfactor=-1):
-        autoencoder_pkl_file = 'dependency/test_biased_simulation/network_9.pkl'
+        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_9.pkl'
         output_folder = 'temp_output_test_biased_simulation'
         a = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         a.write_expression_script_for_plumed('temp_info.txt', mode='ANN')
@@ -466,8 +467,8 @@ class test_get_and_save_cossin_and_metrics_from_a_data_folder():
     @staticmethod
     def test_get_and_save_cossin_and_metrics_from_a_data_folder():
         # TODO: add testing for values, currently only tests basic functionality
-        subprocess.check_output(['python', '../src/get_and_save_cossin_and_metrics_from_a_data_folder.py', 'dependency/temp_Trp_cage_data'])
-        for item in subprocess.check_output(['find', 'dependency/temp_Trp_cage_data', '-name', 'info*']).strip().split():
+        subprocess.check_output(['python', '../src/get_and_save_cossin_and_metrics_from_a_data_folder.py', '../tests/dependency/temp_Trp_cage_data'])
+        for item in subprocess.check_output(['find', '../tests/dependency/temp_Trp_cage_data', '-name', 'info*']).strip().split():
             temp = np.loadtxt(item)
             assert temp.shape[0] == 38
         return
