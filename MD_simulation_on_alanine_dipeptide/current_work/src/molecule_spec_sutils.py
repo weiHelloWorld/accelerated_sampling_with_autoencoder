@@ -330,6 +330,19 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return plumed_script
 
     @staticmethod
+    def _get_plumed_script_with_pairwise_dis_as_input(index_atoms, scaling_factor):
+        plumed_string = ''
+        index_input = 0
+        for item_1 in range(len(index_atoms)):
+            for item_2 in range(item_1 + 1, len(index_atoms)):
+                plumed_string += "dis_%d:  DISTANCE ATOMS=%d,%d\n" % (
+                    index_input, index_atoms[item_1], index_atoms[item_2])
+                plumed_string += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f ARG=dis_%d\n" % (
+                    index_input, 10.0 / scaling_factor, index_input)
+                index_input += 1
+        return plumed_string
+
+    @staticmethod
     def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
         """
         This is used to remove water molecule from pdb file, purposes:
