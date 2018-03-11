@@ -62,6 +62,10 @@ elif input_data_type == 'Cartesian':
     data_set = data_set[::args.training_interval]
     data_set = Sutils.remove_translation(data_set)
     assert (Sutils.check_center_of_mass_is_at_origin(data_set))
+elif input_data_type == 'pairwise_distance':
+    data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
+        coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
+        atom_selection=CONFIG_73)) / CONFIG_49
 else:
     raise Exception('error input type')
 
@@ -92,7 +96,7 @@ elif output_data_type == 'Cartesian':
 elif output_data_type == 'pairwise_distance':
     output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
-        atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
+        atom_selection=CONFIG_73)) / CONFIG_49
 elif output_data_type == 'combined':
     scaling_factor = CONFIG_49
     alignment_coor_file_suffix_list = CONFIG_61
@@ -109,7 +113,7 @@ elif output_data_type == 'combined':
     else: raise Exception('not defined')
     temp_output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
-        atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
+        atom_selection=CONFIG_73)) / CONFIG_49
     output_data_set = np.concatenate([output_data_set, temp_output_data_set], axis=1)
 else:
     raise Exception('error output data type')

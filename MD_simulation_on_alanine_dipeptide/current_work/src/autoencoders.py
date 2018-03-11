@@ -413,15 +413,14 @@ class autoencoder(object):
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
+        PCs_of_network = self.get_PCs()
+        if self._hidden_layers_type[1] == CircularLayer:
+            assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
+        else:
+            assert (len(PCs_of_network[0]) == self._node_num[2])
+        if list_of_potential_center is None:
+            list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
         if bias_method == "US":
-            PCs_of_network = self.get_PCs()
-            if self._hidden_layers_type[1] == CircularLayer:
-                assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
-            else:
-                assert (len(PCs_of_network[0]) == self._node_num[2])
-            if list_of_potential_center is None:
-                list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
-
             start_from_nearest_config = CONFIG_74
             if start_from_nearest_config:
                 nearest_pdb_frame_index_list = []
@@ -538,6 +537,33 @@ class autoencoder(object):
                     todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")
+        elif bias_method == "US on pairwise distances":
+            todo_list_of_commands_for_simulations = []
+            if isinstance(molecule_type, Trp_cage):
+                dim_of_CVs = len(list_of_potential_center[0])
+                pc_arg_string = ['ann_force.%d' % index_ann for index_ann in range(dim_of_CVs)]
+                pc_arg_string = ','.join(pc_arg_string)
+                plumed_string = Sutils._get_plumed_script_with_pairwise_dis_as_input(
+                    get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'), CONFIG_49)
+                plumed_string += self.get_expression_script_for_plumed(mode='ANN')
+                for item_index, item_pc in enumerate(list_of_potential_center):
+                    pc_string = ','.join([str(_1) for _1 in item_pc])
+                    kappa_string = ','.join([str(CONFIG_9) for _ in range(dim_of_CVs)])
+                    temp_plumed_file = '../resources/Trp_cage/temp_plumed_%02d.txt' % item_index
+                    with open(temp_plumed_file, 'w') as my_f:
+                        my_f.write(
+                            plumed_string + '\nRESTRAINT ARG=%s AT=%s KAPPA=%s LABEL=mypotential\n' % (
+                                pc_arg_string, pc_string, kappa_string)
+                        )
+                    parameter_list = (
+                        str(CONFIG_16), str(num_of_simulation_steps), str(CONFIG_9),
+                        '../target/Trp_cage/network_%d/' % self._index, 'none',
+                        'pc_' + str(item_pc).replace(' ', '')[1:-1],
+                        CONFIG_40, CONFIG_51, temp_plumed_file, item_index % 2)
+                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --bias_method plumed_other --plumed_file %s --device %d" % parameter_list
+                    todo_list_of_commands_for_simulations += [command]
+
+            else: raise Exception("molecule type not defined")
         else:
             raise Exception("bias method not found")
 

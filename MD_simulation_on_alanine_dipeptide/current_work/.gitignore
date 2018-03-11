@@ -1,2 +1,4 @@
 previous_runs/**
 .spyderworkspace
+.vscode/**
+

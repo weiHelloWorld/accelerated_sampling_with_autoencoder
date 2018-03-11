@@ -47,8 +47,8 @@ def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
 #######################################################################
 
 CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
-CONFIG_48 = 'Cartesian'           # input data type
-CONFIG_76 = 'Cartesian'           # output data type
+CONFIG_48 = 'pairwise_distance'           # input data type
+CONFIG_76 = 'pairwise_distance'           # output data type
 temp_CONFIG_75_1 = np.ones(360); temp_CONFIG_75_1[3:24] = 4.0; temp_CONFIG_75_1[180 + 3: 180 + 24] = 4.0; temp_CONFIG_75_1 /= 4.0
 CONFIG_75 = get_mol_param([None, None, None, None, None])      # weights for the expected output (equivalent to modifying error functions)
 CONFIG_52 = 64                # number of copies we generate for data augmentation
@@ -218,7 +218,7 @@ else:
 CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
-CONFIG_65 = "US"          # default biasing method
+CONFIG_65 = "US on pairwise distances"          # default biasing method
 CONFIG_16 = get_mol_param([500, 5000, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_8 = get_mol_param([50000, 500000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
