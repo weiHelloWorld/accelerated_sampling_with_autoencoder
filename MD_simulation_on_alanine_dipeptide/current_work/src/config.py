@@ -83,9 +83,7 @@ CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
 CONFIG_78 = LinearLayer                    # output layer type
 CONFIG_79 = False                         # determine dimensionality of input/output of autoencoder automatically
 CONFIG_2 = 1     # training data interval
-if CONFIG_45 == 'pybrain':
-    raise Exception("Warning: PyBrain is no longer supported!  " + WARNING_INFO)
-elif CONFIG_45 == 'keras':
+if CONFIG_45 == 'keras':
     if CONFIG_76 == 'cossin':
         CONFIG_4 = get_mol_param([
             [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == CircularLayer else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]],
@@ -248,9 +246,6 @@ elif temp_home_directory == "/home/weichen9":
     CONFIG_25 = '/home/weichen9/.my_softwares/openmm7/lib/plugins'
 else:
     print ('unknown user directory: %s' % temp_home_directory)
-
-# if CONFIG_24 == "cluster":
-#     raise Exception("Warning: it has not been tested on the cluster for relatively long time, not recommended!  " + WARNING_INFO)
 
 CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)

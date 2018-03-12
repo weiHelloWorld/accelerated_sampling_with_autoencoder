@@ -544,12 +544,12 @@ class autoencoder(object):
                 pc_arg_string = ['ann_force.%d' % index_ann for index_ann in range(dim_of_CVs)]
                 pc_arg_string = ','.join(pc_arg_string)
                 plumed_string = Sutils._get_plumed_script_with_pairwise_dis_as_input(
-                    get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'), CONFIG_49)
+                    get_index_list_with_selection_statement('../resources/1l2y.pdb', CONFIG_73), CONFIG_49)
                 plumed_string += self.get_expression_script_for_plumed(mode='ANN')
                 for item_index, item_pc in enumerate(list_of_potential_center):
                     pc_string = ','.join([str(_1) for _1 in item_pc])
                     kappa_string = ','.join([str(CONFIG_9) for _ in range(dim_of_CVs)])
-                    temp_plumed_file = '../resources/Trp_cage/temp_plumed_%02d.txt' % item_index
+                    temp_plumed_file = '../resources/Trp_cage/temp_plumed_%02d_%02d.txt' % (self._index, item_index)
                     with open(temp_plumed_file, 'w') as my_f:
                         my_f.write(
                             plumed_string + '\nRESTRAINT ARG=%s AT=%s KAPPA=%s LABEL=mypotential\n' % (
@@ -993,7 +993,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history.history['loss'])
             axes[1].plot(train_history.history['val_loss'])
-            png_file = 'history.png'
+            png_file = 'history_%02d.png' % self._index
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
         except: print "training history not plotted!"; pass

@@ -15,6 +15,7 @@ class plotting(object):
         self._network = network
         pass
 
+    @staticmethod
     def plot_fve_L_method(fve, CV_min, CV_max, fig, ax):
         temp_fve = np.array(fve).flatten()
         temp_fve = temp_fve.reshape(CV_max - CV_min, temp_fve.shape[0] / (CV_max - CV_min))
@@ -198,7 +199,7 @@ class plotting(object):
                          n_levels=40
                          ):
         if network is None: network = self._network
-        temp_data = self._network._data_set if data_for_plotting in None else data_for_plotting
+        temp_data = self._network._data_set if data_for_plotting is None else data_for_plotting
 
         x = [item[0] for item in network.get_PCs(temp_data)]
         y = [item[1] for item in network.get_PCs(temp_data)]
