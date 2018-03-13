@@ -7,3 +7,5 @@ dependency/**
 *.txt
 *.pdb
 *.hdf5
+*.chk
+

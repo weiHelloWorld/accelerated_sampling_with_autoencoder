@@ -506,9 +506,11 @@ class test_others(object):
         with open('temp_plumed.txt', 'w') as my_f:
             my_f.write('''
 SPHSH ATOMS=306-11390:4 XCEN=%f YCEN=%f ZCEN=%f RLOW=-0.5 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.02 LABEL=sph
+SPHSH ATOMS=306-11390:4 XCEN=%f YCEN=%f ZCEN=%f RLOW=0.05 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.02 LABEL=sph_2
 RESTRAINT ARG=sph.Ntw AT=5 KAPPA=5 SLOPE=0 LABEL=mypotential
-PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' \
-    % (potential_center[0], potential_center[1], potential_center[2]))  # since there is "TER" separating solute and solvent in pdb file, so index should start with 306, not 307
+PRINT STRIDE=50 ARG=sph.N,sph.Ntw,sph_2.N,sph_2.Ntw FILE=NDATA''' \
+    % (potential_center[0], potential_center[1], potential_center[2], 
+       potential_center[0], potential_center[1], potential_center[2]))  # since there is "TER" separating solute and solvent in pdb file, so index should start with 306, not 307
         subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
                                  'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NVT', '--platform', 'CUDA',
                                  '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
@@ -519,10 +521,13 @@ PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' \
         N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
         distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
         distances = Helper_func.compute_distances_min_image_convention(10 * np.array([potential_center for _ in range(num_frames)]), O_coords, 45)
-        coarse_count, actual_count = Helper_func.get_coarse_grained_count(distances, 3.11, 0.2, .1)
+        coarse_count, actual_count = Helper_func.get_cg_count_in_sphere(distances, 3.11, 0.2, .1)
         plumed_count = np.loadtxt('NDATA')
         assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
         assert_almost_equal(plumed_count[-num_frames:, 2], coarse_count.flatten(), decimal=2)
+        coarse_count_1, actual_count_1 = Helper_func.get_cg_count_in_shell(distances, 0.5, 3.11, 0.2, .1)
+        assert_almost_equal(plumed_count[-num_frames:, 3], actual_count_1.flatten())
+        assert_almost_equal(plumed_count[-num_frames:, 4], coarse_count_1.flatten(), decimal=2)
         subprocess.check_output(['rm', '-rf', 'temp_plumed', 'NDATA', 'temp_plumed.txt'])
         return
 
@@ -543,7 +548,7 @@ PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' )
         O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)
         N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
         distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
-        coarse_count, actual_count = Helper_func.get_coarse_grained_count(distances, 3.11, 0.2, .1)
+        coarse_count, actual_count = Helper_func.get_cg_count_in_sphere(distances, 3.11, 0.2, .1)
         plumed_count = np.loadtxt('NDATA')
         assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
         assert_almost_equal(plumed_count[-num_frames:, 2], coarse_count.flatten(), decimal=2)
