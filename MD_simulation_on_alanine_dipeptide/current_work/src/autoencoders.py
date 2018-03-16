@@ -102,6 +102,13 @@ class autoencoder(object):
         self._out_layer_type = layer_type_to_name_mapping[self._out_layer_type]
         return
 
+    @staticmethod
+    def remove_pybrain_dependency_and_save_to_file(filename):
+        ae = autoencoder.load_from_pkl_file(filename)
+        ae.remove_pybrain_dependency()
+        ae.save_into_file(filename)
+        return
+
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
             filename = self._filename_to_save_network
