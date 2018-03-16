@@ -83,8 +83,7 @@ class autoencoder(object):
         a = Sutils.load_object_from_pkl_file(filename)
         if os.path.isfile(filename.replace('.pkl','.hdf5')):
             a._molecule_net = load_model(filename.replace('.pkl','.hdf5'),custom_objects={'mse_weighted': mse_weighted})
-            a._molecule_net_layers = a._molecule_net.layers
-        elif not hasattr(a, '_molecule_net') and hasattr(a, '_molecule_net_layers'):  # for backward compatibility
+        elif not hasattr(a, '_molecule_net') and hasattr(a, '_molecule_net_layers') and (not a._molecule_net_layers is None):  # for backward compatibility
             a._molecule_net = Sequential()
             for item in a._molecule_net_layers:
                 a._molecule_net.add(item)
@@ -131,7 +130,6 @@ class autoencoder(object):
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': mse_weighted})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': mse_weighted})
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
-        self._molecule_net_layers = self._molecule_net.layers
         return
 
     def get_expression_of_network(self):
@@ -786,6 +784,7 @@ class autoencoder_Keras(autoencoder):
         self._molecule_net_layers = None              # why don't I save molecule_net (Keras model) instead? since it it not picklable:
                                                       # https://github.com/luispedro/jug/issues/30
                                                       # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
+                                                      # obsolete: should not save _molecule_net_layers in the future, kept for backward compatibility
         return
 
     def get_output_data(self, input_data=None):
@@ -814,7 +813,7 @@ class autoencoder_Keras(autoencoder):
         if self._hidden_layers_type[index_CV_layer - 1] == "Circular": raise Exception('not implemented')
         inputs = Input(shape=(self._node_num[index_CV_layer],))
         x = inputs
-        for item in self._molecule_net_layers[-index_CV_layer:]:
+        for item in self._molecule_net.layers[-index_CV_layer:]:
             x = item(x)     # using functional API
         model = Model(input=inputs, output=x)
         return model.predict(input_PC)
@@ -991,7 +990,6 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
 
         print('Done ' + training_print_info + str(datetime.datetime.now()))
         self._molecule_net = molecule_net
-        self._molecule_net_layers = molecule_net.layers
         self._encoder_net = encoder_net
         try:
             fig, axes = plt.subplots(1, 2)
@@ -1075,7 +1073,6 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
 
             print('Done ' + training_print_info + str(datetime.datetime.now()))
             self._molecule_net = molecule_net
-            self._molecule_net_layers = molecule_net.layers
 
         return self
 
