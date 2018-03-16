@@ -324,7 +324,7 @@ class test_autoencoder_Keras(object):
         for is_hi, hier_var in [(0, 0), (1,0), (1,1), (1,2)]:
             model = autoencoder_Keras(1447, data,
                                       node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
-                                      hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer, TanhLayer],
+                                      hidden_layers_types=["Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh"],
                                       network_parameters = [0.02, 0.9,0, True, [0.001]* 8],
                                       batch_size=100, hierarchical=is_hi
                                       )
@@ -344,7 +344,7 @@ class test_autoencoder_Keras(object):
         dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 4, 15, 8],
-                                  hidden_layers_types=[TanhLayer, CircularLayer, TanhLayer],
+                                  hidden_layers_types=["Tanh", "Circular", "Tanh"],
                                   network_parameters = [0.1, 0.4,0, True, [0.001]* 4],
                                   hierarchical=False
                                   )
@@ -364,7 +364,7 @@ class test_autoencoder_Keras(object):
         data = self._data
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 2, 15, 8],
-                                  hidden_layers_types=[TanhLayer, TanhLayer, TanhLayer],
+                                  hidden_layers_types=["Tanh", "Tanh", "Tanh"],
                                   network_parameters=[0.02, 0.9,0, True, [0.001]* 4],
                                   batch_size=50
                                   )

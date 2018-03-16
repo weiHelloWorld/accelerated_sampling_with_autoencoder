@@ -10,6 +10,7 @@ from keras.callbacks import EarlyStopping
 from keras import layers
 from keras import backend as K
 import random
+from compatible import *
 
 ##################    set types of molecules  ############################
 
@@ -95,9 +96,12 @@ class autoencoder(object):
             raise Exception('TODO: construct encoder from _molecule_net') # TODO
         return a
     
-    # def remove_pybrain_dependency():    
-    #     """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
-    #     from compatible import *
+    def remove_pybrain_dependency(self):    
+        """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
+        self._in_layer_type = layer_type_to_name_mapping[self._in_layer_type]
+        self._hidden_layers_type = [layer_type_to_name_mapping[item] for item in self._hidden_layers_type]
+        self._out_layer_type = layer_type_to_name_mapping[self._out_layer_type]
+        return
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
@@ -821,7 +825,7 @@ class autoencoder_Keras(autoencoder):
 
     def train(self, hierarchical=None, hierarchical_variant = CONFIG_77):
         if hierarchical is None: hierarchical = self._hierarchical
-        output_layer_activation = layer_type_to_name_mapping[self._out_layer_type].lower()
+        output_layer_activation = self._out_layer_type.lower()
         node_num = self._node_num
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
