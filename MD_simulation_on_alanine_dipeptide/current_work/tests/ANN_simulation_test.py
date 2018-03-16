@@ -461,17 +461,7 @@ class test_biased_simulation(object):
         for item in [5, 20, 100]:
             test_biased_simulation.test_biased_simulation_alanine_dipeptide_with_metadynamics(1, item)
         return
-
-
-class test_get_and_save_cossin_and_metrics_from_a_data_folder():
-    @staticmethod
-    def test_get_and_save_cossin_and_metrics_from_a_data_folder():
-        # TODO: add testing for values, currently only tests basic functionality
-        subprocess.check_output(['python', '../src/get_and_save_cossin_and_metrics_from_a_data_folder.py', '../tests/dependency/temp_Trp_cage_data'])
-        for item in subprocess.check_output(['find', '../tests/dependency/temp_Trp_cage_data', '-name', 'info*']).strip().split():
-            temp = np.loadtxt(item)
-            assert temp.shape[0] == 38
-        return
+        
 
 class test_Helper_func(object):
     @staticmethod

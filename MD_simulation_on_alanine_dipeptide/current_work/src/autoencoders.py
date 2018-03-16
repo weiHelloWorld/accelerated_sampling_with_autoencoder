@@ -345,7 +345,7 @@ class autoencoder(object):
         pass
 
     @abc.abstractmethod
-    def get_output_data(self, input_data=None, num_of_PCs=None):
+    def get_output_data(self, input_data=None):
         """must be implemented by subclasses"""
         pass
 
@@ -354,13 +354,9 @@ class autoencoder(object):
         """must be implemented by subclasses"""
         pass
 
-    def get_training_error(self, num_of_PCs=None):
-        """
-        :param num_of_PCs: this option only works for hierarchical case, indicate you would like to get error with
-        a specific number of PCs (instead of all PCs)
-        """
+    def get_training_error(self):
         input_data = np.array(self._data_set)
-        actual_output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data()
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
             expected_output_data = self._output_data_set
         else:
@@ -377,11 +373,11 @@ class autoencoder(object):
         assert (len(relative_err) == len(input_data)), (len(relative_err), len(input_data))
         return relative_err
 
-    def get_fraction_of_variance_explained(self, num_of_PCs=None, hierarchical_FVE=False):
+    def get_fraction_of_variance_explained(self, hierarchical_FVE=False):
         """ here num_of_PCs is the same with that in get_training_error() """
         index_CV_layer = (len(self._node_num) - 1) / 2
         input_data = np.array(self._data_set)
-        actual_output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data()
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
             expected_output_data = self._output_data_set
         else:
@@ -792,7 +788,7 @@ class autoencoder_Keras(autoencoder):
                                                       # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
         return
 
-    def get_output_data(self, input_data=None, num_of_PCs = None):
+    def get_output_data(self, input_data=None):
         if input_data is None: input_data = self._data_set
         return self._molecule_net.predict(input_data)
 
