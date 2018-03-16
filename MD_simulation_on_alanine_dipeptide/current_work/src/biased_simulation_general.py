@@ -318,7 +318,7 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     print coor_file
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center(input_data_type)
-    if CONFIG_17[1] == CircularLayer:
+    if CONFIG_17[1] == "Circular":
         offset = [min(abs(item), abs(item + 2 * np.pi), abs(item - 2 * np.pi)) for item in offset]
         print "circular offset"
     print 'offset = %s' % str(offset)

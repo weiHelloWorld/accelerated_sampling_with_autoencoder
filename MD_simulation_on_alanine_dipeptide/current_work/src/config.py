@@ -3,12 +3,6 @@ from scipy import io as sciio
 import numpy as np, pandas as pd, seaborn as sns
 from numpy.testing import assert_almost_equal
 from math import *
-from pybrain.structure import *
-from pybrain.structure.modules.circularlayer import *
-from pybrain.supervised.trainers import BackpropTrainer
-from pybrain.datasets.supervised import SupervisedDataSet
-from pybrain.structure.connections.shared import MotherConnection,SharedFullConnection
-from pybrain.structure.moduleslice import ModuleSlice
 import matplotlib.pyplot as plt
 from sklearn.neighbors import RadiusNeighborsRegressor
 import matplotlib
@@ -28,7 +22,6 @@ it configures all default values/global parameters for constructors/functions
 ############   some global variables and helper functions  ############
 #######################################################################
 
-layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
 CONFIG_30 = "Trp_cage"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 
@@ -46,7 +39,7 @@ def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
 ##################   configurations  ##################################
 #######################################################################
 
-CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
+CONFIG_45 = 'keras'                         # training backend: "keras"
 CONFIG_48 = 'pairwise_distance'           # input data type
 CONFIG_76 = 'pairwise_distance'           # output data type
 temp_CONFIG_75_1 = np.ones(360); temp_CONFIG_75_1[3:24] = 4.0; temp_CONFIG_75_1[180 + 3: 180 + 24] = 4.0; temp_CONFIG_75_1 /= 4.0
@@ -79,14 +72,14 @@ if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
                                '(resid 144:170 or resid 44:58) and name CA', None
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
-CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
-CONFIG_78 = LinearLayer                    # output layer type
+CONFIG_17 = ['Tanh', 'Tanh', 'Tanh']  # types of hidden layers
+CONFIG_78 = "Linear"                    # output layer type
 CONFIG_79 = False                         # determine dimensionality of input/output of autoencoder automatically
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'keras':
     if CONFIG_76 == 'cossin':
         CONFIG_4 = get_mol_param([
-            [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == CircularLayer else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]],
+            [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == "Circular" else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]],
             None, None, None
         ])
     elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
@@ -108,9 +101,9 @@ else:
 CONFIG_5 = 200                   # max number of training epochs
 CONFIG_6 = None                # filename to save this network
 CONFIG_36 = 2                  #   dimensionality
-if CONFIG_17[1] == CircularLayer:
+if CONFIG_17[1] == "Circular":
     CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
-elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
+elif CONFIG_17[1] == "Tanh" or CONFIG_17[1] == "Relu":
     CONFIG_37 = CONFIG_36
 else:
     raise Exception('Layer not defined')
@@ -200,13 +193,13 @@ CONFIG_11 = get_mol_param([15,20, 15, 15])  # num of boundary points
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
 CONFIG_41 = False    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
 
-if CONFIG_17[1] == CircularLayer:
+if CONFIG_17[1] == "Circular":
     CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
     CONFIG_26 = [[-np.pi, np.pi] for item in range(CONFIG_36)]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
-elif CONFIG_17[1] == TanhLayer:
+elif CONFIG_17[1] == "Tanh":
     CONFIG_18 = False
     CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
-elif CONFIG_17[1] == ReluLayer:
+elif CONFIG_17[1] == "Relu":
     CONFIG_18 = False
     CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
     raise Exception("Warning: very few tests are done for ReLu layer, this is not recommended!  " + WARNING_INFO)
@@ -247,7 +240,7 @@ elif temp_home_directory == "/home/weichen9":
 else:
     print ('unknown user directory: %s' % temp_home_directory)
 
-CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
+CONFIG_27 =  CONFIG_17[:2]  # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)

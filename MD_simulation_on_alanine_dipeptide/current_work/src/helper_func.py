@@ -154,7 +154,7 @@ class Helper_func(object):
     @staticmethod
     def get_plumed_script_for_biased_simulation_with_INDUS_cg_input_and_ANN(
             water_index_string, atom_indices, r_low, r_high, scaling_factor, ANN_plumed_string,
-            potential_center, force_constant, out_plumed_file=None):
+            potential_center, force_constant, out_plumed_file=None):  # TODO: generalize to multi-shell cases
         """ used to generate plumed script for biased simulation, with INDUS coarse grained water
         molecule numbers as input for ANN, and biasing force is applied on outputs of ANN
         """

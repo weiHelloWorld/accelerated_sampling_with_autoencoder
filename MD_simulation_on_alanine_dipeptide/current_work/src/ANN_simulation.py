@@ -449,7 +449,7 @@ class single_biased_simulation_data(object):
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
 
         if not self._my_network is None:
-            if self._my_network._hidden_layers_type[1] == CircularLayer:
+            if self._my_network._hidden_layers_type[1] == "Circular":
                 self._dimension_of_PCs = self._my_network._node_num[2] / 2
             else:
                 self._dimension_of_PCs = self._my_network._node_num[2]

@@ -28,7 +28,7 @@ class autoencoder(object):
                  output_data_set = None,  # output data may not be the same with the input data
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
                  training_data_interval=CONFIG_2,
-                 in_layer_type=LinearLayer,
+                 in_layer_type="Linear",
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
@@ -63,7 +63,7 @@ class autoencoder(object):
 
         self._hierarchical = hierarchical
         self._network_verbose = network_verbose
-        num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
+        num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == "Circular" else 1
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
@@ -94,6 +94,10 @@ class autoencoder(object):
         else:
             raise Exception('TODO: construct encoder from _molecule_net') # TODO
         return a
+    
+    # def remove_pybrain_dependency():    
+    #     """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
+    #     from compatible import *
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
@@ -154,7 +158,7 @@ class autoencoder(object):
                 temp_expression += ' %f;\n' % (bias_coef[j])
                 expression = temp_expression + expression  # order of expressions matter in OpenMM
 
-            if i == 1 and type_of_middle_hidden_layer == CircularLayer:
+            if i == 1 and type_of_middle_hidden_layer == "Circular":
                 for j in range(np.size(mul_coef, 0) / 2):
                     temp_expression = 'out_layer_%d_unit_%d = ( in_layer_%d_unit_%d ) / radius_of_circular_pair_%d;\n' % \
                                       (i + 1, 2 * j, i + 1, 2 * j, j)
@@ -170,11 +174,11 @@ class autoencoder(object):
                     expression = temp_expression + expression
 
         # 2nd part: relate PCs to network
-        if type_of_middle_hidden_layer == CircularLayer:
+        if type_of_middle_hidden_layer == "Circular":
             temp_expression = 'PC0 = acos( out_layer_2_unit_0 ) * ( step( out_layer_2_unit_1 ) - 0.5) * 2;\n'
             temp_expression += 'PC1 = acos( out_layer_2_unit_2 ) * ( step( out_layer_2_unit_3 ) - 0.5) * 2;\n'
             expression = temp_expression + expression
-        elif type_of_middle_hidden_layer == TanhLayer:
+        elif type_of_middle_hidden_layer == "Tanh":
             temp_expression = 'PC0 = out_layer_2_unit_0;\nPC1 = out_layer_2_unit_1;\n'
             expression = temp_expression + expression
 
@@ -216,7 +220,7 @@ class autoencoder(object):
             temp_num_of_layers_used = index_CV_layer + 1
             temp_input_string = ','.join(['l_0_out_%d' % item for item in range(self._node_num[0])])
             temp_num_nodes_string = ','.join([str(item) for item in self._node_num[:temp_num_of_layers_used]])
-            temp_layer_type_string = map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2])
+            temp_layer_type_string = CONFIG_17[:2]
             temp_layer_type_string = ','.join(temp_layer_type_string)
             temp_coeff_string = ''
             temp_bias_string = ''
@@ -382,7 +386,7 @@ class autoencoder(object):
         var_of_output = sum(np.var(expected_output_data, axis=0))
         var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
         if self._hierarchical:
-            num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer \
+            num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" \
                 else self._node_num[index_CV_layer]
             length_for_hierarchical_component = expected_output_data.shape[1] / num_PCs
             hierarchical_actual_output_list = [actual_output_data[:,
@@ -414,7 +418,7 @@ class autoencoder(object):
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
         PCs_of_network = self.get_PCs()
-        if self._hidden_layers_type[1] == CircularLayer:
+        if self._hidden_layers_type[1] == "Circular":
             assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
         else:
             assert (len(PCs_of_network[0]) == self._node_num[2])
@@ -493,7 +497,7 @@ class autoencoder(object):
                     if CONFIG_42:  # whether the force constant adjustable mode is enabled
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
-                    if CONFIG_17[1] == CircularLayer:
+                    if CONFIG_17[1] == "Circular":
                         command += ' --layer_types Tanh,Circular'
                 else:
                     parameter_list = (
@@ -794,11 +798,11 @@ class autoencoder_Keras(autoencoder):
         if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
             raise Exception('no longer supported')
 
-        if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+        if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
             PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in self._encoder_net.predict(input_data)])
             assert (len(PCs[0]) == self._node_num[index_CV_layer] / 2), (len(PCs[0]), self._node_num[index_CV_layer] / 2)
-        elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+        elif self._hidden_layers_type[index_CV_layer - 1] == "Tanh":
             PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[index_CV_layer])
         else:
@@ -807,7 +811,7 @@ class autoencoder_Keras(autoencoder):
 
     def get_outputs_from_PC(self, input_PC):
         index_CV_layer = (len(self._node_num) - 1) / 2
-        if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer: raise Exception('not implemented')
+        if self._hidden_layers_type[index_CV_layer - 1] == "Circular": raise Exception('not implemented')
         inputs = Input(shape=(self._node_num[index_CV_layer],))
         x = inputs
         for item in self._molecule_net_layers[-index_CV_layer:]:
@@ -828,7 +832,7 @@ class autoencoder_Keras(autoencoder):
 
         num_of_hidden_layers = len(self._hidden_layers_type)
         index_CV_layer = (len(node_num) - 1) / 2
-        num_CVs = node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer else \
+        num_CVs = node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" else \
             node_num[index_CV_layer]
         if hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
@@ -847,14 +851,14 @@ class autoencoder_Keras(autoencoder):
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
             for item in range(2, index_CV_layer):
                 x = Dense(node_num[item], activation='tanh', kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
-            if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+            if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
                 x = Dense(node_num[index_CV_layer], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
                 x = Reshape((num_CVs, 2), input_shape=(node_num[index_CV_layer],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
                 encoded = Reshape((node_num[index_CV_layer],))(x)
                 encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(num_CVs)]
-            elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+            elif self._hidden_layers_type[index_CV_layer - 1] == "Tanh":
                 encoded = Dense(node_num[index_CV_layer], activation='tanh',
                                 kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
                 encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(num_CVs)]
@@ -917,13 +921,13 @@ class autoencoder_Keras(autoencoder):
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
             for item in range(2, index_CV_layer):
                 x = Dense(node_num[item], activation='tanh', kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
-            if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+            if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
                 x = Dense(node_num[index_CV_layer], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
                 x = Reshape((node_num[index_CV_layer] / 2, 2), input_shape=(node_num[index_CV_layer],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
                 encoded = Reshape((node_num[index_CV_layer],))(x)
-            elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+            elif self._hidden_layers_type[index_CV_layer - 1] == "Tanh":
                 encoded = Dense(node_num[index_CV_layer], activation='tanh',
                             kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
             else:
@@ -1017,7 +1021,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         else:
             molecule_net = Sequential()
             molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh',W_regularizer=l2(self._network_parameters[4][0])))   # input layer
-            if self._hidden_layers_type[1] == CircularLayer:
+            if self._hidden_layers_type[1] == "Circular":
                 molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear',W_regularizer=l2(self._network_parameters[4][1])))
                 molecule_net.add(Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],)))
                 molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
@@ -1025,7 +1029,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                 molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
                 molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
 
-            elif self._hidden_layers_type[1] == TanhLayer:
+            elif self._hidden_layers_type[1] == "Tanh":
                 molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh',W_regularizer=l2(self._network_parameters[4][1])))
                 molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
                 molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
