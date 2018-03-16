@@ -33,12 +33,12 @@ class plotting(object):
         ax.set_ylabel('FVE')
         return fig, ax
 
-    def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
+    def plotting_with_coloring_option(self, plotting_space,
                                             fig_object,
                                             axis_object,
                                             network=None,
                                             input_data_for_plotting=None,   # input could be cossin or Cartesian
-                                            color_option='pure',
+                                            color_option='other',
                                             other_coloring=None,
                                             contain_title=True,
                                             title=None,
@@ -68,16 +68,13 @@ class plotting(object):
 
         if plotting_space == "PC":
             PCs_to_plot = network.get_PCs(input_data= input_data)
-
             (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
             labels = ["PC1", "PC2"]
         else:
             raise Exception('plotting_space not defined!')
 
         # coloring
-        if color_option == 'pure':
-            coloring = 'red'
-        elif color_option == 'step':
+        if color_option == 'step':
             coloring = list(range(len(x)))
         elif color_option == 'other':
             assert (len(other_coloring) == len(x)), (len(other_coloring), len(x))
@@ -364,9 +361,7 @@ class iteration(object):
         return
 
     def prepare_simulation(self):
-        if CONFIG_28 == "CustomManyParticleForce":
-            self._network.write_expression_into_file()
-        elif CONFIG_28 == "ANN_Force":
+        if CONFIG_28 == "ANN_Force":
             self._network.write_coefficients_of_connections_into_file()
         else:
             raise Exception("force type not defined!")

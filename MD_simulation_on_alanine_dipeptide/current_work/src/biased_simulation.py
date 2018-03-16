@@ -105,25 +105,6 @@ def run_simulation(force_constant):
                                                 [7,9,15,17],
                                                 [9,15,17,19]]
     index_of_backbone_atoms = CONFIG_57[0]
-
-    # FIXME: following expression is out-of-date due to the change in API for higher-dimensional cases
-    if CONFIG_28 == "CustomManyParticleForce":
-        with open(autoencoder_info_file, 'r') as f_in:
-            energy_expression = f_in.read()
-        [xi_1_0, xi_2_0] = potential_center
-        if CONFIG_20:   # whether the PC space is periodic in [- pi, pi], True for circular network, False for Tanh network, this affect the form of potential function
-            energy_expression = '''
-            %f * d1_square + %f * d2_square;
-            d1_square = min( min( (PC0 - %s)^2, (PC0 - %s + 6.2832)^2 ), (PC0 - %s - 6.2832)^2 );
-            d2_square = min( min( (PC1 - %s)^2, (PC1 - %s + 6.2832)^2 ), (PC1 - %s - 6.2832)^2 );
-            ''' % (k1, k2, xi_1_0, xi_1_0, xi_1_0, xi_2_0, xi_2_0, xi_2_0) + energy_expression
-
-        else:
-            energy_expression = '''
-            %f * (PC0 - %s)^2 + %f * (PC1 - %s)^2;
-
-            ''' %(k1, xi_1_0, k2, xi_2_0) + energy_expression
-
     flag_random_seed = 0 # whether we need to fix this random seed
 
     simulation_temperature = args.temperature
@@ -135,13 +116,7 @@ def run_simulation(force_constant):
     system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=AllBonds)
 
     if args.bias_method == "US":
-        if CONFIG_28 == "CustomManyParticleForce":
-            force = CustomManyParticleForce(22, energy_expression)
-            for _ in range(system.getNumParticles()):
-                force.addParticle("",0)  # what kinds of types should we specify here for each atom?
-            system.addForce(force)
-
-        elif CONFIG_28 == "ANN_Force":
+        if CONFIG_28 == "ANN_Force":
             if force_constant != '0' and force_constant != 0:
                 force = ANN_Force()
                 force.set_layer_types(layer_types)
@@ -166,7 +141,6 @@ def run_simulation(force_constant):
                 force.set_values_of_biased_nodes([
                     ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
                     ])
-
                 system.addForce(force)
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce

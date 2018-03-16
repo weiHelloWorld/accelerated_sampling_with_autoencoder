@@ -599,12 +599,6 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             residue_relative_position_list.append(temp_residue_relative_position_list)
         return residue_relative_position_list
 
-    @staticmethod
-    def get_rmsd_of_relative_position_of_a_residue(sample_file, ref_file):
-        sample_residue_relative_position_list = Sutils.get_residue_relative_position_list(sample_file)
-        ref_residue_relative_position_list = Sutils.get_residue_relative_position_list(ref_file)
-        # TODO
-
 
 class Alanine_dipeptide(Sutils):
     """docstring for Alanine_dipeptide"""
@@ -682,20 +676,6 @@ class Alanine_dipeptide(Sutils):
         return output_file_list
 
     @staticmethod
-    def get_expression_for_input_of_this_molecule():
-        index_of_backbone_atoms = CONFIG_57[0]
-        expression_for_input_of_this_molecule = ''
-        for i in range(len(index_of_backbone_atoms) - 3):
-            index_of_coss = 2 * i
-            index_of_sins = 2 * i + 1
-            expression_for_input_of_this_molecule += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
-            expression_for_input_of_this_molecule += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
-            expression_for_input_of_this_molecule += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, i)
-            expression_for_input_of_this_molecule += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, i)
-            expression_for_input_of_this_molecule += 'dihedral_angle_%d = dihedral(p%d, p%d, p%d, p%d);\n' % (i, index_of_backbone_atoms[i], index_of_backbone_atoms[i+1],index_of_backbone_atoms[i+2],index_of_backbone_atoms[i+3])
-        return expression_for_input_of_this_molecule
-
-    @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[0]
         return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
@@ -746,8 +726,6 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
-        # FIXME: how to write unit test for this function?
-        # TODO: to be tested
         total_num_of_residues = 20
         list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2],
                                                 [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]],
@@ -989,29 +967,6 @@ class Trp_cage(Sutils):
         io.set_structure(temp_structure)
         io.save(output_pdb)
         return
-
-    @staticmethod
-    def get_expression_for_input_of_this_molecule():
-        index_of_backbone_atoms = [str(item) for item in CONFIG_57[1]]
-        total_num_of_residues = 20
-        list_of_idx_four_atoms = map(lambda x: [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3], list(range(total_num_of_residues))) \
-                               + map(lambda x: [3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2], list(range(total_num_of_residues)))
-        list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
-        assert (len(list_of_idx_four_atoms) == 38)
-
-        expression_for_input_of_this_molecule = ''
-        for index, item in enumerate(list_of_idx_four_atoms):
-            index_of_coss = 2 * index
-            index_of_sins = 2 * index + 1
-            expression_for_input_of_this_molecule += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_coss, index_of_coss)
-            expression_for_input_of_this_molecule += 'out_layer_0_unit_%d = raw_layer_0_unit_%d;\n' % (index_of_sins, index_of_sins)
-            expression_for_input_of_this_molecule += 'raw_layer_0_unit_%d = cos(dihedral_angle_%d);\n' % (index_of_coss, index)
-            expression_for_input_of_this_molecule += 'raw_layer_0_unit_%d = sin(dihedral_angle_%d);\n' % (index_of_sins, index)
-            expression_for_input_of_this_molecule += 'dihedral_angle_%d = dihedral(p%s, p%s, p%s, p%s);\n' % (index,
-                                                index_of_backbone_atoms[item[0]], index_of_backbone_atoms[item[1]],
-                                                index_of_backbone_atoms[item[2]], index_of_backbone_atoms[item[3]])  # using backbone atoms
-
-        return expression_for_input_of_this_molecule
 
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
