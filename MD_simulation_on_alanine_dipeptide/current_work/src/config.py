@@ -231,7 +231,7 @@ CONFIG_22 = 0.002   # simulation time step, in ps
 CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
-if temp_home_directory == "/home/fisiksnju" or temp_home_directory == "/home/kengyangyao":
+if temp_home_directory == "/home/kengyangyao":
     CONFIG_24 = 'local'  # machine to run the simulations
     CONFIG_25 = temp_home_directory + '/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
 elif temp_home_directory == "/home/weichen9":

@@ -934,7 +934,7 @@ class Trp_cage(Sutils):
         atom_indices_in_each_residue = [[]] * 20
         temp_model = list(temp_structure.get_models())[0]
         for _1, item in list(enumerate(temp_model.get_residues())):
-            atom_indices_in_each_residue[_1] = [int(_2.get_serial_number()) - 1 for _2 in item.get_atom()]
+            atom_indices_in_each_residue[_1] = [int(_2.get_serial_number()) - 1 for _2 in item.get_atoms()]
 
         for temp_model in temp_structure.get_models():
             atoms_in_this_frame = list(temp_model.get_atoms())
