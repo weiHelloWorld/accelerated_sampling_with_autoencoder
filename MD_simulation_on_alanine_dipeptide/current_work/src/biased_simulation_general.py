@@ -232,6 +232,19 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0.4 STEP0=0 KAPPA0=%s AT1=0 STEP1=%d KAP
 PRINT STRIDE=500 ARG=* FILE=COLVAR
             """ % (kappa_string, total_number_of_steps, kappa_string)
         system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "US_on_ANN_plumed":
+        # in this case, all ANN related parts (including scripts for inputs) have been stored in
+        # args.plumed_file, only need to add biasing plumed script for umbrella sampling
+        from openmmplumed import PlumedForce
+        with open(args.plumed_file, 'r') as f_in:
+            plumed_force_string = f_in.read()
+        arg_string = ','.join(['ann_force.%d' % _2 for _2 in range(len(potential_center))])
+        pc_string = ','.join([str(_2) for _2 in potential_center])
+        kappa_string = ','.join([str(force_constant) for _ in potential_center])
+        plumed_force_string += """\nmypotential: RESTRAINT ARG=%s AT=%s KAPPA=%s""" % (
+            arg_string, pc_string, kappa_string,
+        )
+        system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "plumed_other":
         from openmmplumed import PlumedForce
         with open(args.plumed_file, 'r') as f_in:
