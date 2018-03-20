@@ -74,7 +74,7 @@ if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
 
 CONFIG_17 = ['Tanh', 'Tanh', 'Tanh']  # types of hidden layers
 CONFIG_78 = "Linear"                    # output layer type
-CONFIG_79 = False                         # determine dimensionality of input/output of autoencoder automatically
+CONFIG_79 = True                         # determine dimensionality of input/output of autoencoder automatically
 CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'keras':
     if CONFIG_76 == 'cossin':

@@ -171,4 +171,4 @@ best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
 assert (isinstance(best_network, autoencoder))
 assert (best_network.get_fraction_of_variance_explained() == max_FVE)
 best_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
-print best_network._filename_to_save_network
+print best_network._filename_to_save_network  # TODO: what is this line used for?  I do not remember
