@@ -22,15 +22,15 @@ it configures all default values/global parameters for constructors/functions
 ############   some global variables and helper functions  ############
 #######################################################################
 
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying
+CONFIG_30 = "C24"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
-    if molecule_name == "Alanine_dipeptide": return parameter_list[0]
-    elif molecule_name == "Trp_cage": return parameter_list[1]
-    elif molecule_name == "Src_kinase": return parameter_list[2]
-    elif molecule_name == "BetaHairpin": return parameter_list[3]
-    else: raise Exception("molecule not defined!")
+    molecule_name_to_index = {"Alanine_dipeptide": 0, "Trp_cage": 1, "Src_kinase": 2,
+                              "BetaHairpin": 3, "C24": 4}
+    try:  result = parameter_list[molecule_name_to_index[molecule_name]]
+    except: result = None
+    return result
 
 def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
     return (Universe(pdb_file).select_atoms(atom_selection_statement).indices + 1).tolist()
@@ -40,8 +40,8 @@ def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
 #######################################################################
 
 CONFIG_45 = 'keras'                         # training backend: "keras"
-CONFIG_48 = 'pairwise_distance'           # input data type
-CONFIG_76 = 'pairwise_distance'           # output data type
+CONFIG_48 = 'Cartesian'           # input data type
+CONFIG_76 = 'Cartesian'           # output data type
 temp_CONFIG_75_1 = np.ones(360); temp_CONFIG_75_1[3:24] = 4.0; temp_CONFIG_75_1[180 + 3: 180 + 24] = 4.0; temp_CONFIG_75_1 /= 4.0
 CONFIG_75 = get_mol_param([None, None, None, None, None])      # weights for the expected output (equivalent to modifying error functions)
 CONFIG_52 = 64                # number of copies we generate for data augmentation
@@ -114,12 +114,12 @@ CONFIG_62 = get_mol_param([
     ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'] if not CONFIG_71 else ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
     # ['../resources/2src.pdb', '../resources/2src.pdb']
     ['../resources/2src.pdb'],
-    ['../resources/BetaHairpin.pdb']
+    ['../resources/BetaHairpin.pdb'], None
 ])                   # list of reference file
 CONFIG_63 = get_mol_param([
     ['', '_1'],
     ['', '_1'],
-    [''], ['']
+    [''], [''], ['']
     ]
 )                         # suffix for each reference configuration
 CONFIG_61 = ['_aligned%s_coordinates.txt' % item
@@ -146,6 +146,7 @@ elif CONFIG_76 == 'Cartesian':
          # [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 42 * 9],
         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[2])],
         [3 * len(CONFIG_57[3]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[3])],
+        [3 * len(CONFIG_57[4]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[4])],
          ])  # the structure of ANN: number of nodes in each
 elif CONFIG_76 == 'pairwise_distance':
     CONFIG_3 = get_mol_param([
@@ -216,7 +217,7 @@ CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
 CONFIG_9 = get_mol_param([3000, 2000, 3000, 3000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['fixed', 'fixed', 'fixed', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
-CONFIG_54 = 2.50 * get_mol_param([30.0, 20.0, 15.0, 20.0])             # max external potential energy allowed (in k_BT)
+CONFIG_54 = 2.50 * get_mol_param([30.0, 20.0, 15.0, 20.0, 20])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
 CONFIG_66 = get_mol_param([500, 500, 500, None])          # pace of metadynamics
 CONFIG_67 = get_mol_param([2, 2, 2, None])              # height of metadynamics

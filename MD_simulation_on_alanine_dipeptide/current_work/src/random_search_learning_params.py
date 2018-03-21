@@ -1,10 +1,10 @@
 from config import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--lr", type=str, default='1e-6,10', help="learning rate search range")
+parser.add_argument("--lr", type=str, default='1e-3,10', help="learning rate search range")
 parser.add_argument('--lr_log_scale', type=int, default=True, help='whether to search lr in log scale')
 parser.add_argument("--momentum", type=str, default='0.1,0.99', help="momentum search range")
-parser.add_argument("--num_params", type=int, default=50, help="number of sets of parameters to test")
+parser.add_argument("--num_params", type=int, default=30, help="number of sets of parameters to test")
 parser.add_argument("--num_each_param", type=int, default=5, help="number of autoencoders for each set of parameters")
 parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
 parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data")

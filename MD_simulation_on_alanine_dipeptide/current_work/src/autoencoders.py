@@ -9,10 +9,10 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 from keras import layers
 from keras import backend as K
-import torch
-from torch.autograd import Variable
-import torch.nn as nn
-import torch.nn.functional as F
+# import torch
+# from torch.autograd import Variable
+# import torch.nn as nn
+# import torch.nn.functional as F
 import random
 from compatible import *
 
