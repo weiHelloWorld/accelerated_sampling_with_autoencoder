@@ -137,8 +137,7 @@ class Helper_func(object):
         else: raise Exception('double check your pdb')
 
     @staticmethod
-    def get_list_of_cg_count_for_atom_list(pdb_file, atom_selection, box_length, r_low, r_hi, rcut, sig):
-        """ cg = coarse grained, atom list is specified by atom_selection """
+    def get_distances_with_water_for_atom_list(pdb_file, atom_selection, box_length):
         temp_u = Universe(pdb_file)
         water_pos, atoms_pos = [], []
         water_sel = temp_u.select_atoms('resname HOH and name O')
@@ -148,11 +147,15 @@ class Helper_func(object):
             atoms_pos.append(atoms_sel.positions.flatten())
         atoms_pos = np.array(atoms_pos)
         water_pos = np.array(water_pos)
-        distances = Helper_func.compute_distances_min_image_convention(atoms_pos_1=atoms_pos, atoms_pos_2=water_pos, box_length=box_length)
-        return Helper_func.get_cg_count_in_shell(distances, r_low, r_hi, rcut, sig)
+        distances = Helper_func.compute_distances_min_image_convention(atoms_pos_1=atoms_pos, atoms_pos_2=water_pos,
+                                                                       box_length=box_length)
+        return distances
 
     @staticmethod
-
+    def get_list_of_cg_count_for_atom_list(pdb_file, atom_selection, box_length, r_low, r_hi, rcut, sig):
+        """ cg = coarse grained, atom list is specified by atom_selection """
+        distances = Helper_func.get_distances_with_water_for_atom_list(pdb_file, atom_selection, box_length)
+        return Helper_func.get_cg_count_in_shell(distances, r_low, r_hi, rcut, sig)
 
     @staticmethod
     def get_radial_distribution(distances, num, nbins, dr, length):
