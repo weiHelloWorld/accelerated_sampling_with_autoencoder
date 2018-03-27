@@ -22,7 +22,7 @@ it configures all default values/global parameters for constructors/functions
 ############   some global variables and helper functions  ############
 #######################################################################
 
-CONFIG_30 = "C24"     # the type of molecule we are studying
+CONFIG_30 = "Trp_cage"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list

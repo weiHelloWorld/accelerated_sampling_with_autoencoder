@@ -284,6 +284,34 @@ class plotting(object):
         return
 
 
+class machine_independent_run(object):
+    def __init__(self):
+        return
+
+    @staticmethod
+    def run_commands(machine_to_run_simulations, commands, cuda, max_num_failed_jobs):
+        if machine_to_run_simulations == 'cluster':
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
+                                                             run_on_gpu=cuda)
+            cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
+                            monitor_mode='normal',
+                            num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
+        elif machine_to_run_simulations == 'local':
+            num_of_simulations_run_in_parallel = CONFIG_56
+            total_num_failed_jobs = 0
+            for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):
+                temp_commands_parallel = commands[item * num_of_simulations_run_in_parallel: (item + 1) * num_of_simulations_run_in_parallel]
+                print ("running: \t" + '\n'.join(temp_commands_parallel))
+                procs_to_run_commands = [subprocess.Popen(_1.strip().split()) for _1 in temp_commands_parallel]
+                exit_codes = [p.wait() for p in procs_to_run_commands]
+                total_num_failed_jobs += sum(exit_codes)
+
+            assert (total_num_failed_jobs < max_num_failed_jobs)
+        else:
+            raise Exception('machine type error')
+        return
+
+
 class iteration(object):
     def __init__(self, index,
                  network=None # if you want to start with existing network, assign value to "network"
@@ -368,34 +396,15 @@ class iteration(object):
         return
 
     def run_simulation(self, machine_to_run_simulations = CONFIG_24, commands = None, cuda=None):
-        if cuda is None:
-            cuda = (CONFIG_23 == 'CUDA')
+        if cuda is None: cuda = (CONFIG_23 == 'CUDA')
         if commands is None:
             commands = self._network.get_commands_for_further_biased_simulations()
-        if machine_to_run_simulations == 'cluster':
-            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
-                                                             run_on_gpu=cuda)
-            cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
-                            monitor_mode='normal',
-                            num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
-        elif machine_to_run_simulations == 'local':
-            num_of_simulations_run_in_parallel = CONFIG_56
-            total_num_failed_jobs = 0
-            for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):
-                temp_commands_parallel = commands[item * num_of_simulations_run_in_parallel: (item + 1) * num_of_simulations_run_in_parallel]
-                print ("running: \t" + '\n'.join(temp_commands_parallel))
-                procs_to_run_commands = [subprocess.Popen(_1.strip().split()) for _1 in temp_commands_parallel]
-                exit_codes = [p.wait() for p in procs_to_run_commands]
-                total_num_failed_jobs += sum(exit_codes)
-
-            assert (total_num_failed_jobs < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
-        else:
-            raise Exception('machine type error')
+        machine_independent_run.run_commands(machine_to_run_simulations, commands, cuda,
+                                             ONFIG_31)    # we do not allow more than CONFIG_31 simulations failed in each iteration
 
         # next line only when the jobs are done, check this
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
-
         return
 
 
