@@ -751,6 +751,71 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 
         return
 
+    @staticmethod
+    def tune_hyperparams_using_Bayes_optimization(in_data, out_data, folder, lr_range, momentum_range,
+                                                  lr_log_scale=True, train_num_per_iter=2,
+                                                  total_iter_num=20,
+                                                  num_training_per_param=2):
+        """use Bayes optimization for tuning hyperparameters,
+        see http://neupy.com/2016/12/17/hyperparameter_optimization_for_neural_networks.html#bayesian-optimization"""
+        def next_parameter_by_ei(best_y, y_mean, y_std, x_choices, num_choices):
+            expected_improvement = (y_mean + 1.96 * y_std) - best_y  # 1.96 corresponds to 95% confidence interval
+            max_index = np.argsort(expected_improvement)[-num_choices:]
+            return x_choices[max_index], expected_improvement[max_index]
+
+        from sklearn.gaussian_process import GaussianProcessRegressor
+        import glob
+        for iter_index in range(total_iter_num):
+            autoencoder_files = sorted(glob.glob('%s/*.pkl' % folder))
+            if len(autoencoder_files) == 0:  # use random search as the start
+                params = np.random.uniform(size=(train_num_per_iter, 2))
+                params[:, 1] = params[:, 1] * (momentum_range[1] - momentum_range[0]) + momentum_range[0]
+                if lr_log_scale:
+                    params[:, 0] = np.exp(
+                        params[:, 0] * (np.log(lr_range[1]) - np.log(lr_range[0])) + np.log(lr_range[0]))
+                else:
+                    params[:, 0] = params[:, 0] * (lr_range[1] - lr_range[0]) + lr_range[0]
+                next_params = params[:]
+            else:  # generate params based on Bayes optimization
+                gp = GaussianProcessRegressor()
+                X_train, y_train = [], []
+                for item_AE_file in autoencoder_files:
+                    temp_AE = autoencoder.load_from_pkl_file(item_AE_file)
+                    assert (isinstance(temp_AE, autoencoder_Keras))
+                    X_train.append(temp_AE._network_parameters[:2])
+                    if not np.isnan(temp_AE.get_fraction_of_variance_explained()):
+                        y_train.append(temp_AE.get_fraction_of_variance_explained())
+                    else:
+                        y_train.append(-1.0)  # TODO: is it good?
+                X_train, y_train = np.array(X_train), np.array(y_train)
+                current_best_y_train = np.max(y_train)
+                gp.fit(X_train, y_train)
+                params = np.random.uniform(size=(100, 2))
+                params[:, 1] = params[:, 1] * (momentum_range[1] - momentum_range[0]) + momentum_range[0]
+                if lr_log_scale:
+                    params[:, 0] = np.exp(
+                        params[:, 0] * (np.log(lr_range[1]) - np.log(lr_range[0])) + np.log(lr_range[0]))
+                else:
+                    params[:, 0] = params[:, 0] * (lr_range[1] - lr_range[0]) + lr_range[0]
+                y_mean, y_std = gp.predict(params, return_std=True)
+                next_params, next_ei = next_parameter_by_ei(current_best_y_train, y_mean, y_std, params, train_num_per_iter)
+                print next_params, next_ei
+
+            assert (len(next_params) == train_num_per_iter)
+            command_list = []
+            for item_param in next_params:
+                for index in range(num_training_per_param):
+                    command = "python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %f,%f --output_file %s/temp_%02d_%s_%02d.pkl --in_data %s --out_data %s" % (
+                        item_param[0], item_param[1], folder, iter_index,
+                        str(item_param).strip().replace(' ',''), index, in_data, out_data
+                    )
+                    command_list.append(command)
+
+            procs_to_run_commands = [subprocess.Popen(_1.strip().split()) for _1 in command_list]
+            for p in procs_to_run_commands:
+                p.wait()
+        return
+
 
 class autoencoder_Keras(autoencoder):
     def _init_extra(self,

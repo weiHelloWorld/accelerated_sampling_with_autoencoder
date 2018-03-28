@@ -39,9 +39,8 @@ elif "up_to_iter_" in args.data_folder:
 else:
     temp_list_of_directories_contanining_data = [args.data_folder]
 
-print "data folder is %s" % str(temp_list_of_directories_contanining_data)
-
 if (args.in_data is None) and (args.out_data is None):
+    print "data folder is %s" % str(temp_list_of_directories_contanining_data)
     my_coor_data_obj = coordinates_data_files_list(
         list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
     coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
