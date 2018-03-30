@@ -788,7 +788,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     else:
                         y_train.append(-1.0)  # TODO: is it good?
                 X_train, y_train = np.array(X_train), np.array(y_train)
-                print np.concatenate([X_train,y_train], axis=-1)
+                print np.concatenate([X_train,y_train.reshape(y_train.shape[0], 1)], axis=-1)
                 current_best_y_train = np.max(y_train)
                 gp.fit(X_train, y_train)
                 params = np.random.uniform(size=(100, 2))
@@ -812,9 +812,8 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     )
                     command_list.append(command)
 
-            procs_to_run_commands = [subprocess.Popen(_1.strip().split()) for _1 in command_list]
-            for p in procs_to_run_commands:
-                p.wait()
+            num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(command_list, num_of_jobs_in_parallel=5)
+            print "num_failed_jobs = %d" % num_failed_jobs
         return
 
 
