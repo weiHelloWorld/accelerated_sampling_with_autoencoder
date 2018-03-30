@@ -753,13 +753,13 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 
     @staticmethod
     def tune_hyperparams_using_Bayes_optimization(in_data, out_data, folder, lr_range, momentum_range,
-                                                  lr_log_scale=True, train_num_per_iter=2,
+                                                  lr_log_scale=True, train_num_per_iter=5,
                                                   total_iter_num=20,
-                                                  num_training_per_param=2):
+                                                  num_training_per_param=3):
         """use Bayes optimization for tuning hyperparameters,
         see http://neupy.com/2016/12/17/hyperparameter_optimization_for_neural_networks.html#bayesian-optimization"""
         def next_parameter_by_ei(best_y, y_mean, y_std, x_choices, num_choices):
-            expected_improvement = (y_mean + 1.96 * y_std) - best_y  # 1.96 corresponds to 95% confidence interval
+            expected_improvement = (y_mean + 1.0 * y_std) - best_y
             max_index = np.argsort(expected_improvement)[-num_choices:]
             return x_choices[max_index], expected_improvement[max_index]
 
@@ -788,6 +788,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     else:
                         y_train.append(-1.0)  # TODO: is it good?
                 X_train, y_train = np.array(X_train), np.array(y_train)
+                print np.concatenate([X_train,y_train], axis=-1)
                 current_best_y_train = np.max(y_train)
                 gp.fit(X_train, y_train)
                 params = np.random.uniform(size=(100, 2))
@@ -1158,8 +1159,8 @@ def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
 
 # weighted MSE
 weight_for_MSE = get_hierarchical_weights()
-if CONFIG_44:    
-    print "MSE is weighted by %s" % str(weight_for_MSE)
+# if CONFIG_44:
+#     print "MSE is weighted by %s" % str(weight_for_MSE)
 
 def mse_weighted(y_true, y_pred):
     # return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)  # TODO: do this later
