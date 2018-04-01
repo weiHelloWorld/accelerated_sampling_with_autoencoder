@@ -804,15 +804,17 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 
             assert (len(next_params) == train_num_per_iter)
             command_list = []
+            cuda_index = 0
             for item_param in next_params:
                 for index in range(num_training_per_param):
-                    command = "python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %f,%f --output_file %s/temp_%02d_%s_%02d.pkl --in_data %s --out_data %s" % (
-                        item_param[0], item_param[1], folder, iter_index,
+                    command = "THEANO_FLAGS=device=cuda%d python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %f,%f --output_file %s/temp_%02d_%s_%02d.pkl --in_data %s --out_data %s" % (
+                        cuda_index, item_param[0], item_param[1], folder, iter_index,
                         str(item_param).strip().replace(' ',''), index, in_data, out_data
                     )
+                    cuda_index = 1 - cuda_index      # use two GPUs
                     command_list.append(command)
 
-            num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(command_list, num_of_jobs_in_parallel=5)
+            num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(command_list, num_of_jobs_in_parallel=2)
             print "num_failed_jobs = %d" % num_failed_jobs
         return
 
