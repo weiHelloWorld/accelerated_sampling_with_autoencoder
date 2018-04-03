@@ -133,14 +133,15 @@ def run_simulation(force_constant):
                 # set coefficient
                 with open(autoencoder_info_file, 'r') as f_in:
                     content = f_in.readlines()
+                temp_coeffs = [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
+                temp_bias = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
+                for item_layer_index in [0, 1]:
+                    assert (len(temp_coeffs[item_layer_index]) ==
+                            num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1])
+                    assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1])
 
-                force.set_coeffients_of_connections(
-                    [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
-                                                )
-
-                force.set_values_of_biased_nodes([
-                    ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
-                    ])
+                force.set_coeffients_of_connections(temp_coeffs)
+                force.set_values_of_biased_nodes(temp_bias)
                 system.addForce(force)
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
