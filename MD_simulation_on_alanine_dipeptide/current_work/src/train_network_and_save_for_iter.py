@@ -143,7 +143,9 @@ if args.auto_dim: temp_node_num[0], temp_node_num[-1] = data_set.shape[1], outpu
 additional_argument_list['node_num'] = temp_node_num
 
 if args.auto_scale:
-    data_set /= (np.max(np.abs(data_set)).astype(np.float))
+    auto_scaling_factor = np.max(np.abs(data_set)).astype(np.float)
+    print ("auto_scaling_factor = %f" % auto_scaling_factor)
+    data_set /= auto_scaling_factor
     output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
     assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
 
