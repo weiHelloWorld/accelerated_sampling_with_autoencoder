@@ -15,6 +15,7 @@ class plotting(object):
         self._network = network
         pass
 
+    @staticmethod
     def plot_fve_L_method(fve, CV_min, CV_max, fig, ax):
         temp_fve = np.array(fve).flatten()
         temp_fve = temp_fve.reshape(CV_max - CV_min, temp_fve.shape[0] / (CV_max - CV_min))
@@ -32,12 +33,12 @@ class plotting(object):
         ax.set_ylabel('FVE')
         return fig, ax
 
-    def plotting_with_coloring_option(self, plotting_space,  # means "PC" space or "phi-psi" space
+    def plotting_with_coloring_option(self, plotting_space,
                                             fig_object,
                                             axis_object,
                                             network=None,
                                             input_data_for_plotting=None,   # input could be cossin or Cartesian
-                                            color_option='pure',
+                                            color_option='other',
                                             other_coloring=None,
                                             contain_title=True,
                                             title=None,
@@ -67,16 +68,13 @@ class plotting(object):
 
         if plotting_space == "PC":
             PCs_to_plot = network.get_PCs(input_data= input_data)
-
             (x, y) = ([item[0] for item in PCs_to_plot], [item[1] for item in PCs_to_plot])
             labels = ["PC1", "PC2"]
         else:
             raise Exception('plotting_space not defined!')
 
         # coloring
-        if color_option == 'pure':
-            coloring = 'red'
-        elif color_option == 'step':
+        if color_option == 'step':
             coloring = list(range(len(x)))
         elif color_option == 'other':
             assert (len(other_coloring) == len(x)), (len(other_coloring), len(x))
@@ -198,7 +196,7 @@ class plotting(object):
                          n_levels=40
                          ):
         if network is None: network = self._network
-        temp_data = self._network._data_set if data_for_plotting in None else data_for_plotting
+        temp_data = self._network._data_set if data_for_plotting is None else data_for_plotting
 
         x = [item[0] for item in network.get_PCs(temp_data)]
         y = [item[1] for item in network.get_PCs(temp_data)]
@@ -286,6 +284,26 @@ class plotting(object):
         return
 
 
+class machine_independent_run(object):
+    def __init__(self):
+        return
+
+    @staticmethod
+    def run_commands(machine_to_run_simulations, commands, cuda, max_num_failed_jobs):
+        if machine_to_run_simulations == 'cluster':
+            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
+                                                             run_on_gpu=cuda)
+            cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
+                            monitor_mode='normal',
+                            num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
+        elif machine_to_run_simulations == 'local':
+            total_num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(commands=commands)
+            assert (total_num_failed_jobs < max_num_failed_jobs)
+        else:
+            raise Exception('machine type error')
+        return
+
+
 class iteration(object):
     def __init__(self, index,
                  network=None # if you want to start with existing network, assign value to "network"
@@ -363,43 +381,22 @@ class iteration(object):
         return
 
     def prepare_simulation(self):
-        if CONFIG_28 == "CustomManyParticleForce":
-            self._network.write_expression_into_file()
-        elif CONFIG_28 == "ANN_Force":
+        if CONFIG_28 == "ANN_Force":
             self._network.write_coefficients_of_connections_into_file()
         else:
             raise Exception("force type not defined!")
         return
 
     def run_simulation(self, machine_to_run_simulations = CONFIG_24, commands = None, cuda=None):
-        if cuda is None:
-            cuda = (CONFIG_23 == 'CUDA')
+        if cuda is None: cuda = (CONFIG_23 == 'CUDA')
         if commands is None:
             commands = self._network.get_commands_for_further_biased_simulations()
-        if machine_to_run_simulations == 'cluster':
-            cluster_management.create_sge_files_for_commands(list_of_commands_to_run=commands,
-                                                             run_on_gpu=cuda)
-            cluster_management.monitor_status_and_submit_periodically(num = CONFIG_14,
-                            monitor_mode='normal',
-                            num_of_running_jobs_when_allowed_to_stop = 500)  # should not loop forever
-        elif machine_to_run_simulations == 'local':
-            num_of_simulations_run_in_parallel = CONFIG_56
-            total_num_failed_jobs = 0
-            for item in range(int(len(commands) / num_of_simulations_run_in_parallel) + 1):
-                temp_commands_parallel = commands[item * num_of_simulations_run_in_parallel: (item + 1) * num_of_simulations_run_in_parallel]
-                print ("running: \t" + '\n'.join(temp_commands_parallel))
-                procs_to_run_commands = [subprocess.Popen(_1.strip().split()) for _1 in temp_commands_parallel]
-                exit_codes = [p.wait() for p in procs_to_run_commands]
-                total_num_failed_jobs += sum(exit_codes)
-
-            assert (total_num_failed_jobs < CONFIG_31)  # we could not have more than CONFIG_31 simulations failed in each iteration
-        else:
-            raise Exception('machine type error')
+        machine_independent_run.run_commands(machine_to_run_simulations, commands, cuda,
+                                             ONFIG_31)    # we do not allow more than CONFIG_31 simulations failed in each iteration
 
         # next line only when the jobs are done, check this
         if CONFIG_29:
             molecule_type.remove_water_mol_and_Cl_from_pdb_file(preserve_original_file = CONFIG_50)
-
         return
 
 
@@ -448,7 +445,7 @@ class single_biased_simulation_data(object):
         self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
 
         if not self._my_network is None:
-            if self._my_network._hidden_layers_type[1] == CircularLayer:
+            if self._my_network._hidden_layers_type[1] == "Circular":
                 self._dimension_of_PCs = self._my_network._node_num[2] / 2
             else:
                 self._dimension_of_PCs = self._my_network._node_num[2]

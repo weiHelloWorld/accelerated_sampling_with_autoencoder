@@ -21,7 +21,7 @@ parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to a
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
-parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')
+parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')  # factor of 10: since default unit is nm in OpenMM
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='auto', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
@@ -193,12 +193,15 @@ def run_simulation(force_constant, number_of_simulation_steps):
                 content = f_in.readlines()
 
             # TODO: need to fix following for multi-hidden layer cases
-            force.set_coeffients_of_connections(
-                [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]])
+            temp_coeffs = [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
+            temp_bias  = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
+            for item_layer_index in [0, 1]:
+                assert (len(temp_coeffs[item_layer_index]) ==
+                        num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1])
+                assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1])
 
-            force.set_values_of_biased_nodes([
-                ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]
-                ])
+            force.set_coeffients_of_connections(temp_coeffs)
+            force.set_values_of_biased_nodes(temp_bias)
 
             system.addForce(force)
     elif args.bias_method == "MTD":
@@ -231,6 +234,19 @@ rmsd: RMSD REFERENCE=../resources/1y57_TMD.pdb TYPE=OPTIMAL
 restraint: MOVINGRESTRAINT ARG=rmsd AT0=0.4 STEP0=0 KAPPA0=%s AT1=0 STEP1=%d KAPPA1=%s
 PRINT STRIDE=500 ARG=* FILE=COLVAR
             """ % (kappa_string, total_number_of_steps, kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
+    elif args.bias_method == "US_on_ANN_plumed":
+        # in this case, all ANN related parts (including scripts for inputs) have been stored in
+        # args.plumed_file, only need to add biasing plumed script for umbrella sampling
+        from openmmplumed import PlumedForce
+        with open(args.plumed_file, 'r') as f_in:
+            plumed_force_string = f_in.read()
+        arg_string = ','.join(['ann_force.%d' % _2 for _2 in range(len(potential_center))])
+        pc_string = ','.join([str(_2) for _2 in potential_center])
+        kappa_string = ','.join([str(force_constant) for _ in potential_center])
+        plumed_force_string += """\nmypotential: RESTRAINT ARG=%s AT=%s KAPPA=%s""" % (
+            arg_string, pc_string, kappa_string,
+        )
         system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "plumed_other":
         from openmmplumed import PlumedForce
@@ -318,7 +334,7 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     print coor_file
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center(input_data_type)
-    if CONFIG_17[1] == CircularLayer:
+    if CONFIG_17[1] == "Circular":
         offset = [min(abs(item), abs(item + 2 * np.pi), abs(item - 2 * np.pi)) for item in offset]
         print "circular offset"
     print 'offset = %s' % str(offset)

@@ -10,8 +10,6 @@ ANN_Force biasing force package: https://github.com/weiHelloWorld/ANN_Force
 
 Keras: https://github.com/fchollet/keras
 
-PyBrain (for backward compatibility): https://github.com/weiHelloWorld/pybrain
-
 MDAnalysis: https://github.com/MDAnalysis/mdanalysis
 
 Sklearn: https://github.com/scikit-learn/scikit-learn
@@ -29,29 +27,14 @@ Some other Python scientific calculation packages (e.g. seaborn, pandas) are als
 For Linux/Ubuntu, you may use following script to install most of these packages:
 
 ```bash
-echo "installing anaconda2 (please install it manually if you want the latest version)"
 ANACONDA_INSTALLATION_FILE=Anaconda2-4.4.0-Linux-x86_64.sh
 wget https://repo.continuum.io/archive/${ANACONDA_INSTALLATION_FILE}
 bash ${ANACONDA_INSTALLATION_FILE}
 export PATH="$HOME/.anaconda2/bin:$PATH"
 
-echo "installing MDAnalysis (including biopython)"
 conda install -c mdanalysis mdanalysis
-
-echo "installing OpenMM"
 conda install -c omnia openmm
-
-echo "installing theano (may also use pip install theano==0.8.2)"
-conda install -c conda-forge theano==0.8.2
-
-echo "installing Keras (may also use pip install keras==1.2.2)"
-conda install -c conda-forge keras==1.2.2
-
-echo "installing coverage (for nosetests)"
-conda install -c conda-forge coverage
-
-echo "installing PyBrain"
-pip install git+https://github.com/weiHelloWorld/pybrain.git
+conda install -c conda-forge theano keras coverage
 
 echo "you may need to install following packages manually: PLUMED, OpenMM-plumed, ANN_Force"
 ```

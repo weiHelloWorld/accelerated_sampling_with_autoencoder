@@ -16,20 +16,22 @@ args = parser.parse_args()
 
 whether_to_qsub = args.submit
 command_in_sge_file = args.command.strip()
-if args.gpu:
-    gpu_option_string = '#$ -l gpu=1'
-else:
-    gpu_option_string = ''
-
-if command_in_sge_file[-1] == '&':    # need to remove & otherwise it will not work in the cluster
+if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not work in the cluster
     command_in_sge_file = command_in_sge_file[:-1]
+server_name = subprocess.check_output(['uname', '-n']).strip()
 
-if args.node == -1:
-    node_string = ""
-else:
-    node_string = "#$ -l hostname=compute-0-%d" % args.node
+if server_name == "alf-clustersrv.mrl.illinois.edu":
+    if args.gpu:
+        gpu_option_string = '#$ -l gpu=1'
+    else:
+        gpu_option_string = ''
 
-content_for_sge_file = '''#!/bin/bash
+    if args.node == -1:
+        node_string = ""
+    else:
+        node_string = "#$ -l hostname=compute-0-%d" % args.node
+
+    content_for_sge_file = '''#!/bin/bash
 
 #$ -S /bin/bash           # use bash shell
 #$ -V                     # inherit the submission environment 
@@ -42,15 +44,29 @@ content_for_sge_file = '''#!/bin/bash
 #$ -l h_rt=%s       # run time (hh:mm:ss)
 
 %s
-
 %s
-
 %s
-
 echo "This job is DONE!"
-
 exit 0
 ''' % (CONFIG_19, gpu_option_string, node_string, command_in_sge_file)
+elif "golubh" in server_name:  # campus cluster
+    content_for_sge_file = '''#!/bin/bash
+#PBS -l walltime=%s
+#PBS -l nodes=1:ppn=2
+#PBS -l naccesspolicy=singleuser
+#PBS -q alf
+#PBS -V
+#PBS -m ae                 # email on abort, begin, and end
+#PBS -M wei.herbert.chen@gmail.com         # email address
+
+cd $PBS_O_WORKDIR         # go to current directory
+source /home/weichen9/.bashrc
+%s
+echo "This job is DONE!"
+exit 0
+''' % (CONFIG_19, command_in_sge_file)
+else:
+    raise Exception('server error: %s does not exist' % server_name)
 
 folder_to_store_sge_files = '../sge_files/'
 

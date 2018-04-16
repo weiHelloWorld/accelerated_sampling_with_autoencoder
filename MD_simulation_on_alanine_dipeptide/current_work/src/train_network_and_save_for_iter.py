@@ -39,9 +39,8 @@ elif "up_to_iter_" in args.data_folder:
 else:
     temp_list_of_directories_contanining_data = [args.data_folder]
 
-print "data folder is %s" % str(temp_list_of_directories_contanining_data)
-
 if (args.in_data is None) and (args.out_data is None):
+    print "data folder is %s" % str(temp_list_of_directories_contanining_data)
     my_coor_data_obj = coordinates_data_files_list(
         list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
     coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
@@ -62,6 +61,10 @@ elif input_data_type == 'Cartesian':
     data_set = data_set[::args.training_interval]
     data_set = Sutils.remove_translation(data_set)
     assert (Sutils.check_center_of_mass_is_at_origin(data_set))
+elif input_data_type == 'pairwise_distance':
+    data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
+        coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
+        atom_selection=CONFIG_73)) / CONFIG_49
 else:
     raise Exception('error input type')
 
@@ -92,7 +95,7 @@ elif output_data_type == 'Cartesian':
 elif output_data_type == 'pairwise_distance':
     output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
-        atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
+        atom_selection=CONFIG_73)) / CONFIG_49
 elif output_data_type == 'combined':
     scaling_factor = CONFIG_49
     alignment_coor_file_suffix_list = CONFIG_61
@@ -109,7 +112,7 @@ elif output_data_type == 'combined':
     else: raise Exception('not defined')
     temp_output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
         coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
-        atom_selection=CONFIG_73)) / CONFIG_49 / 2.0  # TODO: may need better scaling factor?
+        atom_selection=CONFIG_73)) / CONFIG_49
     output_data_set = np.concatenate([output_data_set, temp_output_data_set], axis=1)
 else:
     raise Exception('error output data type')
@@ -140,7 +143,9 @@ if args.auto_dim: temp_node_num[0], temp_node_num[-1] = data_set.shape[1], outpu
 additional_argument_list['node_num'] = temp_node_num
 
 if args.auto_scale:
-    data_set /= (np.max(np.abs(data_set)).astype(np.float))
+    auto_scaling_factor = np.max(np.abs(data_set)).astype(np.float)
+    print ("auto_scaling_factor = %f" % auto_scaling_factor)
+    data_set /= auto_scaling_factor
     output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
     assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
 
@@ -167,4 +172,4 @@ best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
 assert (isinstance(best_network, autoencoder))
 assert (best_network.get_fraction_of_variance_explained() == max_FVE)
 best_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
-print best_network._filename_to_save_network
+print best_network._filename_to_save_network  # TODO: what is this line used for?  I do not remember

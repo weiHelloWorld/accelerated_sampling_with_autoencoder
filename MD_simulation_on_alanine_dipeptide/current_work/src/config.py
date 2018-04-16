@@ -3,12 +3,6 @@ from scipy import io as sciio
 import numpy as np, pandas as pd, seaborn as sns
 from numpy.testing import assert_almost_equal
 from math import *
-from pybrain.structure import *
-from pybrain.structure.modules.circularlayer import *
-from pybrain.supervised.trainers import BackpropTrainer
-from pybrain.datasets.supervised import SupervisedDataSet
-from pybrain.structure.connections.shared import MotherConnection,SharedFullConnection
-from pybrain.structure.moduleslice import ModuleSlice
 import matplotlib.pyplot as plt
 from sklearn.neighbors import RadiusNeighborsRegressor
 import matplotlib
@@ -28,16 +22,15 @@ it configures all default values/global parameters for constructors/functions
 ############   some global variables and helper functions  ############
 #######################################################################
 
-layer_type_to_name_mapping = {TanhLayer: "Tanh", CircularLayer: "Circular", LinearLayer: "Linear", ReluLayer: "Relu"}
 CONFIG_30 = "Trp_cage"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
-    if molecule_name == "Alanine_dipeptide": return parameter_list[0]
-    elif molecule_name == "Trp_cage": return parameter_list[1]
-    elif molecule_name == "Src_kinase": return parameter_list[2]
-    elif molecule_name == "BetaHairpin": return parameter_list[3]
-    else: raise Exception("molecule not defined!")
+    molecule_name_to_index = {"Alanine_dipeptide": 0, "Trp_cage": 1, "Src_kinase": 2,
+                              "BetaHairpin": 3, "C24": 4}
+    try:  result = parameter_list[molecule_name_to_index[molecule_name]]
+    except: result = None
+    return result
 
 def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
     return (Universe(pdb_file).select_atoms(atom_selection_statement).indices + 1).tolist()
@@ -46,7 +39,7 @@ def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
 ##################   configurations  ##################################
 #######################################################################
 
-CONFIG_45 = 'keras'                         # training backend: "pybrain", "keras"
+CONFIG_45 = 'keras'                         # training backend: "keras"
 CONFIG_48 = 'Cartesian'           # input data type
 CONFIG_76 = 'Cartesian'           # output data type
 temp_CONFIG_75_1 = np.ones(360); temp_CONFIG_75_1[3:24] = 4.0; temp_CONFIG_75_1[180 + 3: 180 + 24] = 4.0; temp_CONFIG_75_1 /= 4.0
@@ -79,16 +72,14 @@ if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
                                '(resid 144:170 or resid 44:58) and name CA', None
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
-CONFIG_17 = [TanhLayer, TanhLayer, TanhLayer]  # types of hidden layers
-CONFIG_78 = LinearLayer                    # output layer type
-CONFIG_79 = False                         # determine dimensionality of input/output of autoencoder automatically
+CONFIG_17 = ['Tanh', 'Tanh', 'Tanh']  # types of hidden layers
+CONFIG_78 = "Linear"                    # output layer type
+CONFIG_79 = True                         # determine dimensionality of input/output of autoencoder automatically
 CONFIG_2 = 1     # training data interval
-if CONFIG_45 == 'pybrain':
-    raise Exception("Warning: PyBrain is no longer supported!  " + WARNING_INFO)
-elif CONFIG_45 == 'keras':
+if CONFIG_45 == 'keras':
     if CONFIG_76 == 'cossin':
         CONFIG_4 = get_mol_param([
-            [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == CircularLayer else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]],
+            [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == "Circular" else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]],
             None, None, None
         ])
     elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
@@ -110,9 +101,9 @@ else:
 CONFIG_5 = 200                   # max number of training epochs
 CONFIG_6 = None                # filename to save this network
 CONFIG_36 = 2                  #   dimensionality
-if CONFIG_17[1] == CircularLayer:
+if CONFIG_17[1] == "Circular":
     CONFIG_37 = 2 * CONFIG_36              # number of nodes in bottleneck layer
-elif CONFIG_17[1] == TanhLayer or CONFIG_17[1] == ReluLayer:
+elif CONFIG_17[1] == "Tanh" or CONFIG_17[1] == "Relu":
     CONFIG_37 = CONFIG_36
 else:
     raise Exception('Layer not defined')
@@ -123,12 +114,12 @@ CONFIG_62 = get_mol_param([
     ['../resources/1l2y.pdb', '../resources/Trp_cage_ref_1.pdb'] if not CONFIG_71 else ['../resources/1l2y.pdb', '../resources/1l2y.pdb'], # mixed_err
     # ['../resources/2src.pdb', '../resources/2src.pdb']
     ['../resources/2src.pdb'],
-    ['../resources/BetaHairpin.pdb']
+    ['../resources/BetaHairpin.pdb'], None
 ])                   # list of reference file
 CONFIG_63 = get_mol_param([
     ['', '_1'],
     ['', '_1'],
-    [''], ['']
+    [''], [''], ['']
     ]
 )                         # suffix for each reference configuration
 CONFIG_61 = ['_aligned%s_coordinates.txt' % item
@@ -155,6 +146,7 @@ elif CONFIG_76 == 'Cartesian':
          # [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 42 * 9],
         [3 * len(CONFIG_57[2]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[2])],
         [3 * len(CONFIG_57[3]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[3])],
+        [3 * len(CONFIG_57[4]), 100, CONFIG_37, 100, 3 * len(CONFIG_57[4])],
          ])  # the structure of ANN: number of nodes in each
 elif CONFIG_76 == 'pairwise_distance':
     CONFIG_3 = get_mol_param([
@@ -173,9 +165,9 @@ else:
 
 CONFIG_74 = False                  # whether we start each biased simulation with nearest configuration or a fixed configuration
 CONFIG_40 = 'implicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
-CONFIG_51 = 'NPT'                  # simulation ensemble type (for Trp-cage only)
+CONFIG_51 = 'NVT'                  # simulation ensemble type
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
-CONFIG_44 = False                             # whether to use hierarchical autoencoder
+CONFIG_44 = True                             # whether to use hierarchical autoencoder
 CONFIG_77 = 2                      # hierarchical autoencoder variant index
 # if CONFIG_44:
 #     raise Exception("Warning: no longer supported (used for backward compatibility)!  " + WARNING_INFO)
@@ -202,13 +194,13 @@ CONFIG_11 = get_mol_param([15,20, 15, 15])  # num of boundary points
 CONFIG_39 = False    #  set the range of histogram automatically based on min,max values in each dimension
 CONFIG_41 = False    # whether we reverse the order of sorting of diff_with_neighbors values in get_boundary algorithm
 
-if CONFIG_17[1] == CircularLayer:
+if CONFIG_17[1] == "Circular":
     CONFIG_18 = True  # whether we limit the boundary points to be between [-pi, pi], typically works for circularLayer
     CONFIG_26 = [[-np.pi, np.pi] for item in range(CONFIG_36)]    # range of PCs, for circular case, it is typically [[-np.pi, np.pi],[-np.pi, np.pi]]
-elif CONFIG_17[1] == TanhLayer:
+elif CONFIG_17[1] == "Tanh":
     CONFIG_18 = False
     CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
-elif CONFIG_17[1] == ReluLayer:
+elif CONFIG_17[1] == "Relu":
     CONFIG_18 = False
     CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
     raise Exception("Warning: very few tests are done for ReLu layer, this is not recommended!  " + WARNING_INFO)
@@ -218,14 +210,14 @@ else:
 CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
-CONFIG_65 = "US"          # default biasing method
+CONFIG_65 = "US on pairwise distances"          # default biasing method
 CONFIG_16 = get_mol_param([500, 5000, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_8 = get_mol_param([50000, 500000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration
 # following: for umbrella sampling
 CONFIG_9 = get_mol_param([3000, 2000, 3000, 3000])                     # force constant for biased simulations
 CONFIG_53 = get_mol_param(['fixed', 'fixed', 'fixed', 'fixed'])          # use fixed/flexible force constants for biased simulation for each iteration
-CONFIG_54 = 2.50 * get_mol_param([30.0, 20.0, 15.0, 20.0])             # max external potential energy allowed (in k_BT)
+CONFIG_54 = 2.50 * get_mol_param([30.0, 20.0, 15.0, 20.0, 20])             # max external potential energy allowed (in k_BT)
 # following: for metadynamics
 CONFIG_66 = get_mol_param([500, 500, 500, None])          # pace of metadynamics
 CONFIG_67 = get_mol_param([2, 2, 2, None])              # height of metadynamics
@@ -240,7 +232,7 @@ CONFIG_22 = 0.002   # simulation time step, in ps
 CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
-if temp_home_directory == "/home/fisiksnju" or temp_home_directory == "/home/kengyangyao":
+if temp_home_directory == "/home/kengyangyao":
     CONFIG_24 = 'local'  # machine to run the simulations
     CONFIG_25 = temp_home_directory + '/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
 elif temp_home_directory == "/home/weichen9":
@@ -249,10 +241,7 @@ elif temp_home_directory == "/home/weichen9":
 else:
     print ('unknown user directory: %s' % temp_home_directory)
 
-# if CONFIG_24 == "cluster":
-#     raise Exception("Warning: it has not been tested on the cluster for relatively long time, not recommended!  " + WARNING_INFO)
-
-CONFIG_27 =  map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2]) # layer_types for ANN_Force, it should be consistent with autoencoder
+CONFIG_27 =  CONFIG_17[:2]  # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)

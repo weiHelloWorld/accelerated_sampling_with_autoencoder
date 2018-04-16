@@ -9,7 +9,12 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 from keras import layers
 from keras import backend as K
+# import torch
+# from torch.autograd import Variable
+# import torch.nn as nn
+# import torch.nn.functional as F
 import random
+from compatible import *
 
 ##################    set types of molecules  ############################
 
@@ -28,7 +33,7 @@ class autoencoder(object):
                  output_data_set = None,  # output data may not be the same with the input data
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
                  training_data_interval=CONFIG_2,
-                 in_layer_type=LinearLayer,
+                 in_layer_type="Linear",
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
@@ -63,7 +68,7 @@ class autoencoder(object):
 
         self._hierarchical = hierarchical
         self._network_verbose = network_verbose
-        num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == CircularLayer else 1
+        num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == "Circular" else 1
         self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
@@ -82,8 +87,7 @@ class autoencoder(object):
         a = Sutils.load_object_from_pkl_file(filename)
         if os.path.isfile(filename.replace('.pkl','.hdf5')):
             a._molecule_net = load_model(filename.replace('.pkl','.hdf5'),custom_objects={'mse_weighted': mse_weighted})
-            a._molecule_net_layers = a._molecule_net.layers
-        elif not hasattr(a, '_molecule_net') and hasattr(a, '_molecule_net_layers'):  # for backward compatibility
+        elif not hasattr(a, '_molecule_net') and hasattr(a, '_molecule_net_layers') and (not a._molecule_net_layers is None):  # for backward compatibility
             a._molecule_net = Sequential()
             for item in a._molecule_net_layers:
                 a._molecule_net.add(item)
@@ -94,6 +98,20 @@ class autoencoder(object):
         else:
             raise Exception('TODO: construct encoder from _molecule_net') # TODO
         return a
+    
+    def remove_pybrain_dependency(self):    
+        """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
+        self._in_layer_type = layer_type_to_name_mapping[self._in_layer_type]
+        self._hidden_layers_type = [layer_type_to_name_mapping[item] for item in self._hidden_layers_type]
+        self._out_layer_type = layer_type_to_name_mapping[self._out_layer_type]
+        return
+
+    @staticmethod
+    def remove_pybrain_dependency_and_save_to_file(filename):
+        ae = autoencoder.load_from_pkl_file(filename)
+        ae.remove_pybrain_dependency()
+        ae.save_into_file(filename)
+        return
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
@@ -123,72 +141,6 @@ class autoencoder(object):
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': mse_weighted})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': mse_weighted})
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
-        self._molecule_net_layers = self._molecule_net.layers
-        return
-
-    def get_expression_of_network(self):
-        """
-        this function generates expression of PCs in terms of inputs
-        """
-        # FIXME: 1. the expression no longer works, since I made input list for input layer of autoencoder consistent
-        # for both alanine dipeptide and trp-cage, always [cos, sin, cos, sin ....],
-        # which is consistent with ANN_Force, instead of [cos, cos, cos, cos, sin, sin, sin, sin]
-        # FIXME: 2. this does not support multi-hidden layer cases
-        type_of_middle_hidden_layer = self._hidden_layers_type[1]
-
-        node_num = self._node_num
-        expression = ""
-
-        # 1st part: network
-        for i in range(2):
-            expression = '\n' + expression
-            mul_coef = self._connection_between_layers_coeffs[i].reshape(node_num[i + 1], node_num[i])
-            bias_coef = self._connection_with_bias_layers_coeffs[i]
-
-            for j in range(np.size(mul_coef, 0)):
-                temp_expression = 'in_layer_%d_unit_%d = ' % (i + 1, j)
-
-                for k in range(np.size(mul_coef, 1)):
-                    temp_expression += ' %f * out_layer_%d_unit_%d +' % (mul_coef[j, k], i, k)
-
-                temp_expression += ' %f;\n' % (bias_coef[j])
-                expression = temp_expression + expression  # order of expressions matter in OpenMM
-
-            if i == 1 and type_of_middle_hidden_layer == CircularLayer:
-                for j in range(np.size(mul_coef, 0) / 2):
-                    temp_expression = 'out_layer_%d_unit_%d = ( in_layer_%d_unit_%d ) / radius_of_circular_pair_%d;\n' % \
-                                      (i + 1, 2 * j, i + 1, 2 * j, j)
-                    temp_expression += 'out_layer_%d_unit_%d = ( in_layer_%d_unit_%d ) / radius_of_circular_pair_%d;\n' % \
-                                       (i + 1, 2 * j + 1, i + 1, 2 * j + 1, j)
-                    temp_expression += 'radius_of_circular_pair_%d = sqrt( in_layer_%d_unit_%d * in_layer_%d_unit_%d + in_layer_%d_unit_%d * in_layer_%d_unit_%d );\n' \
-                                       % (j, i + 1, 2 * j, i + 1, 2 * j, i + 1, 2 * j + 1, i + 1, 2 * j + 1)
-
-                    expression = temp_expression + expression
-            else:
-                for j in range(np.size(mul_coef, 0)):
-                    temp_expression = 'out_layer_%d_unit_%d = tanh( in_layer_%d_unit_%d );\n' % (i + 1, j, i + 1, j)
-                    expression = temp_expression + expression
-
-        # 2nd part: relate PCs to network
-        if type_of_middle_hidden_layer == CircularLayer:
-            temp_expression = 'PC0 = acos( out_layer_2_unit_0 ) * ( step( out_layer_2_unit_1 ) - 0.5) * 2;\n'
-            temp_expression += 'PC1 = acos( out_layer_2_unit_2 ) * ( step( out_layer_2_unit_3 ) - 0.5) * 2;\n'
-            expression = temp_expression + expression
-        elif type_of_middle_hidden_layer == TanhLayer:
-            temp_expression = 'PC0 = out_layer_2_unit_0;\nPC1 = out_layer_2_unit_1;\n'
-            expression = temp_expression + expression
-
-        # 3rd part: definition of inputs
-        expression += molecule_type.get_expression_for_input_of_this_molecule()
-
-        return expression
-
-    def write_expression_into_file(self, out_file=None):
-        if out_file is None: out_file = self._autoencoder_info_file
-
-        expression = self.get_expression_of_network()
-        with open(out_file, 'w') as f_out:
-            f_out.write(expression)
         return
 
     def get_expression_script_for_plumed(self, mode="native"):
@@ -216,7 +168,7 @@ class autoencoder(object):
             temp_num_of_layers_used = index_CV_layer + 1
             temp_input_string = ','.join(['l_0_out_%d' % item for item in range(self._node_num[0])])
             temp_num_nodes_string = ','.join([str(item) for item in self._node_num[:temp_num_of_layers_used]])
-            temp_layer_type_string = map(lambda x: layer_type_to_name_mapping[x], CONFIG_17[:2])
+            temp_layer_type_string = CONFIG_17[:2]
             temp_layer_type_string = ','.join(temp_layer_type_string)
             temp_coeff_string = ''
             temp_bias_string = ''
@@ -233,6 +185,40 @@ class autoencoder(object):
         else:
             raise Exception("mode error")
         return plumed_script
+
+    def get_plumed_script_for_biased_simulation_with_INDUS_cg_input_and_ANN(self,
+            water_index_string, atom_indices, r_low, r_high, scaling_factor, sigma=0.1, cutoff=0.2,
+            potential_center=None, force_constant=None, out_plumed_file=None):
+        """ used to generate plumed script for biased simulation, with INDUS coarse grained water
+        molecule numbers as input for ANN, and biasing force is applied on outputs of ANN
+        :param water_index_string: example: '75-11421:3'
+        :param atom_indices: example: range(1, 25)
+        :param scaling_factor: scaling factor for input of ANN
+        :param sigma, cutoff: these are parameters for Gaussian, in unit of A (by default in plumed it is nanometer)
+        :param potential_center: if it is None, does not generate biasing part in script
+        """
+        result = ''
+        for _1, item in enumerate(atom_indices):
+            result += "sph_%d: SPHSHMOD ATOMS=%s ATOMREF=%d RLOW=%f RHIGH=%f SIGMA=%.4f CUTOFF=%.4f\n" % (
+                _1, water_index_string, item, r_low / 10.0, r_high / 10.0,
+                sigma / 10.0, cutoff / 10.0)  # factor of 10.0 is used to convert A to nm
+            result += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f ARG=sph_%d.Ntw\n" % (
+            _1, 1.0 / scaling_factor, _1)
+        result += self.get_expression_script_for_plumed(mode='ANN')  # add string generated by ANN plumed plugin
+        if not potential_center is None:
+            arg_string = ','.join(['ann_force.%d' % _2 for _2 in range(len(potential_center))])
+            pc_string = ','.join([str(_2) for _2 in potential_center])
+            if out_plumed_file is None:
+                out_plumed_file = "temp_plumed_out_%s.txt" % pc_string
+            kappa_string = ','.join([str(force_constant) for _ in potential_center])
+            arg_string_2 = ','.join(['l_0_out_%d' % _2 for _2 in range(len(atom_indices))])
+            result += """\nmypotential: RESTRAINT ARG=%s AT=%s KAPPA=%s
+ave: COMBINE PERIODIC=NO ARG=%s
+
+PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
+                arg_string, pc_string, kappa_string, arg_string_2, arg_string, out_plumed_file
+            )
+        return result
 
     def write_expression_script_for_plumed(self, out_file=None, mode="native"):
         if out_file is None: out_file = self._autoencoder_info_file
@@ -337,7 +323,7 @@ class autoencoder(object):
         pass
 
     @abc.abstractmethod
-    def get_output_data(self, input_data=None, num_of_PCs=None):
+    def get_output_data(self, input_data=None):
         """must be implemented by subclasses"""
         pass
 
@@ -346,13 +332,9 @@ class autoencoder(object):
         """must be implemented by subclasses"""
         pass
 
-    def get_training_error(self, num_of_PCs=None):
-        """
-        :param num_of_PCs: this option only works for hierarchical case, indicate you would like to get error with
-        a specific number of PCs (instead of all PCs)
-        """
+    def get_training_error(self):
         input_data = np.array(self._data_set)
-        actual_output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data()
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
             expected_output_data = self._output_data_set
         else:
@@ -369,11 +351,11 @@ class autoencoder(object):
         assert (len(relative_err) == len(input_data)), (len(relative_err), len(input_data))
         return relative_err
 
-    def get_fraction_of_variance_explained(self, num_of_PCs=None, hierarchical_FVE=False):
+    def get_fraction_of_variance_explained(self, hierarchical_FVE=False):
         """ here num_of_PCs is the same with that in get_training_error() """
         index_CV_layer = (len(self._node_num) - 1) / 2
         input_data = np.array(self._data_set)
-        actual_output_data = self.get_output_data(num_of_PCs)
+        actual_output_data = self.get_output_data()
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
             expected_output_data = self._output_data_set
         else:
@@ -382,7 +364,7 @@ class autoencoder(object):
         var_of_output = sum(np.var(expected_output_data, axis=0))
         var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
         if self._hierarchical:
-            num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer \
+            num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" \
                 else self._node_num[index_CV_layer]
             length_for_hierarchical_component = expected_output_data.shape[1] / num_PCs
             hierarchical_actual_output_list = [actual_output_data[:,
@@ -413,15 +395,14 @@ class autoencoder(object):
             num_of_simulation_steps = CONFIG_8
         if autoencoder_info_file is None:
             autoencoder_info_file = self._autoencoder_info_file
+        PCs_of_network = self.get_PCs()
+        if self._hidden_layers_type[1] == "Circular":
+            assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
+        else:
+            assert (len(PCs_of_network[0]) == self._node_num[2])
+        if list_of_potential_center is None:
+            list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
         if bias_method == "US":
-            PCs_of_network = self.get_PCs()
-            if self._hidden_layers_type[1] == CircularLayer:
-                assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
-            else:
-                assert (len(PCs_of_network[0]) == self._node_num[2])
-            if list_of_potential_center is None:
-                list_of_potential_center = molecule_type.get_boundary_points(list_of_points=PCs_of_network)
-
             start_from_nearest_config = CONFIG_74
             if start_from_nearest_config:
                 nearest_pdb_frame_index_list = []
@@ -494,7 +475,7 @@ class autoencoder(object):
                     if CONFIG_42:  # whether the force constant adjustable mode is enabled
                         command = command + ' --fc_adjustable --autoencoder_file %s --remove_previous ' % (
                             '../resources/Alanine_dipeptide/network_%d.pkl' % self._index)
-                    if CONFIG_17[1] == CircularLayer:
+                    if CONFIG_17[1] == "Circular":
                         command += ' --layer_types Tanh,Circular'
                 else:
                     parameter_list = (
@@ -538,6 +519,33 @@ class autoencoder(object):
                     todo_list_of_commands_for_simulations += [command]
             else:
                 raise Exception("molecule type not defined")
+        elif bias_method == "US on pairwise distances":
+            todo_list_of_commands_for_simulations = []
+            if isinstance(molecule_type, Trp_cage):
+                dim_of_CVs = len(list_of_potential_center[0])
+                pc_arg_string = ['ann_force.%d' % index_ann for index_ann in range(dim_of_CVs)]
+                pc_arg_string = ','.join(pc_arg_string)
+                plumed_string = Sutils._get_plumed_script_with_pairwise_dis_as_input(
+                    get_index_list_with_selection_statement('../resources/1l2y.pdb', CONFIG_73), CONFIG_49)
+                plumed_string += self.get_expression_script_for_plumed(mode='ANN')
+                for item_index, item_pc in enumerate(list_of_potential_center):
+                    pc_string = ','.join([str(_1) for _1 in item_pc])
+                    kappa_string = ','.join([str(CONFIG_9) for _ in range(dim_of_CVs)])
+                    temp_plumed_file = '../resources/Trp_cage/temp_plumed_%02d_%02d.txt' % (self._index, item_index)
+                    with open(temp_plumed_file, 'w') as my_f:
+                        my_f.write(
+                            plumed_string + '\nRESTRAINT ARG=%s AT=%s KAPPA=%s LABEL=mypotential\n' % (
+                                pc_arg_string, pc_string, kappa_string)
+                        )
+                    parameter_list = (
+                        str(CONFIG_16), str(num_of_simulation_steps), str(CONFIG_9),
+                        '../target/Trp_cage/network_%d/' % self._index, 'none',
+                        'pc_' + str(item_pc).replace(' ', '')[1:-1],
+                        CONFIG_40, CONFIG_51, temp_plumed_file, item_index % 2)
+                    command = "python ../src/biased_simulation_general.py Trp_cage %s %s %s %s %s %s %s %s --bias_method plumed_other --plumed_file %s --device %d" % parameter_list
+                    todo_list_of_commands_for_simulations += [command]
+
+            else: raise Exception("molecule type not defined")
         else:
             raise Exception("bias method not found")
 
@@ -743,6 +751,73 @@ class autoencoder(object):
 
         return
 
+    @staticmethod
+    def tune_hyperparams_using_Bayes_optimization(in_data, out_data, folder, lr_range, momentum_range,
+                                                  lr_log_scale=True, train_num_per_iter=5,
+                                                  total_iter_num=20,
+                                                  num_training_per_param=3):
+        """use Bayes optimization for tuning hyperparameters,
+        see http://neupy.com/2016/12/17/hyperparameter_optimization_for_neural_networks.html#bayesian-optimization"""
+        def next_parameter_by_ei(best_y, y_mean, y_std, x_choices, num_choices):
+            expected_improvement = (y_mean + 1.0 * y_std) - best_y
+            max_index = np.argsort(expected_improvement)[-num_choices:]
+            return x_choices[max_index], expected_improvement[max_index]
+
+        from sklearn.gaussian_process import GaussianProcessRegressor
+        import glob
+        for iter_index in range(total_iter_num):
+            autoencoder_files = sorted(glob.glob('%s/*.pkl' % folder))
+            if len(autoencoder_files) == 0:  # use random search as the start
+                params = np.random.uniform(size=(train_num_per_iter, 2))
+                params[:, 1] = params[:, 1] * (momentum_range[1] - momentum_range[0]) + momentum_range[0]
+                if lr_log_scale:
+                    params[:, 0] = np.exp(
+                        params[:, 0] * (np.log(lr_range[1]) - np.log(lr_range[0])) + np.log(lr_range[0]))
+                else:
+                    params[:, 0] = params[:, 0] * (lr_range[1] - lr_range[0]) + lr_range[0]
+                next_params = params[:]
+            else:  # generate params based on Bayes optimization
+                gp = GaussianProcessRegressor()
+                X_train, y_train = [], []
+                for item_AE_file in autoencoder_files:
+                    temp_AE = autoencoder.load_from_pkl_file(item_AE_file)
+                    assert (isinstance(temp_AE, autoencoder_Keras))
+                    X_train.append(temp_AE._network_parameters[:2])
+                    if not np.isnan(temp_AE.get_fraction_of_variance_explained()):
+                        y_train.append(temp_AE.get_fraction_of_variance_explained())
+                    else:
+                        y_train.append(-1.0)  # TODO: is it good?
+                X_train, y_train = np.array(X_train), np.array(y_train)
+                print np.concatenate([X_train,y_train.reshape(y_train.shape[0], 1)], axis=-1)
+                current_best_y_train = np.max(y_train)
+                gp.fit(X_train, y_train)
+                params = np.random.uniform(size=(100, 2))
+                params[:, 1] = params[:, 1] * (momentum_range[1] - momentum_range[0]) + momentum_range[0]
+                if lr_log_scale:
+                    params[:, 0] = np.exp(
+                        params[:, 0] * (np.log(lr_range[1]) - np.log(lr_range[0])) + np.log(lr_range[0]))
+                else:
+                    params[:, 0] = params[:, 0] * (lr_range[1] - lr_range[0]) + lr_range[0]
+                y_mean, y_std = gp.predict(params, return_std=True)
+                next_params, next_ei = next_parameter_by_ei(current_best_y_train, y_mean, y_std, params, train_num_per_iter)
+                print next_params, next_ei
+
+            assert (len(next_params) == train_num_per_iter)
+            command_list = []
+            cuda_index = 0
+            for item_param in next_params:
+                for index in range(num_training_per_param):
+                    command = "THEANO_FLAGS=device=cuda%d python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %f,%f --output_file %s/temp_%02d_%s_%02d.pkl --in_data %s --out_data %s" % (
+                        cuda_index, item_param[0], item_param[1], folder, iter_index,
+                        str(item_param).strip().replace(' ',''), index, in_data, out_data
+                    )
+                    cuda_index = 1 - cuda_index      # use two GPUs
+                    command_list.append(command)
+
+            num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(command_list, num_of_jobs_in_parallel=2)
+            print "num_failed_jobs = %d" % num_failed_jobs
+        return
+
 
 class autoencoder_Keras(autoencoder):
     def _init_extra(self,
@@ -756,9 +831,10 @@ class autoencoder_Keras(autoencoder):
         self._molecule_net_layers = None              # why don't I save molecule_net (Keras model) instead? since it it not picklable:
                                                       # https://github.com/luispedro/jug/issues/30
                                                       # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
+                                                      # obsolete: should not save _molecule_net_layers in the future, kept for backward compatibility
         return
 
-    def get_output_data(self, input_data=None, num_of_PCs = None):
+    def get_output_data(self, input_data=None):
         if input_data is None: input_data = self._data_set
         return self._molecule_net.predict(input_data)
 
@@ -768,11 +844,11 @@ class autoencoder_Keras(autoencoder):
         if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
             raise Exception('no longer supported')
 
-        if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+        if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
             PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in self._encoder_net.predict(input_data)])
             assert (len(PCs[0]) == self._node_num[index_CV_layer] / 2), (len(PCs[0]), self._node_num[index_CV_layer] / 2)
-        elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+        elif self._hidden_layers_type[index_CV_layer - 1] == "Tanh":
             PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[index_CV_layer])
         else:
@@ -781,17 +857,17 @@ class autoencoder_Keras(autoencoder):
 
     def get_outputs_from_PC(self, input_PC):
         index_CV_layer = (len(self._node_num) - 1) / 2
-        if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer: raise Exception('not implemented')
+        if self._hidden_layers_type[index_CV_layer - 1] == "Circular": raise Exception('not implemented')
         inputs = Input(shape=(self._node_num[index_CV_layer],))
         x = inputs
-        for item in self._molecule_net_layers[-index_CV_layer:]:
+        for item in self._molecule_net.layers[-index_CV_layer:]:
             x = item(x)     # using functional API
         model = Model(input=inputs, output=x)
         return model.predict(input_PC)
 
     def train(self, hierarchical=None, hierarchical_variant = CONFIG_77):
         if hierarchical is None: hierarchical = self._hierarchical
-        output_layer_activation = layer_type_to_name_mapping[self._out_layer_type].lower()
+        output_layer_activation = self._out_layer_type.lower()
         node_num = self._node_num
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
@@ -802,7 +878,7 @@ class autoencoder_Keras(autoencoder):
 
         num_of_hidden_layers = len(self._hidden_layers_type)
         index_CV_layer = (len(node_num) - 1) / 2
-        num_CVs = node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer else \
+        num_CVs = node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" else \
             node_num[index_CV_layer]
         if hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
@@ -821,14 +897,14 @@ class autoencoder_Keras(autoencoder):
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
             for item in range(2, index_CV_layer):
                 x = Dense(node_num[item], activation='tanh', kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
-            if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+            if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
                 x = Dense(node_num[index_CV_layer], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
                 x = Reshape((num_CVs, 2), input_shape=(node_num[index_CV_layer],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
                 encoded = Reshape((node_num[index_CV_layer],))(x)
                 encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(num_CVs)]
-            elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+            elif self._hidden_layers_type[index_CV_layer - 1] == "Tanh":
                 encoded = Dense(node_num[index_CV_layer], activation='tanh',
                                 kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
                 encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(num_CVs)]
@@ -891,13 +967,13 @@ class autoencoder_Keras(autoencoder):
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
             for item in range(2, index_CV_layer):
                 x = Dense(node_num[item], activation='tanh', kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
-            if self._hidden_layers_type[index_CV_layer - 1] == CircularLayer:
+            if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
                 x = Dense(node_num[index_CV_layer], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
                 x = Reshape((node_num[index_CV_layer] / 2, 2), input_shape=(node_num[index_CV_layer],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
                 encoded = Reshape((node_num[index_CV_layer],))(x)
-            elif self._hidden_layers_type[index_CV_layer - 1] == TanhLayer:
+            elif self._hidden_layers_type[index_CV_layer - 1] == "Tanh":
                 encoded = Dense(node_num[index_CV_layer], activation='tanh',
                             kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
             else:
@@ -961,13 +1037,12 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
 
         print('Done ' + training_print_info + str(datetime.datetime.now()))
         self._molecule_net = molecule_net
-        self._molecule_net_layers = molecule_net.layers
         self._encoder_net = encoder_net
         try:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history.history['loss'])
             axes[1].plot(train_history.history['val_loss'])
-            png_file = self._filename_to_save_network.replace('.pkl', '.png')
+            png_file = 'history_%02d.png' % self._index
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
         except: print "training history not plotted!"; pass
@@ -991,7 +1066,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         else:
             molecule_net = Sequential()
             molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh',W_regularizer=l2(self._network_parameters[4][0])))   # input layer
-            if self._hidden_layers_type[1] == CircularLayer:
+            if self._hidden_layers_type[1] == "Circular":
                 molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear',W_regularizer=l2(self._network_parameters[4][1])))
                 molecule_net.add(Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],)))
                 molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
@@ -999,7 +1074,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                 molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
                 molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
 
-            elif self._hidden_layers_type[1] == TanhLayer:
+            elif self._hidden_layers_type[1] == "Tanh":
                 molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh',W_regularizer=l2(self._network_parameters[4][1])))
                 molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
                 molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
@@ -1045,7 +1120,6 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
 
             print('Done ' + training_print_info + str(datetime.datetime.now()))
             self._molecule_net = molecule_net
-            self._molecule_net_layers = molecule_net.layers
 
         return self
 
@@ -1086,10 +1160,40 @@ def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
 
 # weighted MSE
 weight_for_MSE = get_hierarchical_weights()
-if CONFIG_44:    
-    print "MSE is weighted by %s" % str(weight_for_MSE)
+# if CONFIG_44:
+#     print "MSE is weighted by %s" % str(weight_for_MSE)
 
 def mse_weighted(y_true, y_pred):
     # return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)  # TODO: do this later
     return K.mean(K.square(y_pred - y_true), axis=-1)
+
+
+# class autoencoder_pytorch(autoencoder):
+#     def _init_extra(self,
+#                     network_parameters = CONFIG_4,
+#                     batch_size = 100,
+#                     enable_early_stopping=True
+#                     ):
+#         self._network_parameters = network_parameters
+#         self._batch_size = batch_size
+#         self._enable_early_stopping = enable_early_stopping
+#         return
+#
+#     def train(self, hierarchical=None, hierarchical_variant=CONFIG_77):
+#         return
+#
+#
+# class encoder_pytorch(nn.Module):
+#     def __init__(self, node_num, activations):
+#         super(encoder_pytorch, self).__init__()
+#         assert len(activations) + 1 == len(node_num)
+#         self._layers = nn.ModuleList([nn.Linear(node_num[item], node_num[item + 1])
+#                                       for item in range(len(activations))])
+#         self._activations = activations
+#
+#     def forward(self, x):
+#         for item in range(len(self._layers)):
+#             x = self._layers[item](x)
+#             if self._activations[item] == 'Tanh': x = F.tanh(x)
+#         return x
 
