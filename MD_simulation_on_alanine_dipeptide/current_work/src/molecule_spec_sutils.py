@@ -150,6 +150,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name, index_list, new_pdb_file_name=None,
                                                               overwrite=False):
+        if os.stat(pdb_file_name).st_size > 1000000000: raise Exception('file may be too large, try to use other tools')
+
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_someframes.pdb'
 
@@ -179,6 +181,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
+        if os.stat(pdb_file_name).st_size > 1000000000: raise Exception('file may be too large, try to use other tools')
+
         print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
