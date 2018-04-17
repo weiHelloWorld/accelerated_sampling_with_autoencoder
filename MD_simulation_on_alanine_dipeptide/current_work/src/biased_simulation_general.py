@@ -98,8 +98,9 @@ def run_simulation(force_constant, number_of_simulation_steps):
                       'BetaHairpin': 0 * molar, 'C24': 0 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
-    pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
-                                                              str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
+    pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s_%s.pdb' % (folder_to_store_output_files, force_constant,
+                                                              str(potential_center).replace(' ', ''), temperature,
+                                                                  args.whether_to_add_water_mol_opt, args.ensemble_type)
 
 
     if args.starting_pdb_file == 'auto':
@@ -319,7 +320,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, time=True,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
-                                                  temperature=True, progress=True, remainingTime=True,
+                                                  temperature=True, progress=True, remainingTime=True, volume = True,density=True,
                                                   totalSteps=number_of_simulation_steps + args.equilibration_steps,
                                                   ))
     simulation.step(number_of_simulation_steps)
