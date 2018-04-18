@@ -502,15 +502,16 @@ PRINT STRIDE=50 ARG=sph.N,sph.Ntw,sph_2.N,sph_2.Ntw FILE=NDATA''' \
     % (potential_center[0], potential_center[1], potential_center[2], 
        potential_center[0], potential_center[1], potential_center[2]))  # since there is "TER" separating solute and solvent in pdb file, so index should start with 306, not 307
         subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
-                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NVT', '--platform', 'CUDA',
+                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA',
                                  '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
-        temp_u = Universe('temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit.pdb')
+        out_pdb = 'temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit_NPT.pdb'
+        temp_u = Universe(out_pdb)
+        reporter_file = out_pdb.replace('output', 'report').replace('.pdb', '.txt')
+        box_length_list = Helper_func.get_box_length_list_fom_reporter_file(reporter_file, unit='A')
         O_sel = temp_u.select_atoms('name O and resname HOH')
-        N_sel = temp_u.select_atoms('resnum 1 and name N')
         O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)
-        N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
-        distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
-        distances = Helper_func.compute_distances_min_image_convention(10 * np.array([potential_center for _ in range(num_frames)]), O_coords, 45)
+        distances = Helper_func.compute_distances_min_image_convention(
+            10 * np.array([potential_center for _ in range(num_frames)]), O_coords, box_length_list)
         coarse_count, actual_count = Helper_func.get_cg_count_in_sphere(distances, 3.11, 0.2, .1)
         plumed_count = np.loadtxt('NDATA')
         assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
@@ -530,14 +531,18 @@ SPHSHMOD ATOMS=306-11390:4 ATOMREF=1 RLOW=-0.5 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.0
 RESTRAINT ARG=sph.Ntw AT=10 KAPPA=5 SLOPE=0 LABEL=mypotential
 PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' )
         subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
-                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NVT', '--platform', 'CUDA',
+                                 'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA',
                                  '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
-        temp_u = Universe('temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit.pdb')
+        out_pdb = 'temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit_NPT.pdb'
+        temp_u = Universe(out_pdb)
+        reporter_file = out_pdb.replace('output', 'report').replace('.pdb', '.txt')
+        box_length_list = Helper_func.get_box_length_list_fom_reporter_file(reporter_file, unit='A')
+        print box_length_list
         O_sel = temp_u.select_atoms('name O and resname HOH')
         N_sel = temp_u.select_atoms('resnum 1 and name N')
         O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)
         N_coords = np.array([N_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 3)
-        distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, 45)
+        distances = Helper_func.compute_distances_min_image_convention(N_coords, O_coords, box_length_list)
         coarse_count, actual_count = Helper_func.get_cg_count_in_sphere(distances, 3.11, 0.2, .1)
         plumed_count = np.loadtxt('NDATA')
         assert_almost_equal(plumed_count[-num_frames:, 1], actual_count.flatten())
