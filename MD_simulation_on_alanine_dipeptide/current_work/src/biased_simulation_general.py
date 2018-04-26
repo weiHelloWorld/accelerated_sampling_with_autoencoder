@@ -186,7 +186,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
             force.set_index_of_backbone_atoms(index_of_backbone_atoms)
             pair_index_list = [[index_of_backbone_atoms[item_xx], index_of_backbone_atoms[item_yy]]
                                 for item_xx in range(len(index_of_backbone_atoms))
-                                for item_yy in range(item_xx + 1, len(index_of_backbone_atoms))]
+                                for item_yy in range(item_xx + 1, len(index_of_backbone_atoms))]  # TODO: default setting is to use all pairs, may modify this later
             # print pair_index_list
             force.set_list_of_pair_index_for_distances(pair_index_list)
             force.set_num_of_nodes(num_of_nodes)

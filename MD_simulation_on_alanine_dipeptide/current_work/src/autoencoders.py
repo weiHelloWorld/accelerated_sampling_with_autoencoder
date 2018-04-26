@@ -455,10 +455,12 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     raise Exception("error")
 
             todo_list_of_commands_for_simulations = []
-            if CONFIG_48 == 'Cartesian' or CONFIG_48 == 'pairwise_distance':
+            if CONFIG_48 == 'Cartesian':
                 input_data_type = 1
             elif CONFIG_48 == 'cossin':
                 input_data_type = 0
+            elif CONFIG_48 == 'pairwise_distance':
+                input_data_type = 2
             else:
                 raise Exception("error input data type")
 
@@ -484,7 +486,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                             'pc_' + str(potential_center).replace(' ', '')[1:-1],
                             CONFIG_40, CONFIG_51, index % 2)
                     command = "python ../src/biased_simulation_general.py placeholder_2 %s %s %s %s %s %s %s %s --device %d" % parameter_list
-                    if not input_data_type: command += ' --data_type_in_input_layer 0'
+                    command += ' --data_type_in_input_layer %d ' % input_data_type
                     if CONFIG_72: command += ' --fast_equilibration 1'
                     if CONFIG_42:
                         command += ' --fc_adjustable --autoencoder_file %s --remove_previous' % (
