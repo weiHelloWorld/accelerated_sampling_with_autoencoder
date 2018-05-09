@@ -68,7 +68,7 @@ CONFIG_57 = [
     get_index_list_with_selection_statement('../resources/C24.pdb', 'name C*')
 ]                                          # index list of atoms for training and biased simulations
 if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
-    CONFIG_73 = get_mol_param([None, 'name CA',
+    CONFIG_73 = get_mol_param(['name C or name CH3 or name CA or name N', 'name CA',
                                '(resid 144:170 or resid 44:58) and name CA', None
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
@@ -92,7 +92,8 @@ if CONFIG_45 == 'keras':
             ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
     elif CONFIG_76 == 'pairwise_distance':
         CONFIG_4 = get_mol_param([
-            None, [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]], None, None
+            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]], None, None
         ])
     else: raise Exception('error')
 else:
