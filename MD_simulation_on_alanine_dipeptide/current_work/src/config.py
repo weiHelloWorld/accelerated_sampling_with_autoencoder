@@ -65,7 +65,7 @@ CONFIG_57 = [
        2586, 2593, 2600, 2610, 2626, 2632, 2648, 2651, 2661, 2666, 2685,
        2701, 2707, 2714, 2731],
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O'),
-    list(range(1, 25))
+    get_index_list_with_selection_statement('../resources/C24.pdb', 'name C*')
 ]                                          # index list of atoms for training and biased simulations
 if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
     CONFIG_73 = get_mol_param([None, 'name CA',
