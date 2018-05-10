@@ -351,7 +351,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         assert (len(relative_err) == len(input_data)), (len(relative_err), len(input_data))
         return relative_err
 
-    def get_fraction_of_variance_explained(self, hierarchical_FVE=False):
+    def get_fraction_of_variance_explained(self, hierarchical_FVE=False, output_index_range=None):
         """ here num_of_PCs is the same with that in get_training_error() """
         index_CV_layer = (len(self._node_num) - 1) / 2
         input_data = np.array(self._data_set)
@@ -361,8 +361,6 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         else:
             expected_output_data = input_data
 
-        var_of_output = sum(np.var(expected_output_data, axis=0))
-        var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
         if self._hierarchical:
             num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" \
                 else self._node_num[index_CV_layer]
@@ -372,6 +370,9 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                                     (item + 1) * length_for_hierarchical_component]
                                                for item in range(num_PCs)]
             expected_output_component = expected_output_data[:, -length_for_hierarchical_component:]
+            if not output_index_range is None:
+                hierarchical_actual_output_list = [item[:, output_index_range] for item in hierarchical_actual_output_list]
+                expected_output_component = expected_output_component[:, output_index_range]
             assert (expected_output_component.shape == hierarchical_actual_output_list[0].shape)
             var_of_expected_output_component = sum(np.var(expected_output_component, axis=0))
             var_of_actual_output_component_list = [sum(np.var(item - expected_output_component, axis=0)) for item in hierarchical_actual_output_list]
@@ -379,6 +380,12 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             if not hierarchical_FVE:
                 result = result[-1]   # it is more reasonable to return only last FVE (which includes information from all CV nodes)
         else:
+            if not output_index_range is None:
+                actual_output_data = actual_output_data[:, output_index_range]
+                expected_output_data = expected_output_data[:, output_index_range]
+
+            var_of_output = sum(np.var(expected_output_data, axis=0))
+            var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
             result = 1 - var_of_err / var_of_output
         return result
 
@@ -455,10 +462,12 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     raise Exception("error")
 
             todo_list_of_commands_for_simulations = []
-            if CONFIG_48 == 'Cartesian' or CONFIG_48 == 'pairwise_distance':
+            if CONFIG_48 == 'Cartesian':
                 input_data_type = 1
             elif CONFIG_48 == 'cossin':
                 input_data_type = 0
+            elif CONFIG_48 == 'pairwise_distance':
+                input_data_type = 2
             else:
                 raise Exception("error input data type")
 
@@ -484,7 +493,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                             'pc_' + str(potential_center).replace(' ', '')[1:-1],
                             CONFIG_40, CONFIG_51, index % 2)
                     command = "python ../src/biased_simulation_general.py placeholder_2 %s %s %s %s %s %s %s %s --device %d" % parameter_list
-                    if not input_data_type: command += ' --data_type_in_input_layer 0'
+                    command += ' --data_type_in_input_layer %d ' % input_data_type
                     if CONFIG_72: command += ' --fast_equilibration 1'
                     if CONFIG_42:
                         command += ' --fc_adjustable --autoencoder_file %s --remove_previous' % (

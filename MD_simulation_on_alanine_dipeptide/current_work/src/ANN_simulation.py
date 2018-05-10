@@ -392,7 +392,7 @@ class iteration(object):
         if commands is None:
             commands = self._network.get_commands_for_further_biased_simulations()
         machine_independent_run.run_commands(machine_to_run_simulations, commands, cuda,
-                                             ONFIG_31)    # we do not allow more than CONFIG_31 simulations failed in each iteration
+                                             CONFIG_31)    # we do not allow more than CONFIG_31 simulations failed in each iteration
 
         # next line only when the jobs are done, check this
         if CONFIG_29:

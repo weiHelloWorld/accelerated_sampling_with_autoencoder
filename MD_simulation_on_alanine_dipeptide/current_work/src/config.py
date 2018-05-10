@@ -65,10 +65,10 @@ CONFIG_57 = [
        2586, 2593, 2600, 2610, 2626, 2632, 2648, 2651, 2661, 2666, 2685,
        2701, 2707, 2714, 2731],
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O'),
-    list(range(1, 25))
+    get_index_list_with_selection_statement('../resources/C24.pdb', 'name C*')
 ]                                          # index list of atoms for training and biased simulations
 if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
-    CONFIG_73 = get_mol_param([None, 'name CA',
+    CONFIG_73 = get_mol_param(['name C or name CH3 or name CA or name N', 'name CA',
                                '(resid 144:170 or resid 44:58) and name CA', None
                                ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
@@ -92,7 +92,8 @@ if CONFIG_45 == 'keras':
             ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
     elif CONFIG_76 == 'pairwise_distance':
         CONFIG_4 = get_mol_param([
-            None, [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]], None, None
+            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]], None, None
         ])
     else: raise Exception('error')
 else:
@@ -210,7 +211,7 @@ else:
 CONFIG_33 = CONFIG_3[0]   # length of list of cos/sin values, equal to the number of nodes in input layer
 CONFIG_12 = '../target/' + CONFIG_30  # folder that contains all pdb files
 
-CONFIG_65 = "US on pairwise distances"          # default biasing method
+CONFIG_65 = "US"          # default biasing method
 CONFIG_16 = get_mol_param([500, 5000, 2000, 2000])                     # record interval (the frequency of writing system state into the file)
 CONFIG_8 = get_mol_param([50000, 500000, 200000, 200000])                  # num of simulation steps
 CONFIG_72 = 0             # enable fast equilibration

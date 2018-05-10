@@ -112,7 +112,15 @@ class Helper_func(object):
         return cg_1 - cg_2, actual_1 - actual_2
 
     @staticmethod
-    def compute_distances_min_image_convention(atoms_pos_1, atoms_pos_2, box_length):
+    def get_box_length_list_fom_reporter_file(reporter_file, unit):  # require unit explicitly
+        reporter_file_content = np.loadtxt(reporter_file, delimiter=',', usecols=(6,))  # column 6 is volume of box
+        if unit == 'nm': scaling_factor = 1
+        elif unit == 'A': scaling_factor = 10
+        return scaling_factor * np.cbrt(reporter_file_content)
+
+    @staticmethod
+    def compute_distances_min_image_convention(atoms_pos_1, atoms_pos_2, box_length_list):
+        # note: box_length may be different for different frames when using NPT, typically is read from reporter file
         # shape of atoms_pos_{1,2}: (num of frames, num of atoms * 3)
         # output: distance matrix
         # why don't we use mdtraj?  Because it requires large memory for loading large pdb files
@@ -124,7 +132,7 @@ class Helper_func(object):
             # print index_1
             for index_2 in range(atoms_pos_2.shape[1] / 3):
                 temp_diff = atoms_pos_1[:, 3 * index_1: 3 * index_1 + 3] - atoms_pos_2[:, 3 * index_2: 3 * index_2 + 3]
-                temp_vec = np.array([(item + box_length / 2.0) % box_length - box_length / 2.0 for item in temp_diff.T])
+                temp_vec = np.array([(item + box_length_list / 2.0) % box_length_list - box_length_list / 2.0 for item in temp_diff.T])
                 temp_dis_2[:, index_1, index_2] = np.linalg.norm(temp_vec, axis=0)
         return temp_dis_2
 
@@ -137,7 +145,8 @@ class Helper_func(object):
         else: raise Exception('double check your pdb')
 
     @staticmethod
-    def get_distances_with_water_for_atom_list(pdb_file, atom_selection, box_length):
+    def get_distances_with_water_for_atom_list(pdb_file, atom_selection, box_length_list):
+        # box_length information is stored in reporter_file
         temp_u = Universe(pdb_file)
         water_pos, atoms_pos = [], []
         water_sel = temp_u.select_atoms('resname HOH and name O')
@@ -148,13 +157,13 @@ class Helper_func(object):
         atoms_pos = np.array(atoms_pos)
         water_pos = np.array(water_pos)
         distances = Helper_func.compute_distances_min_image_convention(atoms_pos_1=atoms_pos, atoms_pos_2=water_pos,
-                                                                       box_length=box_length)
+                                                                       box_length_list=box_length_list)
         return distances
 
     @staticmethod
-    def get_list_of_cg_count_for_atom_list(pdb_file, atom_selection, box_length, r_low, r_hi, rcut, sig):
+    def get_list_of_cg_count_for_atom_list(pdb_file, atom_selection, box_length_list, r_low, r_hi, rcut, sig):
         """ cg = coarse grained, atom list is specified by atom_selection """
-        distances = Helper_func.get_distances_with_water_for_atom_list(pdb_file, atom_selection, box_length)
+        distances = Helper_func.get_distances_with_water_for_atom_list(pdb_file, atom_selection, box_length_list)
         return Helper_func.get_cg_count_in_shell(distances, r_low, r_hi, rcut, sig)
 
     @staticmethod

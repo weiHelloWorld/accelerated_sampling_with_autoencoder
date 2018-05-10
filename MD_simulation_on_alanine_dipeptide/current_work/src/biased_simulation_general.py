@@ -21,7 +21,7 @@ parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to a
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
-parser.add_argument("--scaling_factor", type=float, default = CONFIG_49/10, help='scaling_factor for ANN_Force')  # factor of 10: since default unit is nm in OpenMM
+parser.add_argument("--scaling_factor", type=float, default = CONFIG_49, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
 parser.add_argument("--starting_pdb_file", type=str, default='auto', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
@@ -67,7 +67,7 @@ num_of_nodes = [int(item) for item in num_of_nodes]
 
 platform = Platform.getPlatformByName(args.platform)
 temperature = args.temperature
-input_data_type = ['cossin', 'Cartesian'][args.data_type_in_input_layer]
+input_data_type = ['cossin', 'Cartesian', 'pairwise'][args.data_type_in_input_layer]
 
 if float(force_constant) != 0:
     from ANN import *
@@ -98,8 +98,9 @@ def run_simulation(force_constant, number_of_simulation_steps):
                       'BetaHairpin': 0 * molar, 'C24': 0 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
-    pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s.pdb' % (folder_to_store_output_files, force_constant,
-                                                              str(potential_center).replace(' ', ''), temperature, args.whether_to_add_water_mol_opt)
+    pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s_%s.pdb' % (folder_to_store_output_files, force_constant,
+                                                              str(potential_center).replace(' ', ''), temperature,
+                                                                  args.whether_to_add_water_mol_opt, args.ensemble_type)
 
 
     if args.starting_pdb_file == 'auto':
@@ -179,15 +180,19 @@ def run_simulation(force_constant, number_of_simulation_steps):
     if args.bias_method == "US":
         if float(force_constant) != 0:
             force = ANN_Force()
-
             force.set_layer_types(layer_types)
             force.set_data_type_in_input_layer(args.data_type_in_input_layer)
             force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
             force.set_index_of_backbone_atoms(index_of_backbone_atoms)
+            pair_index_list = [[index_of_backbone_atoms[item_xx], index_of_backbone_atoms[item_yy]]
+                                for item_xx in range(len(index_of_backbone_atoms))
+                                for item_yy in range(item_xx + 1, len(index_of_backbone_atoms))]  # TODO: default setting is to use all pairs, may modify this later
+            # print pair_index_list
+            force.set_list_of_pair_index_for_distances(pair_index_list)
             force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
-            force.set_scaling_factor(float(scaling_factor))
+            force.set_scaling_factor(float(scaling_factor) / 10.0)     # factor of 10: since default unit is nm in OpenMM
 
             with open(autoencoder_info_file, 'r') as f_in:
                 content = f_in.readlines()
@@ -315,7 +320,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, time=True,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
-                                                  temperature=True, progress=True, remainingTime=True,
+                                                  temperature=True, progress=True, remainingTime=True, volume = True,density=True,
                                                   totalSteps=number_of_simulation_steps + args.equilibration_steps,
                                                   ))
     simulation.step(number_of_simulation_steps)

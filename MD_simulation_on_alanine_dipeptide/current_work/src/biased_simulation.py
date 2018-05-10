@@ -29,7 +29,7 @@ parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help=
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
 parser.add_argument("--data_type_in_input_layer", type=int, default=1, help='data_type_in_input_layer, 0 = cos/sin, 1 = Cartesian coordinates')
 parser.add_argument("--platform", type=str, default=CONFIG_23, help='platform on which the simulation is run')
-parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49)/10, help='scaling_factor for ANN_Force')
+parser.add_argument("--scaling_factor", type=float, default = float(CONFIG_49), help='scaling_factor for ANN_Force')
 parser.add_argument("--starting_pdb_file", type=str, default='../resources/alanine_dipeptide.pdb', help='the input pdb file to start simulation')
 parser.add_argument("--starting_frame", type=int, default=0, help="index of starting frame in the starting pdb file")
 parser.add_argument("--minimize_energy", type=int, default=1, help='whether to minimize energy (1 = yes, 0 = no)')
@@ -57,7 +57,7 @@ args = parser.parse_args()
 
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
-input_data_type = ['cossin', 'Cartesian'][args.data_type_in_input_layer]
+input_data_type = ['cossin', 'Cartesian', 'pairwise'][args.data_type_in_input_layer]
 force_constant = args.force_constant
 scaling_factor = args.scaling_factor
 layer_types = re.sub("\[|\]|\"|\'| ",'', args.layer_types).split(',')
@@ -116,33 +116,37 @@ def run_simulation(force_constant):
     system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=AllBonds)
 
     if args.bias_method == "US":
-        if CONFIG_28 == "ANN_Force":
-            if force_constant != '0' and force_constant != 0:
-                force = ANN_Force()
-                force.set_layer_types(layer_types)
-                force.set_data_type_in_input_layer(args.data_type_in_input_layer)
-                force.set_list_of_index_of_atoms_forming_dihedrals(list_of_index_of_atoms_forming_dihedrals)
-                force.set_index_of_backbone_atoms(index_of_backbone_atoms)
-                force.set_num_of_nodes(num_of_nodes)
-                force.set_potential_center(
-                    potential_center
-                    )
-                force.set_force_constant(float(force_constant))
-                force.set_scaling_factor(float(scaling_factor))
+        if float(force_constant) != 0:
+            force = ANN_Force()
+            force.set_layer_types(layer_types)
+            force.set_data_type_in_input_layer(args.data_type_in_input_layer)
+            force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
+            force.set_index_of_backbone_atoms(index_of_backbone_atoms)
+            pair_index_list = [[index_of_backbone_atoms[item_xx], index_of_backbone_atoms[item_yy]]
+                                for item_xx in range(len(index_of_backbone_atoms))
+                                for item_yy in range(item_xx + 1, len(index_of_backbone_atoms))]  # TODO: default setting is to use all pairs, may modify this later
+            # print pair_index_list
+            force.set_list_of_pair_index_for_distances(pair_index_list)
+            force.set_num_of_nodes(num_of_nodes)
+            force.set_potential_center(potential_center)
+            force.set_force_constant(float(force_constant))
+            force.set_scaling_factor(float(scaling_factor) / 10.0)     # factor of 10: since default unit is nm in OpenMM
 
-                # set coefficient
-                with open(autoencoder_info_file, 'r') as f_in:
-                    content = f_in.readlines()
-                temp_coeffs = [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
-                temp_bias = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
-                for item_layer_index in [0, 1]:
-                    assert (len(temp_coeffs[item_layer_index]) ==
-                            num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1])
-                    assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1])
+            with open(autoencoder_info_file, 'r') as f_in:
+                content = f_in.readlines()
 
-                force.set_coeffients_of_connections(temp_coeffs)
-                force.set_values_of_biased_nodes(temp_bias)
-                system.addForce(force)
+            # TODO: need to fix following for multi-hidden layer cases
+            temp_coeffs = [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
+            temp_bias  = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
+            for item_layer_index in [0, 1]:
+                assert (len(temp_coeffs[item_layer_index]) ==
+                        num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1])
+                assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1])
+
+            force.set_coeffients_of_connections(temp_coeffs)
+            force.set_values_of_biased_nodes(temp_bias)
+
+            system.addForce(force)
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
         plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed(scaling_factor=5.0)
