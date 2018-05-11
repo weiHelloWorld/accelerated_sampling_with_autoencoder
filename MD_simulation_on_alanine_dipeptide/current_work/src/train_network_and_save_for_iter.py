@@ -18,6 +18,7 @@ parser.add_argument('--in_data', type=str, default=None, help="npy file containi
 parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data")
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
+parser.add_argument('--save_train_data', type=int, default=False, help="save training data to npy files")
 args = parser.parse_args()
 
 # used to process additional arguments
@@ -151,6 +152,10 @@ if args.auto_scale:
 
 print ("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
                                                                   np.min(data_set), np.max(data_set)))
+
+if args.save_train_data:
+    np.save('temp_input', data_set)
+    np.save('temp_output', output_data_set)
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
