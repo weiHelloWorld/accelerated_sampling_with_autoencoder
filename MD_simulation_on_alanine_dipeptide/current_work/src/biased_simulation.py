@@ -147,6 +147,16 @@ def run_simulation(force_constant):
             force.set_values_of_biased_nodes(temp_bias)
 
             system.addForce(force)
+    elif args.bias_method == "US_on_phipsi":
+        from openmmplumed import PlumedForce
+        kappa_string = ','.join([str(force_constant) for _ in potential_center])
+        plumed_force_string = """
+phi: TORSION ATOMS=5,7,9,15
+psi: TORSION ATOMS=7,9,15,17
+restraint: RESTRAINT ARG=phi,psi AT=%f,%f KAPPA=%s
+PRINT STRIDE=10 ARG=* FILE=COLVAR
+        """ % (potential_center[0], potential_center[1], kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
         plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed(scaling_factor=5.0)
