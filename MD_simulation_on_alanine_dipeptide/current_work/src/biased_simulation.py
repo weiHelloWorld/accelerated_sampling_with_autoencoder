@@ -43,6 +43,7 @@ parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to us
 parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
 # following is for plumed script
 parser.add_argument("--plumed_file", type=str, default=None, help="plumed script for biasing force, used only when the bias_method == plumed_other")
+parser.add_argument("--plumed_add_string", type=str, default="", help="additional string to be attached to the end of plumed script in args.plumed_file")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -210,7 +211,7 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
     elif args.bias_method == "plumed_other":
         from openmmplumed import PlumedForce
         with open(args.plumed_file, 'r') as f_in:
-            plumed_force_string = f_in.read()
+            plumed_force_string = f_in.read() + args.plumed_add_string
         system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')
