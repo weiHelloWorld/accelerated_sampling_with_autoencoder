@@ -144,7 +144,8 @@ class autoencoder(object):
         return
 
     def get_expression_script_for_plumed(self, mode="native", node_num=None, connection_between_layers_coeffs=None,
-                                         connection_with_bias_layers_coeffs=None, index_CV_layer=None):
+                                         connection_with_bias_layers_coeffs=None, index_CV_layer=None,
+                                         activation_function_list=None):
         if node_num is None: node_num = self._node_num
         if connection_between_layers_coeffs is None: connection_between_layers_coeffs = self._connection_between_layers_coeffs
         if connection_with_bias_layers_coeffs is None: connection_with_bias_layers_coeffs = self._connection_with_bias_layers_coeffs
@@ -152,7 +153,7 @@ class autoencoder(object):
         plumed_script = ''
         if mode == "native":  # using native implementation by PLUMED (using COMBINE and MATHEVAL)
             plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
-            activation_function_list = ['tanh'] * index_CV_layer
+            if activation_function_list is None: activation_function_list = ['tanh'] * index_CV_layer
             for layer_index in range(1, index_CV_layer + 1):
                 for item in range(node_num[layer_index]):
                     plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
@@ -166,8 +167,22 @@ class autoencoder(object):
                         plumed_script += 'l_%d_out_%d,' % (layer_index - 1, _1)
 
                     plumed_script += 'bias_const\n'
-                    plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=%s(x) PERIODIC=NO\n' % (
-                        layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
+
+                if activation_function_list[layer_index - 1] == 'tanh':
+                    for item in range(node_num[layer_index]):
+                        plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d FUNC=tanh(x) PERIODIC=NO\n' % (
+                            layer_index, item, layer_index,item)
+                elif activation_function_list[layer_index - 1] == 'softmax':    # generalization for classifier
+                    plumed_script += "sum_output_layer: MATHEVAL ARG="
+                    for item in range(node_num[layer_index]): plumed_script += 'l_%d_in_%d,' % (layer_index, item)
+                    plumed_script = plumed_script[:-1]  + ' VAR='                 # remove last ','
+                    for item in range(node_num[layer_index]): plumed_script += 't_var_%d,' % item
+                    plumed_script = plumed_script[:-1] + ' FUNC='
+                    for item in range(node_num[layer_index]): plumed_script += 'exp(t_var_%d)+' % item
+                    plumed_script = plumed_script[:-1] + ' PERIODIC=NO\n'
+                    for item in range(node_num[layer_index]):
+                        plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d,sum_output_layer FUNC=exp(x)/y PERIODIC=NO\n' % (
+                            layer_index, item, layer_index, item)
         elif mode == "ANN":  # using ANN class
             temp_num_of_layers_used = index_CV_layer + 1
             temp_input_string = ','.join(['l_0_out_%d' % item for item in range(node_num[0])])
