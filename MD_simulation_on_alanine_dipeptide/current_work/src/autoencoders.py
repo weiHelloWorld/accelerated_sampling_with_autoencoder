@@ -143,22 +143,26 @@ class autoencoder(object):
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 
-    def get_expression_script_for_plumed(self, mode="native"):
-        index_CV_layer = (len(self._node_num) - 1) / 2
+    def get_expression_script_for_plumed(self, mode="native", node_num=None, connection_between_layers_coeffs=None,
+                                         connection_with_bias_layers_coeffs=None, index_CV_layer=None):
+        if node_num is None: node_num = self._node_num
+        if connection_between_layers_coeffs is None: connection_between_layers_coeffs = self._connection_between_layers_coeffs
+        if connection_with_bias_layers_coeffs is None: connection_with_bias_layers_coeffs = self._connection_with_bias_layers_coeffs
+        if index_CV_layer is None: index_CV_layer = (len(node_num) - 1) / 2
         plumed_script = ''
         if mode == "native":  # using native implementation by PLUMED (using COMBINE and MATHEVAL)
             plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
             activation_function_list = ['tanh'] * index_CV_layer
             for layer_index in range(1, index_CV_layer + 1):
-                for item in range(self._node_num[layer_index]):
+                for item in range(node_num[layer_index]):
                     plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
                     plumed_script += "%s" % \
-                                     str(self._connection_between_layers_coeffs[layer_index - 1][
-                                         item * self._node_num[layer_index - 1]:(item + 1) * self._node_num[
+                                     str(connection_between_layers_coeffs[layer_index - 1][
+                                         item * node_num[layer_index - 1]:(item + 1) * node_num[
                                              layer_index - 1]].tolist())[1:-1].replace(' ', '')
-                    plumed_script += ',%f' % self._connection_with_bias_layers_coeffs[layer_index - 1][item]
+                    plumed_script += ',%f' % connection_with_bias_layers_coeffs[layer_index - 1][item]
                     plumed_script += " ARG="
-                    for _1 in range(self._node_num[layer_index - 1]):
+                    for _1 in range(node_num[layer_index - 1]):
                         plumed_script += 'l_%d_out_%d,' % (layer_index - 1, _1)
 
                     plumed_script += 'bias_const\n'
@@ -166,16 +170,16 @@ class autoencoder(object):
                         layer_index, item, layer_index,item, activation_function_list[layer_index - 1])
         elif mode == "ANN":  # using ANN class
             temp_num_of_layers_used = index_CV_layer + 1
-            temp_input_string = ','.join(['l_0_out_%d' % item for item in range(self._node_num[0])])
-            temp_num_nodes_string = ','.join([str(item) for item in self._node_num[:temp_num_of_layers_used]])
+            temp_input_string = ','.join(['l_0_out_%d' % item for item in range(node_num[0])])
+            temp_num_nodes_string = ','.join([str(item) for item in node_num[:temp_num_of_layers_used]])
             temp_layer_type_string = CONFIG_17[:2]
             temp_layer_type_string = ','.join(temp_layer_type_string)
             temp_coeff_string = ''
             temp_bias_string = ''
-            for _1, item_coeff in enumerate(self._connection_between_layers_coeffs[:temp_num_of_layers_used - 1]):
+            for _1, item_coeff in enumerate(connection_between_layers_coeffs[:temp_num_of_layers_used - 1]):
                 temp_coeff_string += ' COEFFICIENTS_OF_CONNECTIONS%d=%s' % \
                                      (_1, ','.join([str(item) for item in item_coeff]))
-            for _1, item_bias in enumerate(self._connection_with_bias_layers_coeffs[:temp_num_of_layers_used - 1]):
+            for _1, item_bias in enumerate(connection_with_bias_layers_coeffs[:temp_num_of_layers_used - 1]):
                 temp_bias_string += ' VALUES_OF_BIASED_NODES%d=%s' % \
                                      (_1, ','.join([str(item) for item in item_bias]))
 
