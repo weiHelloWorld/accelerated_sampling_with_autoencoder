@@ -1,30 +1,34 @@
 from ANN_simulation import *
 
 class classification_sampler(object):
-    def __init__(self, index, end_states):    # end_states defined by pdb files
+    def __init__(self, index, all_states, end_state_index):    # end_states defined by pdb files
         self._index = index
-        self._end_states = end_states
-        self._all_states = self._end_states
+        self._end_state_index = end_state_index
+        self._all_states = all_states
         self._classifier = None
         self._scaling_factor = 5.0
         self._atom_selection = 'not name H*'
         return
 
+    def get_input_from_pdbs(self, pdb_list):
+        """can be modified to other input features later"""
+        return Sutils.get_non_repeated_pairwise_distance(
+            [pdb_list], atom_selection=self._atom_selection) / self._scaling_factor
+
     def get_training_data(self):
-        pairwise_dis = []
+        train_in = []
         class_labels = []
         for _1, item in enumerate(self._all_states):
-            temp_pairwise_dis = Sutils.get_non_repeated_pairwise_distance(
-                [item], atom_selection=self._atom_selection) / self._scaling_factor
-            temp_class_labels = np.zeros((temp_pairwise_dis.shape[0], len(self._all_states)))
+            temp_train_in = self.get_input_from_pdbs([item])
+            temp_class_labels = np.zeros((temp_train_in.shape[0], len(self._all_states)))
             temp_class_labels[:, _1] = 1
-            pairwise_dis.append(temp_pairwise_dis)
+            train_in.append(temp_train_in)
             class_labels.append(temp_class_labels)
 
-        assert (len(pairwise_dis) == len(self._all_states))
-        pairwise_dis = np.concatenate(pairwise_dis, axis=0)
+        assert (len(train_in) == len(self._all_states))
+        train_in = np.concatenate(train_in, axis=0)
         class_labels = np.concatenate(class_labels, axis=0)
-        return pairwise_dis, class_labels
+        return train_in, class_labels
 
     def train_classifier(self):
         train_in, train_out = self.get_training_data()
@@ -76,7 +80,11 @@ class classification_sampler(object):
         return script[:-1] + ' '
 
     def choose_two_states_between_which_we_sample_intermediates(self):
-        """is it good to alternatively choose state closest to either A or B??"""
+        """is it good to alternatively choose state closest to either A or B??
+        what would be a good distance metric?
+        """
+        input_list = [self.get_input_from_pdbs([item]) for item in self._all_states]
+
         return
 
     def sample_intermediate_between_two_states(self, state_index_1, state_index_2, folder):
@@ -91,4 +99,5 @@ class classification_sampler(object):
         command += ' --plumed_add_string " AT=%s KAPPA=%s"' % (pc_string, kappa_string)
         print command
         subprocess.check_output(command, shell=True)
+        self._all_states.append(out_pdb)
         return
