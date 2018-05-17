@@ -36,6 +36,7 @@ class classification_sampler(object):
         node_num = [train_in.shape[1], 100, len(self._all_states)]
         best_val_loss = None
         for _ in range(total_num_training):   # train multiple models and pick the best one
+            [train_in, train_out] = Helper_func.shuffle_multiple_arrays([train_in, train_out])
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation='tanh')(inputs_net)
             x = Dense(node_num[2], activation='softmax')(x)

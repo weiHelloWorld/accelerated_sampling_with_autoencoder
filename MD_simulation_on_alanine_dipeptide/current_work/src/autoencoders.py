@@ -1049,7 +1049,8 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         if self._enable_early_stopping:
             call_back_list += [earlyStopping]
 
-        train_history = molecule_net.fit(data, output_data_set, epochs=self._max_num_of_training, batch_size=self._batch_size,
+        [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
+        train_history = molecule_net.fit(train_in, train_out, epochs=self._max_num_of_training, batch_size=self._batch_size,
                          verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
         dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
