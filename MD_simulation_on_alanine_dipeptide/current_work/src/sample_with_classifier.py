@@ -7,15 +7,15 @@ class classification_sampler(object):
         self._all_states = self._end_states
         self._classifier = None
         self._scaling_factor = 5.0
+        self._atom_selection = 'not name H*'
         return
 
     def get_training_data(self):
-        ala_selection = 'not name H*'
         pairwise_dis = []
         class_labels = []
         for _1, item in enumerate(self._all_states):
             temp_pairwise_dis = Sutils.get_non_repeated_pairwise_distance(
-                [item], atom_selection=ala_selection) / self._scaling_factor
+                [item], atom_selection=self._atom_selection) / self._scaling_factor
             temp_class_labels = np.zeros((temp_pairwise_dis.shape[0], len(self._all_states)))
             temp_class_labels[:, _1] = 1
             pairwise_dis.append(temp_pairwise_dis)
@@ -54,12 +54,11 @@ class classification_sampler(object):
         return
 
     def get_plumed_script(self):
-        ala_selection = 'not name H*'
         molecule_net = load_model(self._classifier)
         node_num = [molecule_net.layers[0].output_shape[1], molecule_net.layers[1].output_shape[1],
                     molecule_net.layers[2].output_shape[1]]
         script = Sutils._get_plumed_script_with_pairwise_dis_as_input(
-            get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', ala_selection),
+            get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', self._atom_selection),
             self._scaling_factor)
         connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
                                             molecule_net.layers if isinstance(item, Dense)]
@@ -85,7 +84,9 @@ class classification_sampler(object):
         pc_string[state_index_1] = pc_string[state_index_2] = '0.5'
         pc_string = ','.join(pc_string)
         kappa_string = ','.join(['500'] * len(self._all_states))
+        out_pdb = folder + '/out_%02d_between_%02d_%02d.pdb' % (len(self._all_states), state_index_1, state_index_2)
         command = 'python ../src/biased_simulation.py 500 50000 0 %s none pc_0 --platform CPU ' % folder
+        command += '--output_pdb  %s ' % out_pdb
         command += '--bias_method plumed_other --plumed_file temp_plumed.txt '
         command += ' --plumed_add_string " AT=%s KAPPA=%s"' % (pc_string, kappa_string)
         print command
