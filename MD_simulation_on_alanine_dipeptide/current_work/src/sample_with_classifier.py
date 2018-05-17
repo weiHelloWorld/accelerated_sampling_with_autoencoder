@@ -13,7 +13,7 @@ class classification_sampler(object):
     def get_input_from_pdbs(self, pdb_list):
         """can be modified to other input features later"""
         return Sutils.get_non_repeated_pairwise_distance(
-            [pdb_list], atom_selection=self._atom_selection) / self._scaling_factor
+            pdb_list, atom_selection=self._atom_selection) / self._scaling_factor
 
     def get_training_data(self):
         train_in = []
@@ -32,7 +32,7 @@ class classification_sampler(object):
 
     def train_classifier(self):
         train_in, train_out = self.get_training_data()
-        node_num = [train_in.shape[1], 100, 3]
+        node_num = [train_in.shape[1], 100, len(self._all_states)]
         inputs_net = Input(shape=(node_num[0],))
         x = Dense(node_num[1], activation='tanh')(inputs_net)
         x = Dense(node_num[2], activation='softmax')(x)
@@ -103,7 +103,7 @@ class classification_sampler(object):
         pc_string = ','.join(pc_string)
         kappa_string = ','.join(['500'] * len(self._all_states))
         out_pdb = folder + '/out_%02d_between_%02d_%02d.pdb' % (len(self._all_states), state_index_1, state_index_2)
-        command = 'python ../src/biased_simulation.py 500 50000 0 %s none pc_0 --platform CPU ' % folder
+        command = 'python ../src/biased_simulation.py 50 50000 0 %s none pc_0 --platform CPU ' % folder
         command += '--output_pdb  %s ' % out_pdb
         command += '--bias_method plumed_other --plumed_file temp_plumed.txt '
         command += ' --plumed_add_string " AT=%s KAPPA=%s"' % (pc_string, kappa_string)
