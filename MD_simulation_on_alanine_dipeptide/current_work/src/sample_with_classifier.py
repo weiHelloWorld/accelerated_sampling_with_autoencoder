@@ -16,6 +16,7 @@ class classification_sampler(object):
             pdb_list, atom_selection=self._atom_selection) / self._scaling_factor
 
     def get_training_data(self):
+        # TODO: need to make sure all classes have roughly equal number of data
         train_in = []
         class_labels = []
         for _1, item in enumerate(self._all_states):
@@ -30,31 +31,36 @@ class classification_sampler(object):
         class_labels = np.concatenate(class_labels, axis=0)
         return train_in, class_labels
 
-    def train_classifier(self):
+    def train_classifier(self, lr=.01, momentum=0.9, total_num_training = 5):
         train_in, train_out = self.get_training_data()
         node_num = [train_in.shape[1], 100, len(self._all_states)]
-        inputs_net = Input(shape=(node_num[0],))
-        x = Dense(node_num[1], activation='tanh')(inputs_net)
-        x = Dense(node_num[2], activation='softmax')(x)
-        molecule_net = Model(inputs=inputs_net, outputs=x)
-        molecule_net.compile(loss='categorical_crossentropy', metrics=['categorical_crossentropy'],
-                             optimizer=SGD(lr=.01, momentum=.9, nesterov=True))
-        call_back_list = []
-        earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
-        call_back_list += [earlyStopping]
+        best_val_loss = None
+        for _ in range(total_num_training):   # train multiple models and pick the best one
+            inputs_net = Input(shape=(node_num[0],))
+            x = Dense(node_num[1], activation='tanh')(inputs_net)
+            x = Dense(node_num[2], activation='softmax')(x)
+            molecule_net = Model(inputs=inputs_net, outputs=x)
+            molecule_net.compile(loss='categorical_crossentropy', metrics=['categorical_crossentropy'],
+                                 optimizer=SGD(lr=lr, momentum=momentum, nesterov=True))
+            call_back_list = []
+            earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
+            call_back_list += [earlyStopping]
 
-        train_history = molecule_net.fit(train_in, train_out, epochs=200, batch_size=50,
-                                         verbose=0, validation_split=0.2, callbacks=call_back_list)
-        fig, axes = plt.subplots(1, 2)
-        axes[0].plot(train_history.history['loss'])
-        axes[1].plot(train_history.history['val_loss'])
-        png_file = 'history.png'
-        Helper_func.backup_rename_file_if_exists(png_file)
-        fig.savefig(png_file)
-        model_file = 'classifier_%02d.hdf5' % self._index
-        Helper_func.backup_rename_file_if_exists(model_file)
-        molecule_net.save(model_file)
-        self._classifier = model_file
+            train_history = molecule_net.fit(train_in, train_out, epochs=200, batch_size=50,
+                                             verbose=0, validation_split=0.2, callbacks=call_back_list)
+            if best_val_loss is None or train_history.history['val_loss'][-1] < best_val_loss:
+                best_val_loss = train_history.history['val_loss'][-1]
+                print "best_val_loss at iter %02d = %f" % (self._index, best_val_loss)
+                fig, axes = plt.subplots(1, 2)
+                axes[0].plot(train_history.history['loss'])
+                axes[1].plot(train_history.history['val_loss'])
+                png_file = 'history_%02d.png' % self._index
+                Helper_func.backup_rename_file_if_exists(png_file)
+                fig.savefig(png_file)
+                model_file = 'classifier_%02d.hdf5' % self._index
+                Helper_func.backup_rename_file_if_exists(model_file)
+                molecule_net.save(model_file)
+                self._classifier = model_file
         return
 
     def get_plumed_script(self):
