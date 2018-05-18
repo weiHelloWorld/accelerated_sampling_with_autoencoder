@@ -86,16 +86,25 @@ class classification_sampler(object):
         for item in range(node_num[2]): script += 'l_2_out_%d,' % item
         return script[:-1] + ' '
 
-    def choose_two_states_between_which_we_sample_intermediates(self):
+    def choose_two_states_between_which_we_sample_intermediates(self, metric="RMSD"):
         """is it good to alternatively choose state closest to either A or B??
         what would be a good distance metric?
         """
         # first find two states closest to two ends respectively
-        ave_input_list = [np.average(self.get_input_from_pdbs([item]), axis=0)
-                          for item in self._all_states]
-        dis_to_end_states = [
-            [np.linalg.norm(ave_input_list[self._end_state_index[temp_index]] - item)
-                for item in ave_input_list] for temp_index in [0, 1]]
+        if metric == 'input':
+            ave_input_list = [np.average(self.get_input_from_pdbs([item]), axis=0)
+                              for item in self._all_states]
+            dis_to_end_states = [
+                [np.linalg.norm(ave_input_list[self._end_state_index[temp_index]] - item)
+                    for item in ave_input_list] for temp_index in [0, 1]]
+        elif metric == 'RMSD':
+            atom_pos = [np.average(Sutils.get_positions_from_list_of_pdb([item], atom_selection_statement=self._atom_selection),
+                                   axis=0) for item in self._all_states]
+            dis_to_end_states = [
+                [Sutils.get_RMSD_after_alignment(atom_pos[self._end_state_index[temp_index]], item)
+                 for item in atom_pos] for temp_index in [0, 1]]
+        else: raise Exception('metric error')
+        print dis_to_end_states
         sorted_index = [np.argsort(item) for item in dis_to_end_states]
         for temp_index in [0, 1]:
             assert (dis_to_end_states[temp_index][sorted_index[temp_index][0]] < 1e-5)       # because distance to itself should be 0
@@ -104,11 +113,11 @@ class classification_sampler(object):
         chosen_end_state_index = 1   # TODO: modify this later
         return two_states_closest_to_two_ends[chosen_end_state_index], self._end_state_index[chosen_end_state_index]
 
-    def sample_intermediate_between_two_states(self, state_index_1, state_index_2, folder):
+    def sample_intermediate_between_two_states(self, state_index_1, state_index_2, folder, force_constant=500):
         pc_string = ['0'] * len(self._all_states)
         pc_string[state_index_1] = pc_string[state_index_2] = '0.5'
         pc_string = ','.join(pc_string)
-        kappa_string = ','.join(['500'] * len(self._all_states))
+        kappa_string = ','.join([str(force_constant)] * len(self._all_states))
         out_pdb = folder + '/out_%02d_between_%02d_%02d.pdb' % (len(self._all_states), state_index_1, state_index_2)
         command = 'python ../src/biased_simulation.py 50 50000 0 %s none pc_0 --platform CPU ' % folder
         command += '--output_pdb  %s ' % out_pdb
