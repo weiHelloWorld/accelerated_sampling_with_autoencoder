@@ -76,17 +76,12 @@ potential_center = list(map(lambda x: float(x), args.pc_potential_center.replace
 
 def run_simulation(force_constant):
     if not os.path.exists(folder_to_store_output_files):
-        try:
-            os.makedirs(folder_to_store_output_files)
-        except:
-            pass
+        try: os.makedirs(folder_to_store_output_files)
+        except: pass
 
     assert(os.path.exists(folder_to_store_output_files))
-
     input_pdb_file_of_molecule = args.starting_pdb_file
-
     force_field_file = 'amber99sb.xml'
-
     pdb_reporter_file = '%s/output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
 
     if not args.output_pdb is None:
@@ -98,13 +93,6 @@ def run_simulation(force_constant):
     for item_filename in [pdb_reporter_file, state_data_reporter_file]:
         Helper_func.backup_rename_file_if_exists(item_filename)
 
-    k1 = force_constant
-    k2 = force_constant
-
-    list_of_index_of_atoms_forming_dihedrals = [[2,5,7,9],
-                                                [5,7,9,15],
-                                                [7,9,15,17],
-                                                [9,15,17,19]]
     index_of_backbone_atoms = CONFIG_57[0]
     flag_random_seed = 0 # whether we need to fix this random seed
 
