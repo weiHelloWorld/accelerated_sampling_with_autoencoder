@@ -67,6 +67,13 @@ CONFIG_57 = [
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O'),
     get_index_list_with_selection_statement('../resources/C24.pdb', 'name C*')
 ]                                          # index list of atoms for training and biased simulations
+temp_CONFIG_80 = get_mol_param([
+    get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'not name H*'),
+    get_index_list_with_selection_statement('../resources/1l2y.pdb', 'backbone and not name O')
+    ])
+CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
+              for item_xx in range(len(temp_CONFIG_80))
+              for item_yy in range(item_xx + 1, len(temp_CONFIG_80))]    # pair index list for pairwise distances as input
 if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
     CONFIG_73 = get_mol_param(['name C or name CH3 or name CA or name N', 'name CA',
                                '(resid 144:170 or resid 44:58) and name CA', None
