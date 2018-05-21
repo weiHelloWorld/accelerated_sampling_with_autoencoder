@@ -64,7 +64,7 @@ class classification_sampler(object):
                 self._classifier = model_file
         return
 
-    def get_plumed_script(self):
+    def write_classifier_coeff_info(self, out_file, mode="ANN_Force"):
         molecule_net = load_model(self._classifier)
         node_num = [molecule_net.layers[0].output_shape[1], molecule_net.layers[1].output_shape[1],
                     molecule_net.layers[2].output_shape[1]]
@@ -76,15 +76,27 @@ class classification_sampler(object):
         connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if
                                               isinstance(item, Dense)]
         index_CV_layer = 2
-        temp_AE = autoencoder_Keras(1, None, None)
-        script += temp_AE.get_expression_script_for_plumed(
-            node_num=node_num,
-            connection_between_layers_coeffs=connection_between_layers_coeffs,
-            connection_with_bias_layers_coeffs=connection_with_bias_layers_coeffs,
-            index_CV_layer=index_CV_layer, activation_function_list=['tanh', 'softmax'])
-        script += 'mypotential: RESTRAINT ARG='
-        for item in range(node_num[2]): script += 'l_2_out_%d,' % item
-        return script[:-1] + ' '
+        if mode == 'plumed':
+            temp_AE = autoencoder_Keras(1, None, None)
+            script += temp_AE.get_expression_script_for_plumed(
+                node_num=node_num,
+                connection_between_layers_coeffs=connection_between_layers_coeffs,
+                connection_with_bias_layers_coeffs=connection_with_bias_layers_coeffs,
+                index_CV_layer=index_CV_layer, activation_function_list=['tanh', 'softmax'])
+            script += 'mypotential: RESTRAINT ARG='
+            for item in range(node_num[2]): script += 'l_2_out_%d,' % item
+            result = script[:-1] + ' '
+            with open(out_file, 'w') as f_out:
+                f_out.write(result)
+        elif mode == 'ANN_Force':
+            with open(out_file, 'w') as f_out:
+                for item in range(index_CV_layer):
+                    f_out.write(str(list(connection_between_layers_coeffs[item])))
+                    f_out.write(',\n')
+                for item in range(index_CV_layer):
+                    f_out.write(str(list(connection_with_bias_layers_coeffs[item])))
+                    f_out.write(',\n')
+        return
 
     def choose_two_states_between_which_we_sample_intermediates(self, metric="RMSD"):
         """is it good to alternatively choose state closest to either A or B??
@@ -113,16 +125,25 @@ class classification_sampler(object):
         chosen_end_state_index = 1   # TODO: modify this later
         return two_states_closest_to_two_ends[chosen_end_state_index], self._end_state_index[chosen_end_state_index]
 
-    def sample_intermediate_between_two_states(self, state_index_1, state_index_2, folder, force_constant=500):
+    def sample_intermediate_between_two_states(self, state_index_1, state_index_2, folder, coeff_info_file,
+                                               force_constant=500, mode='ANN_Force'):
         pc_string = ['0'] * len(self._all_states)
         pc_string[state_index_1] = pc_string[state_index_2] = '0.5'
         pc_string = ','.join(pc_string)
-        kappa_string = ','.join([str(force_constant)] * len(self._all_states))
         out_pdb = folder + '/out_%02d_between_%02d_%02d.pdb' % (len(self._all_states), state_index_1, state_index_2)
-        command = 'python ../src/biased_simulation.py 50 50000 0 %s none pc_0 --platform CPU ' % folder
-        command += '--output_pdb  %s ' % out_pdb
-        command += '--bias_method plumed_other --plumed_file temp_plumed.txt '
-        command += ' --plumed_add_string " AT=%s KAPPA=%s"' % (pc_string, kappa_string)
+        if mode == 'plumed':
+            kappa_string = ','.join([str(force_constant)] * len(self._all_states))
+            command = 'python ../src/biased_simulation.py 50 50000 0 %s none pc_%s --platform CPU ' % (folder, pc_string)
+            command += '--output_pdb  %s ' % out_pdb
+            command += '--bias_method plumed_other --plumed_file %s ' % coeff_info_file
+            command += ' --plumed_add_string " AT=%s KAPPA=%s"' % (pc_string, kappa_string)
+        elif mode == 'ANN_Force':
+            command = 'python ../src/biased_simulation.py 50 50000 %s %s %s pc_%s --platform CPU ' % (
+                str(force_constant), folder, coeff_info_file, pc_string)
+            command += '--output_pdb  %s --layer_types "Tanh,Softmax" --num_of_nodes 45,100,%d --data_type_in_input_layer 2' % (
+                out_pdb, len(self._all_states))
+            command += ' --scaling_factor 5.0'
+        else: raise Exception('mode error')
         print command
         subprocess.check_output(command, shell=True)
         self._all_states.append(out_pdb)

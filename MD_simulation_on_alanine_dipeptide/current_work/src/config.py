@@ -22,7 +22,7 @@ it configures all default values/global parameters for constructors/functions
 ############   some global variables and helper functions  ############
 #######################################################################
 
-CONFIG_30 = "Trp_cage"     # the type of molecule we are studying
+CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 
 def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule specific parameter using a parameter list
@@ -52,7 +52,8 @@ CONFIG_49 = get_mol_param([5.0, 20.0, 40.0, 20.0, 20.0]) # scaling factor for ou
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 CONFIG_57 = [
-    get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'name C or name CH3 or name CA or name N'),
+    # get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'name C or name CH3 or name CA or name N'),
+    get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'not name H*'),
     get_index_list_with_selection_statement('../resources/1l2y.pdb', 'backbone and not name O'),
     # get_index_list_with_selection_statement('../resources/2src.pdb', 'backbone and not name O'),
     # get_index_list_with_selection_statement('../resources/2src.pdb',
