@@ -102,7 +102,6 @@ class classification_sampler(object):
         """is it good to alternatively choose state closest to either A or B??
         what would be a good distance metric?
         """
-        # first find two states closest to two ends respectively
         if metric == 'input':
             ave_input_list = [np.average(self.get_input_from_pdbs([item]), axis=0)
                               for item in self._all_states]
@@ -110,18 +109,25 @@ class classification_sampler(object):
                 [np.linalg.norm(ave_input_list[self._end_state_index[temp_index]] - item)
                     for item in ave_input_list] for temp_index in [0, 1]]
         elif metric == 'RMSD':
-            atom_pos = [np.average(Sutils.get_positions_from_list_of_pdb([item], atom_selection_statement=self._atom_selection),
-                                   axis=0) for item in self._all_states]
-            dis_to_end_states = [
-                [Sutils.get_RMSD_after_alignment(atom_pos[self._end_state_index[temp_index]], item)
-                 for item in atom_pos] for temp_index in [0, 1]]
+            atom_pos = [Sutils.get_positions_from_list_of_pdb([item], atom_selection_statement=self._atom_selection)
+                        for item in self._all_states]
+            dis_to_end_states = []
+            for temp_end_index in [self._end_state_index[0], self._end_state_index[1]]:
+                temp_dis_to_end_states = []
+                for temp_state_index, _ in enumerate(self._all_states):
+                    if temp_state_index == temp_end_index:
+                        temp_average_RMSD = 0
+                    else:
+                        temp_average_RMSD = np.average([Sutils.get_RMSD_after_alignment(item_1, item_2)
+                            for item_1 in atom_pos[temp_end_index] for item_2 in atom_pos[temp_state_index]])
+                    temp_dis_to_end_states.append(temp_average_RMSD)
+                dis_to_end_states.append(temp_dis_to_end_states)
         else: raise Exception('metric error')
         print dis_to_end_states
         sorted_index = [np.argsort(item) for item in dis_to_end_states]
         for temp_index in [0, 1]:
             assert (dis_to_end_states[temp_index][sorted_index[temp_index][0]] < 1e-5)       # because distance to itself should be 0
         two_states_closest_to_two_ends = [sorted_index[0][1], sorted_index[1][1]]          # why choose state with sorted_index = 1? since the distance to itself = 0
-        # then choose one end and the state closest to that end
         chosen_end_state_index = 1   # TODO: modify this later
         return two_states_closest_to_two_ends[chosen_end_state_index], self._end_state_index[chosen_end_state_index]
 

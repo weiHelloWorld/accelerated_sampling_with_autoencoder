@@ -179,10 +179,6 @@ if CONFIG_17[1] == "Circular":
 elif CONFIG_17[1] == "Tanh":
     CONFIG_18 = False
     CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
-elif CONFIG_17[1] == "Relu":
-    CONFIG_18 = False
-    CONFIG_26 = [[-1, 1] for item in range(CONFIG_36)]
-    raise Exception("Warning: very few tests are done for ReLu layer, this is not recommended!  " + WARNING_INFO)
 else:
     raise Exception('Layer not defined')
 
