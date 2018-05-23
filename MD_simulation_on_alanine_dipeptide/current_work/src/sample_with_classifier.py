@@ -98,16 +98,28 @@ class classification_sampler(object):
                     f_out.write(',\n')
         return
 
-    def choose_two_states_between_which_we_sample_intermediates(self, metric="RMSD"):
-        """is it good to alternatively choose state closest to either A or B??
-        what would be a good distance metric?
-        """
-        if metric == 'input':
+    def choose_two_states_list_between_which_we_sample_intermediates(self, metric="RMSD", option=0):
+        dis_to_end_states = self.get_dis_to_end_states(metric)
+        print dis_to_end_states
+        if option == 0:
+            sorted_index = [np.argsort(item) for item in dis_to_end_states]
+            for temp_index in [0, 1]:
+                assert (dis_to_end_states[temp_index][sorted_index[temp_index][0]] < 1e-5)       # because distance to itself should be 0
+            two_states_closest_to_two_ends = [sorted_index[0][1], sorted_index[1][1]]          # why choose state with sorted_index = 1? since the distance to itself = 0
+            if dis_to_end_states[0][two_states_closest_to_two_ends[0]] < dis_to_end_states[1][two_states_closest_to_two_ends[1]]:
+                chosen_end_state_index = 1
+            else:
+                chosen_end_state_index = 0
+            result_list = [two_states_closest_to_two_ends[chosen_end_state_index], self._end_state_index[chosen_end_state_index]]
+        return result_list
+
+    def get_dis_to_end_states(self, metric):
+        if metric == 'input':  # what would be a good distance metric?
             ave_input_list = [np.average(self.get_input_from_pdbs([item]), axis=0)
                               for item in self._all_states]
             dis_to_end_states = [
                 [np.linalg.norm(ave_input_list[self._end_state_index[temp_index]] - item)
-                    for item in ave_input_list] for temp_index in [0, 1]]
+                 for item in ave_input_list] for temp_index in [0, 1]]
         elif metric == 'RMSD':
             atom_pos = [Sutils.get_positions_from_list_of_pdb([item], atom_selection_statement=self._atom_selection)
                         for item in self._all_states]
@@ -119,20 +131,13 @@ class classification_sampler(object):
                         temp_average_RMSD = 0
                     else:
                         temp_average_RMSD = np.average([Sutils.get_RMSD_after_alignment(item_1, item_2)
-                            for item_1 in atom_pos[temp_end_index] for item_2 in atom_pos[temp_state_index]])
+                                                        for item_1 in atom_pos[temp_end_index] for item_2 in
+                                                        atom_pos[temp_state_index]])
                     temp_dis_to_end_states.append(temp_average_RMSD)
                 dis_to_end_states.append(temp_dis_to_end_states)
-        else: raise Exception('metric error')
-        print dis_to_end_states
-        sorted_index = [np.argsort(item) for item in dis_to_end_states]
-        for temp_index in [0, 1]:
-            assert (dis_to_end_states[temp_index][sorted_index[temp_index][0]] < 1e-5)       # because distance to itself should be 0
-        two_states_closest_to_two_ends = [sorted_index[0][1], sorted_index[1][1]]          # why choose state with sorted_index = 1? since the distance to itself = 0
-        if dis_to_end_states[0][two_states_closest_to_two_ends[0]] < dis_to_end_states[1][two_states_closest_to_two_ends[1]]:
-            chosen_end_state_index = 1
         else:
-            chosen_end_state_index = 0
-        return two_states_closest_to_two_ends[chosen_end_state_index], self._end_state_index[chosen_end_state_index]
+            raise Exception('metric error')
+        return dis_to_end_states
 
     def sample_intermediate_between_two_states(self, state_index_1, state_index_2, folder, coeff_info_file,
                                                force_constant=500, mode='ANN_Force'):
