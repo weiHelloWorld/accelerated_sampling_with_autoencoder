@@ -128,7 +128,10 @@ class classification_sampler(object):
         for temp_index in [0, 1]:
             assert (dis_to_end_states[temp_index][sorted_index[temp_index][0]] < 1e-5)       # because distance to itself should be 0
         two_states_closest_to_two_ends = [sorted_index[0][1], sorted_index[1][1]]          # why choose state with sorted_index = 1? since the distance to itself = 0
-        chosen_end_state_index = 1   # TODO: modify this later
+        if dis_to_end_states[0][two_states_closest_to_two_ends[0]] < dis_to_end_states[1][two_states_closest_to_two_ends[1]]:
+            chosen_end_state_index = 1
+        else:
+            chosen_end_state_index = 0
         return two_states_closest_to_two_ends[chosen_end_state_index], self._end_state_index[chosen_end_state_index]
 
     def sample_intermediate_between_two_states(self, state_index_1, state_index_2, folder, coeff_info_file,
