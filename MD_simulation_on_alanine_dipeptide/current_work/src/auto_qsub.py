@@ -65,6 +65,20 @@ source /home/weichen9/.bashrc
 echo "This job is DONE!"
 exit 0
 ''' % (CONFIG_19, command_in_sge_file)
+elif "h2ologin" in server_name:  # Blue Waters
+    content_for_sge_file = '''#!/bin/bash
+#PBS -l walltime=%s
+#PBS -l nodes=1:ppn=2
+#PBS -V
+#PBS -m ae                 # email on abort, begin, and end
+#PBS -M wei.herbert.chen@gmail.com         # email address
+
+cd $PBS_O_WORKDIR         # go to current directory
+source /u/sciteam/chen21/.bashrc
+%s
+echo "This job is DONE!"
+exit 0
+''' % (CONFIG_19, command_in_sge_file)
 else:
     raise Exception('server error: %s does not exist' % server_name)
 
