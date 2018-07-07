@@ -1,4 +1,5 @@
-import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse
+import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse, matplotlib
+matplotlib.use('agg')
 from scipy import io as sciio
 import numpy as np, pandas as pd, seaborn as sns
 from numpy.testing import assert_almost_equal
@@ -212,7 +213,10 @@ if temp_home_directory == "/home/kengyangyao":
     CONFIG_25 = temp_home_directory + '/.anaconda2/lib/plugins'  # this is the directory where the plugin is installed
 elif temp_home_directory == "/home/weichen9":
     CONFIG_24 = 'cluster'  # machine to run the simulations
-    CONFIG_25 = '/home/weichen9/.my_softwares/openmm7/lib/plugins'
+    CONFIG_25 = temp_home_directory + '/.my_softwares/openmm7/lib/plugins'
+elif temp_home_directory == "/u/sciteam/chen21":
+    CONFIG_24 = 'local'
+    CONFIG_25 = temp_home_directory + '/.openmm/lib/plugins'
 else:
     print ('unknown user directory: %s' % temp_home_directory)
 
