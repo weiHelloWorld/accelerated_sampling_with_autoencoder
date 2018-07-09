@@ -200,7 +200,6 @@ CONFIG_67 = 2               # height of metadynamics
 CONFIG_68 = 0.1             # sigma of metadynamics
 CONFIG_69 = 0               # whether to use well-tempered version
 CONFIG_70 = 15              # biasfactor for well-tempered metadynamics
-CONFIG_19 = '48:00:00'                                    # max running time for the sge job
 
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps

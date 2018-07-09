@@ -3,7 +3,6 @@ This program takes a "terminal command" (should be within quotation mark) as an 
 generate corresponding sge file, and qsub it.
 """
 
-from config import *
 from cluster_management import *
 import argparse, subprocess, os
 
@@ -12,6 +11,7 @@ parser.add_argument("command", type=str, help="command to run")
 parser.add_argument("--submit", help="submit the job", action="store_true")
 parser.add_argument('--gpu', type=int, help="whether to run on GPU")
 parser.add_argument("--node", type=int, default=-1)
+parser.add_argument("--max_time", type=str, default='48:00:00', help='max time to run')
 args = parser.parse_args()
 
 whether_to_qsub = args.submit
@@ -48,7 +48,7 @@ if server_name == "alf-clustersrv.mrl.illinois.edu":
 %s
 echo "This job is DONE!"
 exit 0
-''' % (CONFIG_19, gpu_option_string, node_string, command_in_sge_file)
+''' % (args.max_time, gpu_option_string, node_string, command_in_sge_file)
 elif "golubh" in server_name:  # campus cluster
     content_for_sge_file = '''#!/bin/bash
 #PBS -l walltime=%s
@@ -64,7 +64,7 @@ source /home/weichen9/.bashrc
 %s
 echo "This job is DONE!"
 exit 0
-''' % (CONFIG_19, command_in_sge_file)
+''' % (args.max_time, command_in_sge_file)
 elif "h2ologin" in server_name:  # Blue Waters
     content_for_sge_file = '''#!/bin/bash
 #PBS -l walltime=%s
@@ -78,7 +78,7 @@ source /u/sciteam/chen21/.bashrc
 %s
 echo "This job is DONE!"
 exit 0
-''' % (CONFIG_19, command_in_sge_file)
+''' % (args.max_time, command_in_sge_file)
 else:
     raise Exception('server error: %s does not exist' % server_name)
 

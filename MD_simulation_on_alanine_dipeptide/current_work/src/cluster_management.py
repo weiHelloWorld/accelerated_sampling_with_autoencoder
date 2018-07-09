@@ -1,4 +1,3 @@
-from config import *
 import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib
 
 class cluster_management(object):
@@ -70,7 +69,7 @@ class cluster_management(object):
 echo "This job is DONE!"
 
 exit 0
-''' % (CONFIG_19, gpu_option_string, item)
+''' % ('48:00:00', gpu_option_string, item)
             with open(sge_filename, 'w') as f_out:
                 f_out.write(content_for_sge_files)
                 f_out.write("\n")
