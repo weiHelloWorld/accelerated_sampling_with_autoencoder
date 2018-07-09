@@ -66,9 +66,10 @@ echo "This job is DONE!"
 exit 0
 ''' % (args.max_time, command_in_sge_file)
 elif "h2ologin" in server_name:  # Blue Waters
+    node_type = ':xk' if args.gpu else ''
     content_for_sge_file = '''#!/bin/bash
 #PBS -l walltime=%s
-#PBS -l nodes=1:ppn=2
+#PBS -l nodes=1:ppn=2%s
 #PBS -V
 #PBS -m ae                 # email on abort, begin, and end
 #PBS -M wei.herbert.chen@gmail.com         # email address
@@ -78,7 +79,7 @@ source /u/sciteam/chen21/.bashrc
 %s
 echo "This job is DONE!"
 exit 0
-''' % (args.max_time, command_in_sge_file)
+''' % (args.max_time, node_type, command_in_sge_file)
 else:
     raise Exception('server error: %s does not exist' % server_name)
 
