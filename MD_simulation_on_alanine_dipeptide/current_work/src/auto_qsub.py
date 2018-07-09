@@ -67,15 +67,16 @@ exit 0
 ''' % (args.max_time, command_in_sge_file)
 elif "h2ologin" in server_name:  # Blue Waters
     node_type = ':xk' if args.gpu else ''
-    content_for_sge_file = '''#!/bin/bash
+    content_for_sge_file = '''#!/usr/bin/zsh
 #PBS -l walltime=%s
 #PBS -l nodes=1:ppn=2%s
-#PBS -V
-#PBS -m ae                 # email on abort, begin, and end
-#PBS -M wei.herbert.chen@gmail.com         # email address
+#PBS -m ae   
+#PBS -M wei.herbert.chen@gmail.com    
 
-cd $PBS_O_WORKDIR         # go to current directory
-source /u/sciteam/chen21/.bashrc
+. /etc/zsh.zshrc.local
+source /u/sciteam/chen21/.zshrc
+cd $PBS_O_WORKDIR
+# source /u/sciteam/chen21/.bashrc
 %s
 echo "This job is DONE!"
 exit 0
