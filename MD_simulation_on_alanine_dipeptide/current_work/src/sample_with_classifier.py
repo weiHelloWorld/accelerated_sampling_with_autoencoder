@@ -16,7 +16,6 @@ class classification_sampler(object):
             pdb_list, atom_selection=self._atom_selection) / self._scaling_factor
 
     def get_training_data(self):
-        # TODO: need to make sure all classes have roughly equal number of data
         train_in = []
         class_labels = []
         for _1, item in enumerate(self._all_states):
@@ -162,3 +161,19 @@ class classification_sampler(object):
         subprocess.check_output(command, shell=True)
         self._all_states.append(out_pdb)
         return
+
+
+if __name__ == "__main__":
+    _1 = coordinates_data_files_list(['../resources/temp_ALA/'])
+    _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not '2.5' in x)
+    c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1])
+    mode = 'ANN_Force'
+    for item in range(2, 10):
+        info_file = '../resources/temp_info_%02d.txt' % item
+        c_sampler.train_classifier()
+        c_sampler.write_classifier_coeff_info(info_file, mode=mode)
+        [state_1, state_2] = c_sampler.choose_two_states_list_between_which_we_sample_intermediates()
+        c_sampler.sample_intermediate_between_two_states(
+            state_1, state_2, '../target/temp_biased', info_file,
+            force_constant=500, mode=mode)
+        c_sampler = classification_sampler(item, c_sampler._all_states, [0, 1])
