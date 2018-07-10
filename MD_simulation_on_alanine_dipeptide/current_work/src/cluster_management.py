@@ -6,8 +6,8 @@ class cluster_management(object):
 
     @staticmethod
     def generate_sge_filename_for_a_command(command):
-        sge_filename = command.replace(' ', '_').replace('..', '_').replace('/','_')\
-                .replace('&', '').replace('--', '_').replace('\\','').replace(':', '_') + '.sge'
+        sge_filename = command.split('>')[0].replace('"','').replace(' ', '_').replace('..', '_').replace('/','_')\
+                .replace('&', '').replace('--', '_').replace('\\','').replace(':', '_').strip() + '.sge'
         sge_filename = re.sub('_+', '_', sge_filename)
         if len(sge_filename) > 255:  # max length of file names in Linux
             temp = hashlib.md5()
