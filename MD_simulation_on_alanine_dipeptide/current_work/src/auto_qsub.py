@@ -20,69 +20,8 @@ if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not wor
     command_in_sge_file = command_in_sge_file[:-1]
 server_name = subprocess.check_output(['uname', '-n']).strip()
 
-if server_name == "alf-clustersrv.mrl.illinois.edu":
-    if args.gpu:
-        gpu_option_string = '#$ -l gpu=1'
-    else:
-        gpu_option_string = ''
-
-    if args.node == -1:
-        node_string = ""
-    else:
-        node_string = "#$ -l hostname=compute-0-%d" % args.node
-
-    content_for_sge_file = '''#!/bin/bash
-
-#$ -S /bin/bash           # use bash shell
-#$ -V                     # inherit the submission environment 
-#$ -cwd                   # start job in submission directory
-
-#$ -m ae                 # email on abort, begin, and end
-#$ -M wei.herbert.chen@gmail.com         # email address
-
-#$ -q all.q               # queue name
-#$ -l h_rt=%s       # run time (hh:mm:ss)
-
-%s
-%s
-%s
-echo "This job is DONE!"
-exit 0
-''' % (args.max_time, gpu_option_string, node_string, command_in_sge_file)
-elif "golubh" in server_name:  # campus cluster
-    content_for_sge_file = '''#!/bin/bash
-#PBS -l walltime=%s
-#PBS -l nodes=1:ppn=2
-#PBS -l naccesspolicy=singleuser
-#PBS -q alf
-#PBS -V
-#PBS -m ae                 # email on abort, begin, and end
-#PBS -M wei.herbert.chen@gmail.com         # email address
-
-cd $PBS_O_WORKDIR         # go to current directory
-source /home/weichen9/.bashrc
-%s
-echo "This job is DONE!"
-exit 0
-''' % (args.max_time, command_in_sge_file)
-elif "h2ologin" in server_name:  # Blue Waters
-    node_type = ':xk' if args.gpu else ''
-    content_for_sge_file = '''#!/usr/bin/zsh
-#PBS -l walltime=%s
-#PBS -l nodes=1:ppn=2%s
-#PBS -m ae   
-#PBS -M wei.herbert.chen@gmail.com    
-
-. /etc/zsh.zshrc.local
-source /u/sciteam/chen21/.zshrc
-cd $PBS_O_WORKDIR
-# source /u/sciteam/chen21/.bashrc
-%s
-echo "This job is DONE!"
-exit 0
-''' % (args.max_time, node_type, command_in_sge_file)
-else:
-    raise Exception('server error: %s does not exist' % server_name)
+content_for_sge_file = cluster_management.get_sge_file_content(
+    command_in_sge_file, args.gpu, max_time=args.max_time, node=args.node)
 
 folder_to_store_sge_files = '../sge_files/'
 
