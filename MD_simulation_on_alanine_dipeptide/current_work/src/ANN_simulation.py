@@ -371,8 +371,8 @@ class iteration(object):
             job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command)
             output_file, _ = cluster_management.get_output_and_err_with_job_id(job_id=job_id)
             temp_output = subprocess.check_output(['cat', output_file])
-            assert (temp_output.strip().split('\n')[-1] == 'This job is DONE!')
-            autoencoder_filename = temp_output.strip().split('\n')[-2]
+            autoencoder_filename = temp_output.strip().split(
+                'excited! this is the name of best network: ')[1].strip().split('\n')[0]   # locate filename in output
         else:
             raise Exception('machine type error')
 
