@@ -121,6 +121,7 @@ exit 0
         _, user = cluster_management.get_server_and_user()
         output = subprocess.check_output(['qstat', '-u', user])
         all_entries = output.strip().split('\n')[2:]   # remove header
+        all_entries = [item for item in all_entries if user in item]        # remove unrelated lines
         all_entries = [item for item in all_entries if (not item.strip().split()[4] == 'dr')]   # remove job in "dr" state
         num_of_running_jobs = len(all_entries)
         # print('checking number of running jobs = %d\n' % num_of_running_jobs)
