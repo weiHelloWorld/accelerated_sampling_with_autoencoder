@@ -154,6 +154,7 @@ exit 0
             result = output_info.strip().split('\n')[-1]
             assert (result[-3:] == '.bw')
             result = result[:-3]
+            assert (len(result) == 7)
         else: raise Exception('unknown server')
         return result
 
@@ -231,12 +232,12 @@ exit 0
         return
 
     @staticmethod
-    def is_job_on_cluster(job_sgefile_name):
+    def is_job_on_cluster(job_sgefile_name):    # input could be sge file name or job id
         server, user = cluster_management.get_server_and_user()
         if 'alf' in server:
             output = subprocess.check_output(['qstat', '-r'])
         elif "h2ologin" in server or 'nid' in server:
-            output = subprocess.check_output(['qstat', '-u', user, '-f'])
+            output = subprocess.check_output(['qstat', '-u', user, '-f', '-x'])   # output in xml format, make sure long file name is displayed in one line
         else: raise Exception('unknown server')
         return job_sgefile_name in output
 
@@ -286,9 +287,7 @@ exit 0
                 else:
                     print "%s finishes successfully" % job_sgefile_name
                     return 0  
-            else:
-                # TODO: handle this case
-                return
+            else: return
 
     @staticmethod
     def handle_jobs_not_finished_successfully_and_archive(job_sgefile_name_list, latest_version=True):
