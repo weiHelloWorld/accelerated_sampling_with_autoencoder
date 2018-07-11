@@ -274,9 +274,7 @@ exit 0
 
                 with open(latest_err_file, 'r') as err_f:
                     err_content = [item.strip() for item in err_f.readlines()]
-                    err_content = filter(lambda x: x[:4] != 'bash', err_content)  # ignore error info starting with "bash"
-                    err_content = filter(lambda x: not 'Using Theano backend' in x, err_content)
-                    err_content = filter(lambda x: x != "", err_content)
+                    err_content = filter(lambda x: "Traceback (most recent call last)" in x, err_content)
 
                 if (job_finished_message in out_content) and (len(err_content) != 0):
                     print "%s ends with exception" % job_sgefile_name
