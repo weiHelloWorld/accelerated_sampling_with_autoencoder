@@ -50,13 +50,14 @@ source /home/weichen9/.bashrc
 echo "This job is DONE!"
 exit 0
 ''' % (max_time, command_in_sge_file)
-        elif "h2ologin" in server_name:  # Blue Waters
+        elif "h2ologin" in server_name or 'nid' in server_name:  # Blue Waters
             node_type = ':xk' if gpu else ''
             content_for_sge_file = '''#!/usr/bin/zsh
 #PBS -l walltime=%s
 #PBS -l nodes=1:ppn=2%s
 #PBS -m ae   
 #PBS -M wei.herbert.chen@gmail.com    
+#PBS -A batp
 
 . /etc/zsh.zshrc.local
 source /u/sciteam/chen21/.zshrc
@@ -145,15 +146,17 @@ exit 0
         server, _ = cluster_management.get_server_and_user()
         if 'alf' in server:
             result = output_info.strip().split(' ')[2]
-        elif "h2ologin" in server:
+        elif "h2ologin" in server or 'nid' in server:
             result = output_info.strip().split('\n')[-1]
             assert (result[-3:] == '.bw')
+            result = result[:-3]
         else: raise Exception('unknown server')
         return result
 
     @staticmethod
     def submit_a_single_job_and_wait_until_it_finishes(job_sge_file):
         job_id = cluster_management.submit_sge_jobs_and_archive_files([job_sge_file], num=1)[0]
+        print "job = %s, job_id = %s" % (job_sge_file, job_id)
         while cluster_management.is_job_on_cluster(job_id):
             time.sleep(10)
         print "job (id = %s) done!" % job_id
@@ -228,7 +231,7 @@ exit 0
         server, user = cluster_management.get_server_and_user()
         if 'alf' in server:
             output = subprocess.check_output(['qstat', '-r'])
-        elif "h2ologin" in server:
+        elif "h2ologin" in server or 'nid' in server:
             output = subprocess.check_output(['qstat', '-u', user, '-f'])
         else: raise Exception('unknown server')
         return job_sgefile_name in output
