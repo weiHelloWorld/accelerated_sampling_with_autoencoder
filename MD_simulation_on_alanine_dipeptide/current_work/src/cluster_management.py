@@ -52,6 +52,9 @@ exit 0
 ''' % (max_time, command_in_sge_file)
         elif "h2ologin" in server_name or 'nid' in server_name:  # Blue Waters
             node_type = ':xk' if gpu else ''
+            if not command_in_sge_file.startswith('aprun'):
+                command_in_sge_file = 'aprun -n1 ' + command_in_sge_file
+            command_in_sge_file = command_in_sge_file.replace('OMP_NUM_THREADS=6 ', '')
             content_for_sge_file = '''#!/usr/bin/zsh
 #PBS -l walltime=%s
 #PBS -l nodes=1:ppn=2%s
