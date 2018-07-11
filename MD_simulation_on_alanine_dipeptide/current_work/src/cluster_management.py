@@ -1,4 +1,4 @@
-import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib
+import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib, glob
 
 class cluster_management(object):
     def __init__(self):
@@ -255,8 +255,7 @@ exit 0
         if cluster_management.is_job_on_cluster(job_sgefile_name):
             return 3  # not finished
         else:
-            all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
-
+            all_files_in_this_dir = sorted(glob.glob('*'))
             out_file_list = filter(lambda x: job_sgefile_name + ".o" in x, all_files_in_this_dir)
             err_file_list = filter(lambda x: job_sgefile_name + ".e" in x, all_files_in_this_dir)
 
@@ -313,7 +312,7 @@ exit 0
             
             if status_code in (0, 1, 2):  # archive .o/.e files for finished jobs
                 print "archive .o/.e files for %s" % item
-                all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
+                all_files_in_this_dir = sorted(glob.glob('*'))
                 temp_dot_o_e_files_for_this_item = filter(lambda x: (item + '.o' in x) or (item + '.e' in x), 
                                                           all_files_in_this_dir)
                 for temp_item_o_e_file in temp_dot_o_e_files_for_this_item:
@@ -322,8 +321,7 @@ exit 0
 
     @staticmethod
     def get_sge_dot_e_files_in_current_folder_and_handle_jobs_not_finished_successfully(latest_version=True):
-        all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
-        sge_e_files = filter(lambda x: '.sge.e' in x, all_files_in_this_dir)
+        sge_e_files = glob.glob('*.sge.e*')
         sge_files = [item.split('.sge')[0] + '.sge' for item in sge_e_files]
         sge_files = list(set(sge_files))
         # print "sge_files = %s" % str(sge_files)
