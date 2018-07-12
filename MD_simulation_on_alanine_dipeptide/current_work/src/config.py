@@ -70,7 +70,7 @@ CONFIG_57 = [
 ]                                          # index list of atoms for training and biased simulations
 temp_CONFIG_80 = get_mol_param([
     get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'not name H*'),
-    get_index_list_with_selection_statement('../resources/1l2y.pdb', 'backbone and not name O')
+    get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA')
     ])
 CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
               for item_xx in range(len(temp_CONFIG_80))
@@ -138,7 +138,7 @@ CONFIG_64 = get_mol_param([
 CONFIG_55 = len(CONFIG_61)                  # number of reference configurations used in training
 
 CONFIG_3 = get_mol_param([       # the structure of ANN: number of nodes in each layer (input/output dim typically determined automatically)
-    [0, 40, CONFIG_37, 40, 0],
+    [21, 40, CONFIG_37, 40, 0],
     [0, 50, CONFIG_37, 50, 0],
     [0, 100, CONFIG_37, 100, 0],
     [0, 100, CONFIG_37, 100, 0],
@@ -164,7 +164,7 @@ if CONFIG_43:
 CONFIG_31 = 10        # maximum number of failed simulations allowed in each iteration
 
 CONFIG_56 = get_mol_param([20, 8, 6, 6])    # number of biased simulations running in parallel
-CONFIG_14 = 6  # max number of jobs submitted each time
+CONFIG_14 = 10  # max number of jobs submitted each time
 CONFIG_29 = True  if CONFIG_40 == 'explicit' else False   # whether we need to remove the water molecules from pdb files
 CONFIG_50 = False   # whether we need to preserve original file if water molecules are removed
 
@@ -214,7 +214,7 @@ elif temp_home_directory == "/home/weichen9":
     CONFIG_24 = 'cluster'  # machine to run the simulations
     CONFIG_25 = temp_home_directory + '/.my_softwares/openmm7/lib/plugins'
 elif temp_home_directory == "/u/sciteam/chen21":
-    CONFIG_24 = 'local'
+    CONFIG_24 = 'cluster'
     CONFIG_25 = temp_home_directory + '/.openmm/lib/plugins'
 else:
     print ('unknown user directory: %s' % temp_home_directory)

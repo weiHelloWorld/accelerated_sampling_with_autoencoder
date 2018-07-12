@@ -54,7 +54,7 @@ exit 0
             node_type = ':xk' if gpu else ''
             if not command_in_sge_file.startswith('aprun'):
                 command_in_sge_file = 'aprun -n1 ' + command_in_sge_file
-            command_in_sge_file = command_in_sge_file.replace('OMP_NUM_THREADS=6 ', '')
+            command_in_sge_file = command_in_sge_file.replace('OMP_NUM_THREADS=6 ', '').replace('--device 1', '')
             content_for_sge_file = '''#!/usr/bin/zsh
 #PBS -l walltime=%s
 #PBS -l nodes=1:ppn=2%s
