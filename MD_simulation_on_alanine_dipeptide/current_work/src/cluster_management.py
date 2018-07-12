@@ -236,10 +236,15 @@ exit 0
         server, user = cluster_management.get_server_and_user()
         if 'alf' in server:
             output = subprocess.check_output(['qstat', '-r'])
+            result = job_sgefile_name in output
         elif "h2ologin" in server or 'nid' in server:
             output = subprocess.check_output(['qstat', '-u', user, '-f', '-x'])   # output in xml format, make sure long file name is displayed in one line
+            result = False
+            for item in output.split('<Job>')[1:]:
+                if (job_sgefile_name in item) and (not '<job_state>C</job_state>' in item):  # ignore completed jobs
+                    result = True
         else: raise Exception('unknown server')
-        return job_sgefile_name in output
+        return result
 
     @staticmethod
     def check_whether_job_finishes_successfully(job_sgefile_name, latest_version = True):
