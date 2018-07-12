@@ -1,13 +1,15 @@
 from ANN_simulation import *
 
 class classification_sampler(object):
-    def __init__(self, index, all_states, end_state_index):    # end_states defined by pdb files
+    def __init__(self, index, all_states, end_state_index,    # end_states defined by pdb files
+                 scaling_factor, atom_selection
+                 ):
         self._index = index
         self._end_state_index = end_state_index
         self._all_states = all_states
         self._classifier = None
-        self._scaling_factor = 5.0
-        self._atom_selection = 'not name H*'
+        self._scaling_factor = scaling_factor
+        self._atom_selection = atom_selection
         return
 
     def get_input_from_pdbs(self, pdb_list):
@@ -69,7 +71,7 @@ class classification_sampler(object):
                     molecule_net.layers[2].output_shape[1]]
         script = Sutils._get_plumed_script_with_pairwise_dis_as_input(
             get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', self._atom_selection),
-            self._scaling_factor)
+            self._scaling_factor)           # TODO: modify this for other systems
         connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
                                             molecule_net.layers if isinstance(item, Dense)]
         connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if
@@ -144,18 +146,22 @@ class classification_sampler(object):
         pc_string[state_index_1] = pc_string[state_index_2] = '0.5'
         pc_string = ','.join(pc_string)
         out_pdb = folder + '/out_%02d_between_%02d_%02d.pdb' % (len(self._all_states), state_index_1, state_index_2)
-        if mode == 'plumed':
+        if mode == 'plumed':   # TODO: modify this for other systems
             kappa_string = ','.join([str(force_constant)] * len(self._all_states))
             command = 'python ../src/biased_simulation.py 50 50000 0 %s none pc_%s --platform CPU ' % (folder, pc_string)
             command += '--output_pdb  %s ' % out_pdb
             command += '--bias_method plumed_other --plumed_file %s ' % coeff_info_file
             command += ' --plumed_add_string " AT=%s KAPPA=%s"' % (pc_string, kappa_string)
         elif mode == 'ANN_Force':
-            command = 'python ../src/biased_simulation.py 50 50000 %s %s %s pc_%s --platform CPU ' % (
-                str(force_constant), folder, coeff_info_file, pc_string)
+            if system_name == 'Alanine_dipeptide':
+                command = 'python ../src/biased_simulation.py 50 50000 %s %s %s pc_%s --platform CPU ' % (
+                    str(force_constant), folder, coeff_info_file, pc_string)
+            elif system_name == 'Src_kinase':
+                command = 'python ../src/biased_simulation_general.py 50 50000 %s %s %s pc_%s --platform CUDA ' % (
+                    str(force_constant), folder, coeff_info_file, pc_string)
             command += '--output_pdb  %s --layer_types "Tanh,Softmax" --num_of_nodes 45,100,%d --data_type_in_input_layer 2' % (
                 out_pdb, len(self._all_states))
-            command += ' --scaling_factor 5.0'
+            command += ' --scaling_factor %f' % self._scaling_factor
         else: raise Exception('mode error')
         print command
         subprocess.check_output(command, shell=True)
@@ -164,16 +170,33 @@ class classification_sampler(object):
 
 
 if __name__ == "__main__":
-    _1 = coordinates_data_files_list(['../resources/temp_ALA/'])
-    _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not '2.5' in x)
-    c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1])
-    mode = 'ANN_Force'
-    for item in range(2, 10):
-        info_file = '../resources/temp_info_%02d.txt' % item
-        c_sampler.train_classifier()
-        c_sampler.write_classifier_coeff_info(info_file, mode=mode)
-        [state_1, state_2] = c_sampler.choose_two_states_list_between_which_we_sample_intermediates()
-        c_sampler.sample_intermediate_between_two_states(
-            state_1, state_2, '../target/temp_biased', info_file,
-            force_constant=500, mode=mode)
-        c_sampler = classification_sampler(item, c_sampler._all_states, [0, 1])
+    system_name = 'Alanine_dipeptide'
+    if system_name == 'Alanine_dipeptide':
+        _1 = coordinates_data_files_list(['../resources/temp_ALA/'])
+        _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not '2.5' in x)
+        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1],
+                                           scaling_factor=5.0, atom_selection='not name H*')
+        mode = 'ANN_Force'
+        for item in range(2, 10):
+            info_file = '../resources/temp_info_%02d.txt' % item
+            c_sampler.train_classifier()
+            c_sampler.write_classifier_coeff_info(info_file, mode=mode)
+            [state_1, state_2] = c_sampler.choose_two_states_list_between_which_we_sample_intermediates()
+            c_sampler.sample_intermediate_between_two_states(
+                state_1, state_2, '../target/temp_biased', info_file,
+                force_constant=500, mode=mode)
+            c_sampler = classification_sampler(item, c_sampler._all_states, [0, 1], scaling_factor=5.0, atom_selection='not name H*')
+    elif system_name == 'Src_kinase':
+        _1 = coordinates_data_files_list(['../resources/temp_classifier_Src/'])
+        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1], scaling_factor=40.0, atom_selection='name CA')
+        mode = 'ANN_Force'
+        for item in range(2, 10):
+            info_file = '../resources/temp_info_%02d.txt' % item
+            c_sampler.train_classifier()
+            c_sampler.write_classifier_coeff_info(info_file, mode=mode)
+            [state_1, state_2] = c_sampler.choose_two_states_list_between_which_we_sample_intermediates()
+            c_sampler.sample_intermediate_between_two_states(
+                state_1, state_2, '../target/temp_biased', info_file,
+                force_constant=500, mode=mode)
+            c_sampler = classification_sampler(item, c_sampler._all_states, [0, 1], scaling_factor=40.0, atom_selection='name CA')
+    else: raise Exception('error system')
