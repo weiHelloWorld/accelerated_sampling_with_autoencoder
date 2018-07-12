@@ -180,27 +180,34 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return
 
     @staticmethod
-    def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1, new_pdb_file_name=None):  # start_index included, end_index not included
-        if os.stat(pdb_file_name).st_size > 1000000000: raise Exception('file may be too large, try to use other tools')
-
+    def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1,  # start_index included, end_index not included
+                                          new_pdb_file_name=None, method=1):
         print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
-        with open(pdb_file_name, 'r') as f_in:
-            content = [item for item in f_in.readlines() if (not 'REMARK' in item) and (not 'END\n' in item)]
-            content = ''.join(content)
-            content = content.split('MODEL')[1:]  # remove header
-            if end_index == 0:
-                content_to_write = content[start_index::step_interval]     # for selecting last few frames
-            else:
-                content_to_write = content[start_index:end_index:step_interval]
+        if method == 0:
+            if os.stat(pdb_file_name).st_size > 1000000000: raise Exception('file may be too large, try to use other tools')
+            with open(pdb_file_name, 'r') as f_in:
+                content = [item for item in f_in.readlines() if (not 'REMARK' in item) and (not 'END\n' in item)]
+                content = ''.join(content)
+                content = content.split('MODEL')[1:]  # remove header
+                if end_index == 0:
+                    content_to_write = content[start_index::step_interval]     # for selecting last few frames
+                else:
+                    content_to_write = content[start_index:end_index:step_interval]
 
-        with open(new_pdb_file_name, 'w') as f_out:
-            for item in content_to_write:
-                f_out.write("MODEL")
-                f_out.write(item)
-
+            with open(new_pdb_file_name, 'w') as f_out:
+                for item in content_to_write:
+                    f_out.write("MODEL")
+                    f_out.write(item)
+        elif method == 1:
+            index = -1
+            with open(pdb_file_name, 'r') as f_in, open(new_pdb_file_name, 'w') as f_out:
+                for item in f_in:
+                    if 'MODEL' in item: index += 1
+                    if (not 'REMARK' in item) and (not 'END\n' in item) and (index % step_interval == 0):
+                        f_out.write(item)
         return
 
     @staticmethod
