@@ -71,7 +71,7 @@ CONFIG_57 = [
 temp_CONFIG_80 = get_mol_param([
     get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'not name H*'),
     get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'), None,
-get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O')
+get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'name CA')
     ])
 CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
               for item_xx in range(len(temp_CONFIG_80))

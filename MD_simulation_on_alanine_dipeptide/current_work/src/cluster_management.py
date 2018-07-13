@@ -11,7 +11,7 @@ class cluster_management(object):
         return server, user
 
     @staticmethod
-    def get_sge_file_content(command_in_sge_file, gpu, max_time, node=-1):
+    def get_sge_file_content(command_in_sge_file, gpu, max_time, node=-1, use_aprun=True):
         command_in_sge_file = command_in_sge_file.strip()
         if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not work in the cluster
             command_in_sge_file = command_in_sge_file[:-1]
@@ -52,7 +52,7 @@ exit 0
 ''' % (max_time, command_in_sge_file)
         elif "h2ologin" in server_name or 'nid' in server_name:  # Blue Waters
             node_type = ':xk' if gpu else ''
-            if not command_in_sge_file.startswith('aprun'):
+            if use_aprun and (not command_in_sge_file.startswith('aprun')):
                 command_in_sge_file = 'aprun -n1 ' + command_in_sge_file
             command_in_sge_file = command_in_sge_file.replace('OMP_NUM_THREADS=6 ', '').replace('--device 1', '')
             content_for_sge_file = '''#!/usr/bin/zsh

@@ -20,6 +20,7 @@ parser.add_argument("pc_potential_center", type=str, help="potential center (sho
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
+parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--scaling_factor", type=float, default = CONFIG_49, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
@@ -199,7 +200,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
             temp_bias  = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
             for item_layer_index in [0, 1]:
                 assert (len(temp_coeffs[item_layer_index]) ==
-                        num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1])
+                        num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1]), len(temp_coeffs[item_layer_index])
                 assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1])
 
             force.set_coeffients_of_connections(temp_coeffs)

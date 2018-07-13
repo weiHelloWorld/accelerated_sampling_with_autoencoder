@@ -99,7 +99,7 @@ class classification_sampler(object):
                     f_out.write(',\n')
         return
 
-    def choose_two_states_list_between_which_we_sample_intermediates(self, metric="RMSD", option=0):
+    def choose_two_states_list_between_which_we_sample_intermediates(self, metric="input", option=0):
         dis_to_end_states = self.get_dis_to_end_states(metric)
         print dis_to_end_states
         if option == 0:
@@ -157,7 +157,7 @@ class classification_sampler(object):
                 command = 'python ../src/biased_simulation.py 50 50000 %s %s %s pc_%s --platform CPU ' % (
                     str(force_constant), folder, coeff_info_file, pc_string)
             elif system_name == 'Src_kinase':
-                command = 'python ../src/biased_simulation_general.py 50 50000 %s %s %s pc_%s --platform CUDA ' % (
+                command = 'python ../src/biased_simulation_general.py 2src 50 50000 %s %s %s pc_%s explicit NPT --platform CUDA ' % (
                     str(force_constant), folder, coeff_info_file, pc_string)
             command += '--output_pdb  %s --layer_types "Tanh,Softmax" --num_of_nodes 45,100,%d --data_type_in_input_layer 2' % (
                 out_pdb, len(self._all_states))
@@ -187,8 +187,10 @@ if __name__ == "__main__":
                 force_constant=500, mode=mode)
             c_sampler = classification_sampler(item, c_sampler._all_states, [0, 1], scaling_factor=5.0, atom_selection='not name H*')
     elif system_name == 'Src_kinase':
+        atom_selection = '(resid 144:170 or resid 44:58) and name CA'
         _1 = coordinates_data_files_list(['../resources/temp_classifier_Src/'])
-        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1], scaling_factor=40.0, atom_selection='name CA')
+        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1], scaling_factor=40.0,
+                                           atom_selection=atom_selection)
         mode = 'ANN_Force'
         for item in range(2, 10):
             info_file = '../resources/temp_info_%02d.txt' % item
@@ -198,5 +200,6 @@ if __name__ == "__main__":
             c_sampler.sample_intermediate_between_two_states(
                 state_1, state_2, '../target/temp_biased', info_file,
                 force_constant=500, mode=mode)
-            c_sampler = classification_sampler(item, c_sampler._all_states, [0, 1], scaling_factor=40.0, atom_selection='name CA')
+            c_sampler = classification_sampler(item, c_sampler._all_states, [0, 1], scaling_factor=40.0,
+                                               atom_selection=atom_selection)
     else: raise Exception('error system')
