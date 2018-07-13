@@ -10,12 +10,16 @@ class classification_sampler(object):
         self._classifier = None
         self._scaling_factor = scaling_factor
         self._atom_selection = atom_selection
+        self._input_dim = None
         return
 
     def get_input_from_pdbs(self, pdb_list):
         """can be modified to other input features later"""
-        return Sutils.get_non_repeated_pairwise_distance(
+        print ('get input from %s' % str(pdb_list))
+        result =  Sutils.get_non_repeated_pairwise_distance(
             pdb_list, atom_selection=self._atom_selection) / self._scaling_factor
+        self._input_dim = result.shape[1]
+        return result
 
     def get_training_data(self):
         train_in = []
@@ -159,8 +163,8 @@ class classification_sampler(object):
             elif system_name == 'Src_kinase':
                 command = 'python ../src/biased_simulation_general.py 2src 50 50000 %s %s %s pc_%s explicit NPT --platform CUDA ' % (
                     str(force_constant), folder, coeff_info_file, pc_string)
-            command += '--output_pdb  %s --layer_types "Tanh,Softmax" --num_of_nodes 45,100,%d --data_type_in_input_layer 2' % (
-                out_pdb, len(self._all_states))
+            command += '--output_pdb  %s --layer_types "Tanh,Softmax" --num_of_nodes %d,100,%d --data_type_in_input_layer 2' % (
+                out_pdb, self._input_dim, len(self._all_states))
             command += ' --scaling_factor %f' % self._scaling_factor
         else: raise Exception('mode error')
         print command
@@ -170,7 +174,7 @@ class classification_sampler(object):
 
 
 if __name__ == "__main__":
-    system_name = 'Alanine_dipeptide'
+    system_name = CONFIG_30
     if system_name == 'Alanine_dipeptide':
         _1 = coordinates_data_files_list(['../resources/temp_ALA/'])
         _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not '2.5' in x)
