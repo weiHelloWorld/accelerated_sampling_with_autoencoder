@@ -11,7 +11,8 @@ class cluster_management(object):
         return server, user
 
     @staticmethod
-    def get_sge_file_content(command_in_sge_file, gpu, max_time, node=-1, use_aprun=True):
+    def get_sge_file_content(command_in_sge_file, gpu, max_time, node=-1,
+                             use_aprun=True, ppn=2):
         command_in_sge_file = command_in_sge_file.strip()
         if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not work in the cluster
             command_in_sge_file = command_in_sge_file[:-1]
@@ -37,7 +38,7 @@ exit 0
         elif "golubh" in server_name:  # campus cluster
             content_for_sge_file = '''#!/bin/bash
 #PBS -l walltime=%s
-#PBS -l nodes=1:ppn=2
+#PBS -l nodes=1:ppn=%d
 #PBS -l naccesspolicy=singleuser
 #PBS -q alf
 #PBS -V
@@ -49,7 +50,7 @@ source /home/weichen9/.bashrc
 %s
 echo "This job is DONE!"
 exit 0
-''' % (max_time, command_in_sge_file)
+''' % (max_time, ppn, command_in_sge_file)
         elif "h2ologin" in server_name or 'nid' in server_name:  # Blue Waters
             node_type = ':xk' if gpu else ''
             if use_aprun and (not command_in_sge_file.startswith('aprun')):
@@ -57,7 +58,7 @@ exit 0
             command_in_sge_file = command_in_sge_file.replace('OMP_NUM_THREADS=6 ', '').replace('--device 1', '')
             content_for_sge_file = '''#!/usr/bin/zsh
 #PBS -l walltime=%s
-#PBS -l nodes=1:ppn=2%s
+#PBS -l nodes=1:ppn=%d%s
 #PBS -m ae   
 #PBS -M wei.herbert.chen@gmail.com    
 #PBS -A batp
@@ -69,7 +70,7 @@ cd $PBS_O_WORKDIR
 %s
 echo "This job is DONE!"
 exit 0
-''' % (max_time, node_type, command_in_sge_file)
+''' % (max_time, ppn, node_type, command_in_sge_file)
         else:
             raise Exception('server error: %s does not exist' % server_name)
         return content_for_sge_file
@@ -96,7 +97,8 @@ exit 0
         return commands_to_run
 
     @staticmethod
-    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/', run_on_gpu = False):
+    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/',
+                                      run_on_gpu = False, ppn=2):
         sge_file_list = []
         for item in list_of_commands_to_run:
             if folder_to_store_sge_files[-1] != '/':
@@ -110,7 +112,7 @@ exit 0
             sge_file_list.append(sge_filename)
 
             content_for_sge_files = cluster_management.get_sge_file_content(
-                item, gpu=run_on_gpu, max_time='24:00:00')
+                item, gpu=run_on_gpu, max_time='24:00:00', ppn=ppn)
             with open(sge_filename, 'w') as f_out:
                 f_out.write(content_for_sge_files)
                 f_out.write("\n")
@@ -168,9 +170,9 @@ exit 0
         return job_id
 
     @staticmethod
-    def run_a_command_and_wait_on_cluster(command):
+    def run_a_command_and_wait_on_cluster(command, ppn=2):
         print 'running %s on cluster' % command
-        sge_file = cluster_management.create_sge_files_for_commands([command])[0]
+        sge_file = cluster_management.create_sge_files_for_commands([command], ppn=ppn)[0]
         id = cluster_management.submit_a_single_job_and_wait_until_it_finishes(sge_file)
         return id
 

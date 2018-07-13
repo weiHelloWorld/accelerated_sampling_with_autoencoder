@@ -368,7 +368,7 @@ class iteration(object):
             autoencoder_filename = temp_output.strip().split('\n')[-1]
         elif machine_to_run_simulations == 'cluster':
             command = 'OMP_NUM_THREADS=6  ' + command
-            job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command)
+            job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command, ppn=10)
             output_file, _ = cluster_management.get_output_and_err_with_job_id(job_id=job_id)
             temp_output = subprocess.check_output(['cat', output_file])
             autoencoder_filename = temp_output.strip().split(
