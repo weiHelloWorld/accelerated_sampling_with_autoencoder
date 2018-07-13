@@ -68,19 +68,17 @@ CONFIG_57 = [
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O'),
     get_index_list_with_selection_statement('../resources/C24.pdb', 'name C*')
 ]                                          # index list of atoms for training and biased simulations
-temp_CONFIG_80 = get_mol_param([
-    get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'not name H*'),
-    get_index_list_with_selection_statement('../resources/1l2y.pdb', 'name CA'),
-    get_index_list_with_selection_statement('../resources/2src.pdb', '(resid 144:170 or resid 44:58) and name CA'),
-    get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'name CA')
-    ])
+
+CONFIG_73 = get_mol_param(['name C or name CH3 or name CA or name N', 'name CA',
+                           '(resid 144:170 or resid 44:58) and name CA', 'name CA'
+                           ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
+temp_CONFIG_80 = get_index_list_with_selection_statement(
+    get_mol_param(['../resources/alanine_dipeptide.pdb', '../resources/1l2y.pdb',
+                '../resources/2src.pdb', '../resources/BetaHairpin.pdb']), CONFIG_73
+)
 CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
               for item_xx in range(len(temp_CONFIG_80))
               for item_yy in range(item_xx + 1, len(temp_CONFIG_80))]    # pair index list for pairwise distances as input
-if CONFIG_76 == 'pairwise_distance' or CONFIG_76 == 'combined':
-    CONFIG_73 = get_mol_param(['name C or name CH3 or name CA or name N', 'name CA',
-                               '(resid 144:170 or resid 44:58) and name CA', None
-                               ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 
 CONFIG_17 = ['Tanh', 'Tanh', 'Tanh']  # types of hidden layers
 CONFIG_78 = "Linear"                    # output layer type
