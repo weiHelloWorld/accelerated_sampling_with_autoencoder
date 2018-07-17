@@ -70,11 +70,11 @@ CONFIG_57 = [
 ]                                          # index list of atoms for training and biased simulations
 
 CONFIG_73 = get_mol_param(['name C or name CH3 or name CA or name N', 'name CA',
-                           '(resid 144:170 or resid 44:58) and name CA', 'name CA'
+                           '(resid 144:170 or resid 44:58) and name CA', 'name CA', 'name C*'
                            ])                         # atom selection for calculating pairwise distances, used only when it is in 'pairwise_distance' mode
 temp_CONFIG_80 = get_index_list_with_selection_statement(
     get_mol_param(['../resources/alanine_dipeptide.pdb', '../resources/1l2y.pdb',
-                '../resources/2src.pdb', '../resources/BetaHairpin.pdb']), CONFIG_73
+                '../resources/2src.pdb', '../resources/BetaHairpin.pdb', '../resources/C24.pdb']), CONFIG_73
 )
 CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
               for item_xx in range(len(temp_CONFIG_80))
@@ -100,7 +100,9 @@ if CONFIG_45 == 'keras':
     elif CONFIG_76 == 'pairwise_distance':
         CONFIG_4 = get_mol_param([
             [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]], None, None
+            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: tune this
+            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]]   # TODO: tune this
         ])
     else: raise Exception('error')
 else:
@@ -140,13 +142,13 @@ CONFIG_55 = len(CONFIG_61)                  # number of reference configurations
 CONFIG_3 = get_mol_param([       # the structure of ANN: number of nodes in each layer (input/output dim typically determined automatically)
     [21, 40, CONFIG_37, 40, 0],
     [0, 50, CONFIG_37, 50, 0],
-    [0, 100, CONFIG_37, 100, 0],
+    [861, 100, CONFIG_37, 100, 0],
     [0, 100, CONFIG_37, 100, 0],
     [0, 100, CONFIG_37, 100, 0],
 ])
 
 CONFIG_74 = False                  # whether we start each biased simulation with nearest configuration or a fixed configuration
-CONFIG_40 = 'implicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
+CONFIG_40 = 'explicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_51 = 'NVT'                  # simulation ensemble type
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = True                             # whether to use hierarchical autoencoder
