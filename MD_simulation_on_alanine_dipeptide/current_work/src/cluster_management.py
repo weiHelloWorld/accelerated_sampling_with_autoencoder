@@ -1,20 +1,89 @@
-from config import *
-import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib
+import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib, glob
 
 class cluster_management(object):
     def __init__(self):
         return
 
     @staticmethod
+    def get_server_and_user():
+        server = subprocess.check_output(['uname', '-n']).strip()
+        user = subprocess.check_output('echo $HOME', shell=True).strip().split('/')[-1]
+        return server, user
+
+    @staticmethod
+    def get_sge_file_content(command_in_sge_file, gpu, max_time, node=-1,
+                             use_aprun=True, ppn=2):
+        command_in_sge_file = command_in_sge_file.strip()
+        if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not work in the cluster
+            command_in_sge_file = command_in_sge_file[:-1]
+        server_name, _ = cluster_management.get_server_and_user()
+        if 'alf' in server_name:
+            gpu_option_string = '#$ -l gpu=1' if gpu else ''
+            node_string = "" if node == -1 else "#$ -l hostname=compute-0-%d" % node
+
+            content_for_sge_file = '''#!/bin/bash
+#$ -S /bin/bash           # use bash shell
+#$ -V                     # inherit the submission environment 
+#$ -cwd                   # start job in submission directory
+#$ -m ae                 # email on abort, begin, and end
+#$ -M wei.herbert.chen@gmail.com         # email address
+#$ -q all.q               # queue name
+#$ -l h_rt=%s       # run time (hh:mm:ss)
+%s
+%s
+%s
+echo "This job is DONE!"
+exit 0
+''' % (max_time, gpu_option_string, node_string, command_in_sge_file)
+        elif "golubh" in server_name:  # campus cluster
+            content_for_sge_file = '''#!/bin/bash
+#PBS -l walltime=%s
+#PBS -l nodes=1:ppn=%d
+#PBS -l naccesspolicy=singleuser
+#PBS -q alf
+#PBS -V
+#PBS -m ae                 # email on abort, begin, and end
+#PBS -M wei.herbert.chen@gmail.com         # email address
+
+cd $PBS_O_WORKDIR         # go to current directory
+source /home/weichen9/.bashrc
+%s
+echo "This job is DONE!"
+exit 0
+''' % (max_time, ppn, command_in_sge_file)
+        elif "h2ologin" in server_name or 'nid' in server_name:  # Blue Waters
+            node_type = ':xk' if gpu else ''
+            if use_aprun and (not command_in_sge_file.startswith('aprun')):
+                command_in_sge_file = 'aprun -n1 ' + command_in_sge_file
+            command_in_sge_file = command_in_sge_file.replace('OMP_NUM_THREADS=6 ', '').replace('--device 1', '')
+            content_for_sge_file = '''#!/usr/bin/zsh
+#PBS -l walltime=%s
+#PBS -l nodes=1:ppn=%d%s
+#PBS -m ae   
+#PBS -M wei.herbert.chen@gmail.com    
+#PBS -A batp
+
+. /etc/zsh.zshrc.local
+source /u/sciteam/chen21/.zshrc
+cd $PBS_O_WORKDIR
+# source /u/sciteam/chen21/.bashrc
+%s
+echo "This job is DONE!"
+exit 0
+''' % (max_time, ppn, node_type, command_in_sge_file)
+        else:
+            raise Exception('server error: %s does not exist' % server_name)
+        return content_for_sge_file
+
+    @staticmethod
     def generate_sge_filename_for_a_command(command):
-        sge_filename = command.replace(' ', '_').replace('..', '_').replace('/','_')\
-                .replace('&', '').replace('--', '_').replace('\\','').replace(':', '_') + '.sge'
+        sge_filename = command.split('>')[0].replace('"','').replace(' ', '_').replace('..', '_').replace('/','_')\
+                .replace('&', '').replace('--', '_').replace('\\','').replace(':', '_').strip() + '.sge'
         sge_filename = re.sub('_+', '_', sge_filename)
         if len(sge_filename) > 255:  # max length of file names in Linux
             temp = hashlib.md5()
             temp.update(sge_filename)
             sge_filename = "h_" + temp.hexdigest() + sge_filename[-200:]
-
         return sge_filename
 
     @staticmethod
@@ -28,18 +97,10 @@ class cluster_management(object):
         return commands_to_run
 
     @staticmethod
-    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/', run_on_gpu = False):
-        if run_on_gpu:
-            gpu_option_string = '#$ -l gpu=1'
-        else:
-            gpu_option_string = ''
-
+    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/',
+                                      run_on_gpu = False, ppn=2):
         sge_file_list = []
         for item in list_of_commands_to_run:
-            item = item.strip()
-            if item[-1] == '&':  # need to remove & otherwise it will not work in the cluster
-                item = item[:-1]
-
             if folder_to_store_sge_files[-1] != '/':
                 folder_to_store_sge_files += '/'
 
@@ -50,27 +111,8 @@ class cluster_management(object):
             sge_filename = folder_to_store_sge_files + sge_filename
             sge_file_list.append(sge_filename)
 
-            content_for_sge_files = '''#!/bin/bash
-
-#$ -S /bin/bash           # use bash shell
-#$ -V                     # inherit the submission environment
-#$ -cwd                   # start job in submission directory
-
-#$ -m ae                 # email on abort, begin, and end
-#$ -M wei.herbert.chen@gmail.com         # email address
-
-#$ -q all.q               # queue name
-#$ -l h_rt=%s       # run time (hh:mm:ss)
-
-%s
-####$ -l hostname=compute-0-3
-
-%s
-
-echo "This job is DONE!"
-
-exit 0
-''' % (CONFIG_19, gpu_option_string, item)
+            content_for_sge_files = cluster_management.get_sge_file_content(
+                item, gpu=run_on_gpu, max_time='24:00:00', ppn=ppn)
             with open(sge_filename, 'w') as f_out:
                 f_out.write(content_for_sge_files)
                 f_out.write("\n")
@@ -78,8 +120,10 @@ exit 0
 
     @staticmethod
     def get_num_of_running_jobs():
-        output = subprocess.check_output(['qstat'])
+        _, user = cluster_management.get_server_and_user()
+        output = subprocess.check_output(['qstat', '-u', user])
         all_entries = output.strip().split('\n')[2:]   # remove header
+        all_entries = [item for item in all_entries if user in item]        # remove unrelated lines
         all_entries = [item for item in all_entries if (not item.strip().split()[4] == 'dr')]   # remove job in "dr" state
         num_of_running_jobs = len(all_entries)
         # print('checking number of running jobs = %d\n' % num_of_running_jobs)
@@ -87,8 +131,7 @@ exit 0
 
     @staticmethod
     def submit_sge_jobs_and_archive_files(job_file_lists,
-                                          num,  # num is the max number of jobs submitted each time
-                                          flag_of_whether_to_record_qsub_commands = False
+                                          num  # num is the max number of jobs submitted each time
                                           ):
         dir_to_archive_files = '../sge_files/archive/'
 
@@ -99,23 +142,37 @@ exit 0
         sge_job_id_list = []
         for item in job_file_lists[0:num]:
             output_info = subprocess.check_output(['qsub', item]).strip()
-            sge_job_id_list.append(output_info.split(' ')[2])
+            sge_job_id_list.append(cluster_management.get_job_id_from_qsub_output(output_info))
             print('submitting ' + str(item))
             subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
         return sge_job_id_list
 
     @staticmethod
+    def get_job_id_from_qsub_output(output_info):
+        server, _ = cluster_management.get_server_and_user()
+        if 'alf' in server:
+            result = output_info.strip().split(' ')[2]
+        elif "h2ologin" in server or 'nid' in server:
+            result = output_info.strip().split('\n')[-1]
+            assert (result[-3:] == '.bw')
+            result = result[:-3]
+            assert (len(result) == 7)
+        else: raise Exception('unknown server')
+        return result
+
+    @staticmethod
     def submit_a_single_job_and_wait_until_it_finishes(job_sge_file):
         job_id = cluster_management.submit_sge_jobs_and_archive_files([job_sge_file], num=1)[0]
+        print "job = %s, job_id = %s" % (job_sge_file, job_id)
         while cluster_management.is_job_on_cluster(job_id):
             time.sleep(10)
         print "job (id = %s) done!" % job_id
         return job_id
 
     @staticmethod
-    def run_a_command_and_wait_on_cluster(command):
+    def run_a_command_and_wait_on_cluster(command, ppn=2):
         print 'running %s on cluster' % command
-        sge_file = cluster_management.create_sge_files_for_commands([command])[0]
+        sge_file = cluster_management.create_sge_files_for_commands([command], ppn=ppn)[0]
         id = cluster_management.submit_a_single_job_and_wait_until_it_finishes(sge_file)
         return id
 
@@ -177,9 +234,19 @@ exit 0
         return
 
     @staticmethod
-    def is_job_on_cluster(job_sgefile_name):
-        output = subprocess.check_output(['qstat', '-r'])
-        return job_sgefile_name in output
+    def is_job_on_cluster(job_sgefile_name):    # input could be sge file name or job id
+        server, user = cluster_management.get_server_and_user()
+        if 'alf' in server:
+            output = subprocess.check_output(['qstat', '-r'])
+            result = job_sgefile_name in output
+        elif "h2ologin" in server or 'nid' in server:
+            output = subprocess.check_output(['qstat', '-u', user, '-f', '-x'])   # output in xml format, make sure long file name is displayed in one line
+            result = False
+            for item in output.split('<Job>')[1:]:
+                if (job_sgefile_name in item) and (not '<job_state>C</job_state>' in item):  # ignore completed jobs
+                    result = True
+        else: raise Exception('unknown server')
+        return result
 
     @staticmethod
     def check_whether_job_finishes_successfully(job_sgefile_name, latest_version = True):
@@ -196,8 +263,7 @@ exit 0
         if cluster_management.is_job_on_cluster(job_sgefile_name):
             return 3  # not finished
         else:
-            all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
-
+            all_files_in_this_dir = sorted(glob.glob('*'))
             out_file_list = filter(lambda x: job_sgefile_name + ".o" in x, all_files_in_this_dir)
             err_file_list = filter(lambda x: job_sgefile_name + ".e" in x, all_files_in_this_dir)
 
@@ -215,9 +281,7 @@ exit 0
 
                 with open(latest_err_file, 'r') as err_f:
                     err_content = [item.strip() for item in err_f.readlines()]
-                    err_content = filter(lambda x: x[:4] != 'bash', err_content)  # ignore error info starting with "bash"
-                    err_content = filter(lambda x: not 'Using Theano backend' in x, err_content)
-                    err_content = filter(lambda x: x != "", err_content)
+                    err_content = filter(lambda x: "Traceback (most recent call last)" in x, err_content)
 
                 if (job_finished_message in out_content) and (len(err_content) != 0):
                     print "%s ends with exception" % job_sgefile_name
@@ -228,9 +292,7 @@ exit 0
                 else:
                     print "%s finishes successfully" % job_sgefile_name
                     return 0  
-            else:
-                # TODO: handle this case
-                return
+            else: return
 
     @staticmethod
     def handle_jobs_not_finished_successfully_and_archive(job_sgefile_name_list, latest_version=True):
@@ -254,7 +316,7 @@ exit 0
             
             if status_code in (0, 1, 2):  # archive .o/.e files for finished jobs
                 print "archive .o/.e files for %s" % item
-                all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
+                all_files_in_this_dir = sorted(glob.glob('*'))
                 temp_dot_o_e_files_for_this_item = filter(lambda x: (item + '.o' in x) or (item + '.e' in x), 
                                                           all_files_in_this_dir)
                 for temp_item_o_e_file in temp_dot_o_e_files_for_this_item:
@@ -263,8 +325,7 @@ exit 0
 
     @staticmethod
     def get_sge_dot_e_files_in_current_folder_and_handle_jobs_not_finished_successfully(latest_version=True):
-        all_files_in_this_dir = subprocess.check_output(['ls']).strip().split()
-        sge_e_files = filter(lambda x: '.sge.e' in x, all_files_in_this_dir)
+        sge_e_files = glob.glob('*.sge.e*')
         sge_files = [item.split('.sge')[0] + '.sge' for item in sge_e_files]
         sge_files = list(set(sge_files))
         # print "sge_files = %s" % str(sge_files)

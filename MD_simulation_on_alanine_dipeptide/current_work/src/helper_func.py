@@ -195,3 +195,10 @@ class Helper_func(object):
             exit_codes = [p.wait() for p in procs_to_run_commands]
             total_num_failed_jobs += sum(exit_codes)
         return total_num_failed_jobs
+
+    @staticmethod
+    def shuffle_multiple_arrays(list_of_arrays):
+        """can be used for shuffle training and validation set to improve sampling"""
+        indices = np.arange(list_of_arrays[0].shape[0])
+        np.random.shuffle(indices)
+        return [item[indices] for item in list_of_arrays]

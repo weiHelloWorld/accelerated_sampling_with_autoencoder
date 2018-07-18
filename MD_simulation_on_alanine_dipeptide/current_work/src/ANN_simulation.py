@@ -365,16 +365,15 @@ class iteration(object):
         if machine_to_run_simulations == 'local':
             print command
             temp_output = subprocess.check_output(command.strip().split(' '))
-            autoencoder_filename = temp_output.strip().split('\n')[-1]
         elif machine_to_run_simulations == 'cluster':
             command = 'OMP_NUM_THREADS=6  ' + command
-            job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command)
+            job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command, ppn=10)
             output_file, _ = cluster_management.get_output_and_err_with_job_id(job_id=job_id)
             temp_output = subprocess.check_output(['cat', output_file])
-            assert (temp_output.strip().split('\n')[-1] == 'This job is DONE!')
-            autoencoder_filename = temp_output.strip().split('\n')[-2]
         else:
             raise Exception('machine type error')
+        autoencoder_filename = temp_output.strip().split(
+            'excited! this is the name of best network: ')[1].strip().split('\n')[0]    # locate filename in output
 
         print temp_output
         self._network = autoencoder.load_from_pkl_file(autoencoder_filename)

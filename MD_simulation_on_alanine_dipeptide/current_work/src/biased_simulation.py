@@ -43,6 +43,7 @@ parser.add_argument("--MTD_WT", type=int, default=CONFIG_69, help="whether to us
 parser.add_argument("--MTD_biasfactor", type=float, default=CONFIG_70, help="biasfactor of well-tempered metadynamics")
 # following is for plumed script
 parser.add_argument("--plumed_file", type=str, default=None, help="plumed script for biasing force, used only when the bias_method == plumed_other")
+parser.add_argument("--plumed_add_string", type=str, default="", help="additional string to be attached to the end of plumed script in args.plumed_file")
 # note on "force_constant_adjustable" mode:
 # the simulation will stop if either:
 # force constant is greater or equal to max_force_constant
@@ -75,17 +76,12 @@ potential_center = list(map(lambda x: float(x), args.pc_potential_center.replace
 
 def run_simulation(force_constant):
     if not os.path.exists(folder_to_store_output_files):
-        try:
-            os.makedirs(folder_to_store_output_files)
-        except:
-            pass
+        try: os.makedirs(folder_to_store_output_files)
+        except: pass
 
     assert(os.path.exists(folder_to_store_output_files))
-
     input_pdb_file_of_molecule = args.starting_pdb_file
-
     force_field_file = 'amber99sb.xml'
-
     pdb_reporter_file = '%s/output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
 
     if not args.output_pdb is None:
@@ -97,13 +93,6 @@ def run_simulation(force_constant):
     for item_filename in [pdb_reporter_file, state_data_reporter_file]:
         Helper_func.backup_rename_file_if_exists(item_filename)
 
-    k1 = force_constant
-    k2 = force_constant
-
-    list_of_index_of_atoms_forming_dihedrals = [[2,5,7,9],
-                                                [5,7,9,15],
-                                                [7,9,15,17],
-                                                [9,15,17,19]]
     index_of_backbone_atoms = CONFIG_57[0]
     flag_random_seed = 0 # whether we need to fix this random seed
 
@@ -122,11 +111,9 @@ def run_simulation(force_constant):
             force.set_data_type_in_input_layer(args.data_type_in_input_layer)
             force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
             force.set_index_of_backbone_atoms(index_of_backbone_atoms)
-            pair_index_list = [[index_of_backbone_atoms[item_xx], index_of_backbone_atoms[item_yy]]
-                                for item_xx in range(len(index_of_backbone_atoms))
-                                for item_yy in range(item_xx + 1, len(index_of_backbone_atoms))]  # TODO: default setting is to use all pairs, may modify this later
-            # print pair_index_list
-            force.set_list_of_pair_index_for_distances(pair_index_list)
+            if args.data_type_in_input_layer == 2:
+                force.set_list_of_pair_index_for_distances(CONFIG_80)
+
             force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
@@ -147,6 +134,16 @@ def run_simulation(force_constant):
             force.set_values_of_biased_nodes(temp_bias)
 
             system.addForce(force)
+    elif args.bias_method == "US_on_phipsi":
+        from openmmplumed import PlumedForce
+        kappa_string = ','.join([str(force_constant) for _ in potential_center])
+        plumed_force_string = """
+phi: TORSION ATOMS=5,7,9,15
+psi: TORSION ATOMS=7,9,15,17
+restraint: RESTRAINT ARG=phi,psi AT=%f,%f KAPPA=%s
+PRINT STRIDE=10 ARG=* FILE=COLVAR
+        """ % (potential_center[0], potential_center[1], kappa_string)
+        system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
         plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed(scaling_factor=5.0)
@@ -200,7 +197,7 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
     elif args.bias_method == "plumed_other":
         from openmmplumed import PlumedForce
         with open(args.plumed_file, 'r') as f_in:
-            plumed_force_string = f_in.read()
+            plumed_force_string = f_in.read() + args.plumed_add_string
         system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')

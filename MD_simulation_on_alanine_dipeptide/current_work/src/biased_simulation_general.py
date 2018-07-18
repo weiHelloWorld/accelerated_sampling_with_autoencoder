@@ -20,6 +20,7 @@ parser.add_argument("pc_potential_center", type=str, help="potential center (sho
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
 parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
+parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--scaling_factor", type=float, default = CONFIG_49, help='scaling_factor for ANN_Force')
 parser.add_argument("--temperature", type=int, default= 300, help='simulation temperature')
@@ -89,13 +90,13 @@ def run_simulation(force_constant, number_of_simulation_steps):
     assert(os.path.exists(folder_to_store_output_files))
 
     force_field_file = {'Trp_cage': 'amber03.xml', '2src': 'amber03.xml', '1y57': 'amber03.xml',
-                        'BetaHairpin': 'amber03.xml', 'C24':'charmm36.xml'
+                        'BetaHairpin': 'amber03.xml', 'C24':'charmm36.xml', 'BPTI': 'amber03.xml'
                         }[args.molecule]
     water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml', '1y57': 'tip3p.xml',
-                        'BetaHairpin': 'tip3p.xml', 'C24':'charmm36/spce.xml'}[args.molecule]
+                        'BetaHairpin': 'tip3p.xml', 'C24':'charmm36/spce.xml', 'BPTI': 'spce.xml'}[args.molecule]
     water_model = water_field_file.replace('.xml', '').replace('charmm36/', '')
     ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar, '1y57': 0.5 * .15 * molar,
-                      'BetaHairpin': 0 * molar, 'C24': 0 * molar}[args.molecule]
+                      'BetaHairpin': 0 * molar, 'C24': 0 * molar, 'BPTI': 0 * molar}[args.molecule]
     implicit_solvent_force_field = 'amber03_obc.xml'
 
     pdb_reporter_file = '%s/output_fc_%s_pc_%s_T_%d_%s_%s.pdb' % (folder_to_store_output_files, force_constant,
@@ -108,7 +109,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
                                       '2src': '../resources/2src.pdb',
                                       '1y57': '../resources/1y57.pdb',
                                       'BetaHairpin': '../resources/BetaHairpin.pdb',
-                                      'C24': '../resources/C24.pdb'}[args.molecule]
+                                      'C24': '../resources/C24.pdb', 'BPTI': '../resources/5pti_mod.pdb'}[args.molecule]
     else:
         input_pdb_file_of_molecule = args.starting_pdb_file
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
@@ -132,13 +133,13 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     flag_random_seed = 0 # whether we need to fix this random seed
     box_size = {'Trp_cage': 4.5, '2src': 8.0, '1y57': 8.0,
-                'BetaHairpin': 5, 'C24': 5}[args.molecule]
+                'BetaHairpin': 5, 'C24': 5, 'BPTI': 5.2}[args.molecule]
     time_step = CONFIG_22       # simulation time step, in ps
 
     index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1],
                                '2src': CONFIG_57[2], '1y57': CONFIG_57[2],
                                'BetaHairpin': CONFIG_57[3],
-                               'C24': CONFIG_57[4]}[args.molecule]
+                               'C24': CONFIG_57[4], 'BPTI': None}[args.molecule]
 
     layer_types = CONFIG_27
     simulation_constraints = HBonds
@@ -184,11 +185,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
             force.set_data_type_in_input_layer(args.data_type_in_input_layer)
             force.set_list_of_index_of_atoms_forming_dihedrals_from_index_of_backbone_atoms(index_of_backbone_atoms)
             force.set_index_of_backbone_atoms(index_of_backbone_atoms)
-            pair_index_list = [[index_of_backbone_atoms[item_xx], index_of_backbone_atoms[item_yy]]
-                                for item_xx in range(len(index_of_backbone_atoms))
-                                for item_yy in range(item_xx + 1, len(index_of_backbone_atoms))]  # TODO: default setting is to use all pairs, may modify this later
-            # print pair_index_list
-            force.set_list_of_pair_index_for_distances(pair_index_list)
+            if args.data_type_in_input_layer == 2:
+                force.set_list_of_pair_index_for_distances(CONFIG_80)
             force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
@@ -202,7 +200,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
             temp_bias  = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
             for item_layer_index in [0, 1]:
                 assert (len(temp_coeffs[item_layer_index]) ==
-                        num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1])
+                        num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1]), \
+                    (len(temp_coeffs[item_layer_index]), num_of_nodes[item_layer_index], num_of_nodes[item_layer_index + 1])
                 assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1])
 
             force.set_coeffients_of_connections(temp_coeffs)
