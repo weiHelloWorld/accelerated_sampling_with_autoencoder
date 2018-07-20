@@ -316,11 +316,10 @@ class test_autoencoder_Keras(object):
         my_file_list = coordinates_data_files_list(['../tests/dependency/noncircular_alanine_exploration_data/'])
         self._data = np.array(Alanine_dipeptide.get_many_cossin_from_coordinates_in_list_of_files(
             my_file_list.get_list_of_coor_data_files()))
+        self._dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(self._data)
 
     def test_train(self):
-        data = self._data
-        dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
-
+        data, dihedrals = self._data, self._dihedrals
         for is_hi, hier_var in [(0, 0), (1,0), (1,1), (1,2)]:
             model = autoencoder_Keras(1447, data,
                                       node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
@@ -339,9 +338,29 @@ class test_autoencoder_Keras(object):
             fig.savefig('try_keras_noncircular_hierarchical_%d_%d.png' % (is_hi, hier_var))
         return history
 
+    def test_train_with_different_mse_weights(self):
+        data, dihedrals = self._data, self._dihedrals
+        for _1, weights in enumerate([None, np.array([1,1,0,0,0,0,1,1]),
+                                      np.array([0,0,1,1,1,1,0,0]), np.array([1,1,1,1,0,0,0,0])]):
+            model = autoencoder_Keras(1447, data,
+                                      node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
+                                      hidden_layers_types=["Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh"],
+                                      network_parameters=[0.02, 0.9, 0, True, [0.001] * 8],
+                                      batch_size=100, hierarchical=0,
+                                      mse_weights=weights
+                                      )
+            _, history = model.train()
+            PCs = model.get_PCs()
+            [x, y] = zip(*PCs)
+            psi = [item[2] for item in dihedrals]
+            fig, ax = plt.subplots()
+            ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+            model.save_into_file('try_diff_weights_%02d.pkl' % _1)
+            fig.savefig('try_diff_weights_%02d.png' % _1)
+        return
+
     def test_train_2(self):
-        data = self._data
-        dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(data)
+        data, dihedrals = self._data, self._dihedrals
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 4, 15, 8],
                                   hidden_layers_types=["Tanh", "Circular", "Tanh"],
@@ -349,10 +368,8 @@ class test_autoencoder_Keras(object):
                                   hierarchical=False
                                   )
         model.train()
-
         PCs = model.get_PCs()
         [x, y] = zip(*PCs)
-
         psi = [item[2] for item in dihedrals]
         fig, ax = plt.subplots()
         ax.scatter(x, y, c=psi, cmap='gist_rainbow')

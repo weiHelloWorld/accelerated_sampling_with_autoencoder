@@ -1015,7 +1015,7 @@ class autoencoder_Keras(autoencoder):
                           kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
-            loss_function = 'mean_squared_error'
+            loss_function = get_mse_weighted(self._mse_weights)
 
         try:
             from keras.utils import plot_model
