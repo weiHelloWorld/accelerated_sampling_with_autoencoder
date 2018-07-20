@@ -202,3 +202,11 @@ class Helper_func(object):
         indices = np.arange(list_of_arrays[0].shape[0])
         np.random.shuffle(indices)
         return [item[indices] for item in list_of_arrays]
+
+    @staticmethod
+    def find_indices_of_points_in_array_near_each_point_in_ref_list(point_list, ref_list, threshold_r):
+        """used to find points near a specific point (in the reference list), useful for sampling structures
+        in a pdb file that are near a specific point in CV space  (result is the indices of pdb snapshots)
+        """
+        return [np.where(np.linalg.norm(point_list - item, axis=1) < threshold_r)[0]
+                for item in ref_list]

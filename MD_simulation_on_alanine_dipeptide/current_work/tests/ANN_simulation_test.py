@@ -484,7 +484,15 @@ class test_Helper_func(object):
         result = Helper_func.compute_distances_min_image_convention(a_positions, b_positions, 10 * box_length)
         assert_almost_equal(md.compute_distances(temp_t, [[0, absolute_index]]).flatten(), result[:, 0, 30] / 10, decimal=4)
         subprocess.check_output(['rm', '-rf', output_pdb, 'temp_out_12345'])
-        return 
+        return
+
+    @staticmethod
+    def test_shuffle_multiple_arrays():
+        a = np.random.rand(10, 2)
+        b1, b2 =Helper_func.shuffle_multiple_arrays([a[:, 0], a[:, 1]])
+        for item in range(10):
+            assert( [b1[item], b2[item]] in a)
+        return
 
 
 class test_others(object):
