@@ -147,6 +147,8 @@ CONFIG_3 = get_mol_param([       # the structure of ANN: number of nodes in each
     [0, 100, CONFIG_37, 100, 0],
 ])
 
+if CONFIG_3[-1] == 0: CONFIG_3[-1] = CONFIG_3[0]
+
 CONFIG_74 = False                  # whether we start each biased simulation with nearest configuration or a fixed configuration
 CONFIG_40 = 'explicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_51 = 'NVT'                  # simulation ensemble type

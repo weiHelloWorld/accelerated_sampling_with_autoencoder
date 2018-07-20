@@ -86,7 +86,7 @@ class autoencoder(object):
     def load_from_pkl_file(filename):
         a = Sutils.load_object_from_pkl_file(filename)
         if os.path.isfile(filename.replace('.pkl','.hdf5')):
-            a._molecule_net = load_model(filename.replace('.pkl','.hdf5'),custom_objects={'mse_weighted': mse_weighted})
+            a._molecule_net = load_model(filename.replace('.pkl','.hdf5'),custom_objects={'mse_weighted': get_mse_weighted()})
         elif not hasattr(a, '_molecule_net') and hasattr(a, '_molecule_net_layers') and (not a._molecule_net_layers is None):  # for backward compatibility
             a._molecule_net = Sequential()
             for item in a._molecule_net_layers:
@@ -94,7 +94,7 @@ class autoencoder(object):
         else:
             raise Exception('cannot load attribute _molecule_net')
         if os.path.isfile(filename.replace('.pkl', '_encoder.hdf5')):
-            a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'),custom_objects={'mse_weighted': mse_weighted})
+            a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'),custom_objects={'mse_weighted': get_mse_weighted()})
         else:
             raise Exception('TODO: construct encoder from _molecule_net') # TODO
         return a
@@ -138,8 +138,8 @@ class autoencoder(object):
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
 
-        self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': mse_weighted})
-        self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': mse_weighted})
+        self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': get_mse_weighted()})
+        self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': get_mse_weighted()})
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 
@@ -851,11 +851,13 @@ class autoencoder_Keras(autoencoder):
     def _init_extra(self,
                     network_parameters = CONFIG_4,
                     batch_size = 100,
-                    enable_early_stopping=True
+                    enable_early_stopping=True,
+                    mse_weights=None
                     ):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
         self._enable_early_stopping = enable_early_stopping
+        self._mse_weights = mse_weights
         self._molecule_net_layers = None              # why don't I save molecule_net (Keras model) instead? since it it not picklable:
                                                       # https://github.com/luispedro/jug/issues/30
                                                       # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
@@ -986,7 +988,7 @@ class autoencoder_Keras(autoencoder):
                 molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             else: raise Exception('error variant')
             # print molecule_net.summary()
-            loss_function = mse_weighted
+            loss_function = get_mse_weighted(self._mse_weights)
         # elif num_of_hidden_layers != 3:
         #     raise Exception('not implemented for this case')
         else:
@@ -1192,10 +1194,15 @@ weight_for_MSE = get_hierarchical_weights()
 # if CONFIG_44:
 #     print "MSE is weighted by %s" % str(weight_for_MSE)
 
-def mse_weighted(y_true, y_pred):
-    # return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)  # TODO: do this later
-    return K.mean(K.square(y_pred - y_true), axis=-1)
+def get_mse_weighted(weight_for_MSE=None):   # take weight as input, return loss function
+    if weight_for_MSE is None:
+        weight_for_MSE = 1
+    def mse_weighted(y_true, y_pred):
+        return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)  # TODO: do this later
+        #  return K.mean(K.square(y_pred - y_true), axis=-1)
+    return mse_weighted
 
+mse_weighted = get_mse_weighted()      # requires a global mse_weighted(), for backward compatibility
 
 # class autoencoder_pytorch(autoencoder):
 #     def _init_extra(self,

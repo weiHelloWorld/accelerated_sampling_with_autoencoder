@@ -360,7 +360,7 @@ class test_autoencoder_Keras(object):
         fig.savefig('try_keras_circular.png')
         return
 
-    def test_save_into_file(self):
+    def test_save_into_file_and_load(self):
         data = self._data
         model = autoencoder_Keras(1447, data,
                                   node_num=[8, 15, 2, 15, 8],
@@ -371,6 +371,7 @@ class test_autoencoder_Keras(object):
         model.train()
         model.save_into_file('test_save_into_file.pkl')
         model.save_into_file('test_save_into_file_fraction.pkl', fraction_of_data_to_be_saved=0.5)
+        _ = autoencoder.load_from_pkl_file('test_save_into_file.pkl')
         return
 
 
