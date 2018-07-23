@@ -93,7 +93,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
                         'BetaHairpin': 'amber03.xml', 'C24':'charmm36.xml', 'BPTI': 'amber03.xml'
                         }[args.molecule]
     water_field_file = {'Trp_cage': 'tip4pew.xml', '2src': 'tip3p.xml', '1y57': 'tip3p.xml',
-                        'BetaHairpin': 'tip3p.xml', 'C24':'charmm36/spce.xml', 'BPTI': 'spce.xml'}[args.molecule]
+                        'BetaHairpin': 'tip3p.xml', 'C24':'charmm36/spce.xml', 'BPTI': 'tip4pew.xml'}[args.molecule]
     water_model = water_field_file.replace('.xml', '').replace('charmm36/', '')
     ionic_strength = {'Trp_cage': 0 * molar, '2src': 0.5 * .15 * molar, '1y57': 0.5 * .15 * molar,
                       'BetaHairpin': 0 * molar, 'C24': 0 * molar, 'BPTI': 0 * molar}[args.molecule]
@@ -109,7 +109,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
                                       '2src': '../resources/2src.pdb',
                                       '1y57': '../resources/1y57.pdb',
                                       'BetaHairpin': '../resources/BetaHairpin.pdb',
-                                      'C24': '../resources/C24.pdb', 'BPTI': '../resources/5pti_mod.pdb'}[args.molecule]
+                                      'C24': '../resources/C24.pdb', 'BPTI': '../resources/bpti.pdb'}[args.molecule]
     else:
         input_pdb_file_of_molecule = args.starting_pdb_file
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
@@ -133,7 +133,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     flag_random_seed = 0 # whether we need to fix this random seed
     box_size = {'Trp_cage': 4.5, '2src': 8.0, '1y57': 8.0,
-                'BetaHairpin': 5, 'C24': 5, 'BPTI': 5.2}[args.molecule]
+                'BetaHairpin': 5, 'C24': 5, 'BPTI': 5.1263}[args.molecule]
     time_step = CONFIG_22       # simulation time step, in ps
 
     index_of_backbone_atoms = {'Trp_cage': CONFIG_57[1],
@@ -164,8 +164,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
 
     elif args.whether_to_add_water_mol_opt == 'no_water' or args.whether_to_add_water_mol_opt == 'water_already_included':
         forcefield = ForceField(force_field_file, water_field_file)
-        modeller.addHydrogens(forcefield)
         modeller.addExtraParticles(forcefield)
+        modeller.addHydrogens(forcefield)
         system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff,nonbondedCutoff=1.0 * nanometers,
                                          constraints = simulation_constraints)
     else:
