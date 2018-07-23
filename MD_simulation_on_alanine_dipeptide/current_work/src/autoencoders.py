@@ -1197,6 +1197,8 @@ weight_for_MSE = get_hierarchical_weights()
 def get_mse_weighted(weight_for_MSE=None):   # take weight as input, return loss function
     if weight_for_MSE is None:
         weight_for_MSE = 1
+    else:
+        print "error weighted by %s" % str(weight_for_MSE)
     def mse_weighted(y_true, y_pred):
         return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)  # TODO: do this later
         #  return K.mean(K.square(y_pred - y_true), axis=-1)
