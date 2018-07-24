@@ -392,6 +392,20 @@ class test_autoencoder_Keras(object):
         _ = autoencoder.load_from_pkl_file('test_save_into_file.pkl')
         return
 
+    def test_get_plumed_script_for_biased_simulation_with_INDUS_cg_input_and_ANN(self):
+        with open('../tests/dependency/solvent_AE/temp_plumed.txt', 'r') as my_f:
+            expected_plumed = my_f.read().strip()
+        scaling_factor_v = 26.9704478916
+        solvent_a = autoencoder.load_from_pkl_file(
+            '../tests/dependency/solvent_AE/solvent_test.pkl')
+        r_high = 5.5
+        atom_indices = range(1, 25)
+        water_index_string = '75-11421:3'
+        plumed_string = solvent_a.get_plumed_script_for_biased_simulation_with_INDUS_cg_input_and_ANN(
+            water_index_string, atom_indices, -5, r_high, scaling_factor_v).strip()
+        assert (plumed_string == expected_plumed)
+        return
+
 
 class test_biased_simulation(object):
     @staticmethod
