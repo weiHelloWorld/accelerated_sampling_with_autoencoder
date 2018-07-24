@@ -388,6 +388,7 @@ class test_autoencoder_Keras(object):
         model.train()
         model.save_into_file('test_save_into_file.pkl')
         model.save_into_file('test_save_into_file_fraction.pkl', fraction_of_data_to_be_saved=0.5)
+        model.save_into_file('temp_save/complicated/path/temp.pkl')
         _ = autoencoder.load_from_pkl_file('test_save_into_file.pkl')
         return
 

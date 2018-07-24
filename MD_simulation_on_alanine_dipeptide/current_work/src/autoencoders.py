@@ -131,6 +131,9 @@ class autoencoder(object):
         hdf5_file_name_decoder = hdf5_file_name.replace('.hdf5', '_decoder.hdf5')
         for item_filename in [filename, hdf5_file_name, hdf5_file_name_encoder, hdf5_file_name_decoder]:
             Helper_func.backup_rename_file_if_exists(item_filename)
+        folder_to_store_files = os.path.dirname(filename)
+        if folder_to_store_files != '' and (not os.path.exists(folder_to_store_files)):
+            subprocess.check_output(['mkdir', '-p', folder_to_store_files])
         self._molecule_net.save(hdf5_file_name)
         self._encoder_net.save(hdf5_file_name_encoder)
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
