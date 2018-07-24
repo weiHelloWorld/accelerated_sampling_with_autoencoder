@@ -71,8 +71,8 @@ if float(force_constant) != 0:
 folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = args.autoencoder_info_file
 
-potential_center = list(map(lambda x: float(x), args.pc_potential_center.replace('"','')\
-                                .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
+potential_center = list([float(x) for x in args.pc_potential_center.replace('"','')\
+                                .replace('pc_','').split(',')])   # this API is the generalization for higher-dimensional cases
 
 def run_simulation(force_constant):
     if not os.path.exists(folder_to_store_output_files):
@@ -214,10 +214,10 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
     simulation.context.setPositions(modeller.positions)
     if args.minimize_energy:
         print('begin Minimizing energy...')
-        print datetime.datetime.now()
+        print(datetime.datetime.now())
         simulation.minimizeEnergy()
         print('Done minimizing energy.')
-        print datetime.datetime.now()
+        print(datetime.datetime.now())
     else:
         print('energy minimization not required')
 
@@ -240,8 +240,8 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center(input_data_type)
     if layer_types[1] == "Circular":
         offset = [min(abs(item), abs(item + 2 * np.pi), abs(item - 2 * np.pi)) for item in offset]
-        print "circular offset"
-    print 'offset = %s' % str(offset)
+        print("circular offset")
+    print('offset = %s' % str(offset))
     distance = sqrt(sum([item * item for item in offset]))
     return distance
 
@@ -257,11 +257,11 @@ if __name__ == '__main__':
                     command = 'rm %s/*%s*' % (folder_to_store_output_files, str(potential_center).replace(' ',''))
                     command = command.replace('[','').replace(']','')
                     subprocess.check_output(command, shell=True)
-                    print "removing previous results..."
+                    print("removing previous results...")
                 except:
                     pass
             pdb_file = run_simulation(force_constant)
             distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
             force_constant += args.fc_step
-            print "distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center
+            print("distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center)
 

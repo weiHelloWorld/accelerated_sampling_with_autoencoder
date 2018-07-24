@@ -15,7 +15,7 @@ class classification_sampler(object):
 
     def get_input_from_pdbs(self, pdb_list):
         """can be modified to other input features later"""
-        print ('get input from %s' % str(pdb_list))
+        print(('get input from %s' % str(pdb_list)))
         result =  Sutils.get_non_repeated_pairwise_distance(
             pdb_list, atom_selection=self._atom_selection) / self._scaling_factor
         self._input_dim = result.shape[1]
@@ -56,7 +56,7 @@ class classification_sampler(object):
                                              verbose=0, validation_split=0.2, callbacks=call_back_list)
             if best_val_loss is None or train_history.history['val_loss'][-1] < best_val_loss:
                 best_val_loss = train_history.history['val_loss'][-1]
-                print "best_val_loss at iter %02d = %f" % (self._index, best_val_loss)
+                print("best_val_loss at iter %02d = %f" % (self._index, best_val_loss))
                 fig, axes = plt.subplots(1, 2)
                 axes[0].plot(train_history.history['loss'])
                 axes[1].plot(train_history.history['val_loss'])
@@ -105,7 +105,7 @@ class classification_sampler(object):
 
     def choose_two_states_list_between_which_we_sample_intermediates(self, metric="input", option=0):
         dis_to_end_states = self.get_dis_to_end_states(metric)
-        print dis_to_end_states
+        print(dis_to_end_states)
         if option == 0:
             sorted_index = [np.argsort(item) for item in dis_to_end_states]
             for temp_index in [0, 1]:
@@ -167,7 +167,7 @@ class classification_sampler(object):
                 out_pdb, self._input_dim, len(self._all_states))
             command += ' --scaling_factor %f' % self._scaling_factor
         else: raise Exception('mode error')
-        print command
+        print(command)
         subprocess.check_output(command, shell=True)
         self._all_states.append(out_pdb)
         return

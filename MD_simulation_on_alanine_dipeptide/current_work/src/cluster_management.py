@@ -90,8 +90,8 @@ exit 0
     def create_sge_files_from_a_file_containing_commands(command_file, folder_to_store_sge_files='../sge_files/', run_on_gpu = False):
         with open(command_file, 'r') as commmand_file:
             commands_to_run = commmand_file.readlines()
-            commands_to_run = map(lambda x: x.strip(), commands_to_run)
-            commands_to_run = filter(lambda x: x != "", commands_to_run)
+            commands_to_run = [x.strip() for x in commands_to_run]
+            commands_to_run = [x for x in commands_to_run if x != ""]
             cluster_management.create_sge_files_for_commands(commands_to_run, folder_to_store_sge_files, run_on_gpu)
 
         return commands_to_run
@@ -143,7 +143,7 @@ exit 0
         for item in job_file_lists[0:num]:
             output_info = subprocess.check_output(['qsub', item]).strip()
             sge_job_id_list.append(cluster_management.get_job_id_from_qsub_output(output_info))
-            print('submitting ' + str(item))
+            print(('submitting ' + str(item)))
             subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
         return sge_job_id_list
 
@@ -163,15 +163,15 @@ exit 0
     @staticmethod
     def submit_a_single_job_and_wait_until_it_finishes(job_sge_file):
         job_id = cluster_management.submit_sge_jobs_and_archive_files([job_sge_file], num=1)[0]
-        print "job = %s, job_id = %s" % (job_sge_file, job_id)
+        print("job = %s, job_id = %s" % (job_sge_file, job_id))
         while cluster_management.is_job_on_cluster(job_id):
             time.sleep(10)
-        print "job (id = %s) done!" % job_id
+        print("job (id = %s) done!" % job_id)
         return job_id
 
     @staticmethod
     def run_a_command_and_wait_on_cluster(command, ppn=2):
-        print 'running %s on cluster' % command
+        print('running %s on cluster' % command)
         sge_file = cluster_management.create_sge_files_for_commands([command], ppn=ppn)[0]
         id = cluster_management.submit_a_single_job_and_wait_until_it_finishes(sge_file)
         return id
@@ -179,14 +179,14 @@ exit 0
     @staticmethod
     def get_output_and_err_with_job_id(job_id):
         temp_file_list = subprocess.check_output(['ls']).strip().split('\n')
-        out_file = list(filter(lambda x: '.sge.o' + job_id in x, temp_file_list))[0]
-        err_file = list(filter(lambda x: '.sge.e' + job_id in x, temp_file_list))[0]
+        out_file = list([x for x in temp_file_list if '.sge.o' + job_id in x])[0]
+        err_file = list([x for x in temp_file_list if '.sge.e' + job_id in x])[0]
         return out_file, err_file
 
     @staticmethod
     def get_sge_files_list():
-        result = filter(lambda x: x[-3:] == "sge",subprocess.check_output(['ls', '../sge_files']).split('\n'))
-        result = map(lambda x: '../sge_files/' + x, result)
+        result = [x for x in subprocess.check_output(['ls', '../sge_files']).split('\n') if x[-3:] == "sge"]
+        result = ['../sge_files/' + x for x in result]
         return result
 
     @staticmethod
@@ -221,9 +221,8 @@ exit 0
             try:
                 temp_submitted_job_id = cluster_management.submit_new_jobs_if_there_are_too_few_jobs(num)
                 submitted_job_id += temp_submitted_job_id
-                submitted_job_id = list(filter(lambda x: cluster_management.is_job_on_cluster(x),
-                                               submitted_job_id))   # remove finished id of finished jobs
-                print "submitted_job_id = %s" % str(submitted_job_id)
+                submitted_job_id = list([x for x in submitted_job_id if cluster_management.is_job_on_cluster(x)])   # remove finished id of finished jobs
+                print("submitted_job_id = %s" % str(submitted_job_id))
                 num_of_unsubmitted_jobs = len(cluster_management.get_sge_files_list())
             except:
                 print("not able to submit jobs!\n")
@@ -264,15 +263,15 @@ exit 0
             return 3  # not finished
         else:
             all_files_in_this_dir = sorted(glob.glob('*'))
-            out_file_list = filter(lambda x: job_sgefile_name + ".o" in x, all_files_in_this_dir)
-            err_file_list = filter(lambda x: job_sgefile_name + ".e" in x, all_files_in_this_dir)
+            out_file_list = [x for x in all_files_in_this_dir if job_sgefile_name + ".o" in x]
+            err_file_list = [x for x in all_files_in_this_dir if job_sgefile_name + ".e" in x]
 
             if len(out_file_list) == 0 or len(err_file_list) == 0:
-                print "%s does not exist" % job_sgefile_name
+                print("%s does not exist" % job_sgefile_name)
                 return -1  
 
             if latest_version:   # check output/error information for the latest version, since a job could be submitted multiple times
-                job_serial_number_list = map(lambda x: int(x.split('.sge.o')[1]), out_file_list)
+                job_serial_number_list = [int(x.split('.sge.o')[1]) for x in out_file_list]
                 job_serial_number_of_latest_version = max(job_serial_number_list)
                 latest_out_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, out_file_list)[0]
                 latest_err_file = filter(lambda x: str(job_serial_number_of_latest_version) in x, err_file_list)[0]
@@ -281,16 +280,16 @@ exit 0
 
                 with open(latest_err_file, 'r') as err_f:
                     err_content = [item.strip() for item in err_f.readlines()]
-                    err_content = filter(lambda x: "Traceback (most recent call last)" in x, err_content)
+                    err_content = [x for x in err_content if "Traceback (most recent call last)" in x]
 
                 if (job_finished_message in out_content) and (len(err_content) != 0):
-                    print "%s ends with exception" % job_sgefile_name
+                    print("%s ends with exception" % job_sgefile_name)
                     return 1  
                 elif not job_finished_message in out_content:
-                    print "%s aborted due to time limit or other reason" % job_sgefile_name
+                    print("%s aborted due to time limit or other reason" % job_sgefile_name)
                     return 2  
                 else:
-                    print "%s finishes successfully" % job_sgefile_name
+                    print("%s finishes successfully" % job_sgefile_name)
                     return 0  
             else: return
 
@@ -308,17 +307,16 @@ exit 0
             status_code = cluster_management.check_whether_job_finishes_successfully(item, latest_version)
             if status_code in (1, 2):
                 if os.path.isfile(dir_to_archive_files + item):
-                    print "restore sge_file: %s" % item
+                    print("restore sge_file: %s" % item)
                     subprocess.check_output(['cp', dir_to_archive_files + item, folder_to_store_sge_files])
                     assert (os.path.exists(folder_to_store_sge_files + item))
                 else:
-                    print "%s not exists in %s" % (item, dir_to_archive_files)
+                    print("%s not exists in %s" % (item, dir_to_archive_files))
             
             if status_code in (0, 1, 2):  # archive .o/.e files for finished jobs
-                print "archive .o/.e files for %s" % item
+                print("archive .o/.e files for %s" % item)
                 all_files_in_this_dir = sorted(glob.glob('*'))
-                temp_dot_o_e_files_for_this_item = filter(lambda x: (item + '.o' in x) or (item + '.e' in x), 
-                                                          all_files_in_this_dir)
+                temp_dot_o_e_files_for_this_item = [x for x in all_files_in_this_dir if (item + '.o' in x) or (item + '.e' in x)]
                 for temp_item_o_e_file in temp_dot_o_e_files_for_this_item:
                     subprocess.check_output(['mv', temp_item_o_e_file, dir_to_archive_files])
         return

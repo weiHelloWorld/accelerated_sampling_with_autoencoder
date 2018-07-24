@@ -119,9 +119,9 @@ class autoencoder(object):
 
         if fraction_of_data_to_be_saved != 1.0:
             number_of_data_points_to_be_saved = int(self._data_set.shape[0] * fraction_of_data_to_be_saved)
-            print ("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
+            print(("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
                                                                                         number_of_data_points_to_be_saved,
-                                                                                        self._data_set.shape[0]))
+                                                                                        self._data_set.shape[0])))
             self._data_set = self._data_set[:number_of_data_points_to_be_saved]
             if not self._output_data_set is None:        # for backward compatibility
                 self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]
@@ -342,7 +342,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         out_pdb_list = []
         for index, item in enumerate(indices_list):
             # save configurations with distance less than 'radius' to corresponding cluster center
-            item = list(filter(lambda x: np.linalg.norm(PCs[x] - kmeans.cluster_centers_[index]) < radius, item))
+            item = list([x for x in item if np.linalg.norm(PCs[x] - kmeans.cluster_centers_[index]) < radius])
             if len(item) > 0:
                 output_pdb_name = '%s/%04d_temp_frames_%s.pdb' % \
                                     (output_folder, index, str(list(kmeans.cluster_centers_[index])).replace(' ',''))
@@ -473,7 +473,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     temp_input_data_2 = np.loadtxt(nearest_pdb.replace('.pdb', '_coordinates.txt')) / CONFIG_49
                     temp_input_data_2 = Sutils.remove_translation(temp_input_data_2)
                     temp_PC_2 = self.get_PCs(temp_input_data_2)[nearest_frame_index]
-                    print temp_distances[index_of_nearest_config]
+                    print(temp_distances[index_of_nearest_config])
                     expected = temp_distances[index_of_nearest_config]
                     actual = np.linalg.norm(temp_PC_2 - item_2)
                     assert_almost_equal(expected, actual, decimal=3)
@@ -493,13 +493,13 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 elif CONFIG_53 == "flexible":
                     input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
-                    print("PC_folded_state = %s" % str(PC_folded_state))
+                    print(("PC_folded_state = %s" % str(PC_folded_state)))
                     force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
                                                  for item in list_of_potential_center]
                 elif CONFIG_53 == "truncated":
                     input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
-                    print("PC_folded_state = %s" % str(PC_folded_state))
+                    print(("PC_folded_state = %s" % str(PC_folded_state)))
                     force_constant_for_biased = [min(2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2,
                                                      CONFIG_9) for item in list_of_potential_center]
                 else:
@@ -693,7 +693,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             if random_dataset:
                 # data_index_list = random.sample(range(temp_coor.shape[0]), int(0.5 * temp_coor.shape[0]))  # nonrepeated
                 # bootstrap for error estimation
-                data_index_list = [random.choice(range(temp_coor.shape[0]))
+                data_index_list = [random.choice(list(range(temp_coor.shape[0])))
                                    for _ in range(num_of_random_points_to_pick_in_each_file[temp_index])]
                 # print "random data_index_list"
             else:
@@ -721,8 +721,8 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 umbOP += list(zip(temp_CA_RMSD[data_index_list], temp_helix_RMSD[data_index_list]))
 
         if mode == "standard":
-            max_of_coor = map(lambda x: round(x, 1) + 0.1, map(max, list(zip(*coords))))
-            min_of_coor = map(lambda x: round(x, 1) - 0.1, map(min, list(zip(*coords))))
+            max_of_coor = [round(x, 1) + 0.1 for x in list(map(max, list(zip(*coords))))]
+            min_of_coor = [round(x, 1) - 0.1 for x in list(map(min, list(zip(*coords))))]
             interval = 0.1
 
             window_counts = np.array(window_counts)
@@ -841,7 +841,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     else:
                         y_train.append(-1.0)  # TODO: is it good?
                 X_train, y_train = np.array(X_train), np.array(y_train)
-                print np.concatenate([X_train,y_train.reshape(y_train.shape[0], 1)], axis=-1)
+                print(np.concatenate([X_train,y_train.reshape(y_train.shape[0], 1)], axis=-1))
                 current_best_y_train = np.max(y_train)
                 gp.fit(X_train, y_train)
                 params = np.random.uniform(size=(100, 2))
@@ -853,7 +853,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     params[:, 0] = params[:, 0] * (lr_range[1] - lr_range[0]) + lr_range[0]
                 y_mean, y_std = gp.predict(params, return_std=True)
                 next_params, next_ei = next_parameter_by_ei(current_best_y_train, y_mean, y_std, params, train_num_per_iter)
-                print next_params, next_ei
+                print(next_params, next_ei)
 
             assert (len(next_params) == train_num_per_iter)
             command_list = []
@@ -868,7 +868,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     command_list.append(command)
 
             num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(command_list, num_of_jobs_in_parallel=2)
-            print "num_failed_jobs = %d" % num_failed_jobs
+            print("num_failed_jobs = %d" % num_failed_jobs)
         return
 
 
@@ -1070,7 +1070,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                                self._network_parameters[2], str(self._network_parameters[4]),
                                str(self._output_as_circular))
 
-        print("Start " + training_print_info + str(datetime.datetime.now()))
+        print(("Start " + training_print_info + str(datetime.datetime.now())))
         call_back_list = []
         earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
         if self._enable_early_stopping:
@@ -1091,7 +1091,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if
                                                     isinstance(item, Dense)]
 
-        print('Done ' + training_print_info + str(datetime.datetime.now()))
+        print(('Done ' + training_print_info + str(datetime.datetime.now())))
         self._molecule_net = molecule_net
         self._encoder_net = encoder_net
         try:
@@ -1101,7 +1101,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
             png_file = 'history_%02d.png' % self._index
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
-        except: print "training history not plotted!"; pass
+        except: print("training history not plotted!"); pass
         return self, train_history
 
     def train_bak(self):
@@ -1157,7 +1157,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
                                    self._network_parameters[0], self._network_parameters[1],
                                    self._network_parameters[2], str(self._network_parameters[4]), str(self._output_as_circular))
 
-            print("Start " + training_print_info + str(datetime.datetime.now()))
+            print(("Start " + training_print_info + str(datetime.datetime.now())))
             call_back_list = []
             earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
             if self._enable_early_stopping:
@@ -1174,7 +1174,7 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
             self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in molecule_net.layers if isinstance(item, Dense)]  # transpose the weights for consistency
             self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if isinstance(item, Dense)]
 
-            print('Done ' + training_print_info + str(datetime.datetime.now()))
+            print(('Done ' + training_print_info + str(datetime.datetime.now())))
             self._molecule_net = molecule_net
 
         return self
@@ -1223,7 +1223,7 @@ def get_mse_weighted(weight_for_MSE=None):   # take weight as input, return loss
     if weight_for_MSE is None:
         weight_for_MSE = 1
     else:
-        print "error weighted by %s" % str(weight_for_MSE)
+        print("error weighted by %s" % str(weight_for_MSE))
     def mse_weighted(y_true, y_pred):
         return K.mean(K.variable(weight_for_MSE) * K.square(y_pred - y_true), axis=-1)  # TODO: do this later
         #  return K.mean(K.square(y_pred - y_true), axis=-1)

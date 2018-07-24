@@ -29,7 +29,7 @@ def main():
     with open(command_file, 'r') as cmdf:
         command_list = cmdf.read().strip().split('\n')
 
-    command_list = filter(lambda x: x.strip() != "" and x.strip()[0] != "#", command_list)  # remove empty commands
+    command_list = [x for x in command_list if x.strip() != "" and x.strip()[0] != "#"]  # remove empty commands
 
     total_num_jobs = len(command_list)
     next_job_index = 0
@@ -38,12 +38,8 @@ def main():
 
     while next_job_index < total_num_jobs:
         time.sleep(interval)
-        current_running_python_jobs = filter(lambda x: ' python ' in x and not 'python workqueue.py' in x,
-                                            subprocess.check_output(['ps', 'aux']).split('\n')
-                                            )
-        current_running_python_jobs = map(lambda x: ' '.join(x.split()[10:]),    # 11th column is command
-                                          current_running_python_jobs
-                                          )
+        current_running_python_jobs = [x for x in subprocess.check_output(['ps', 'aux']).split('\n') if ' python ' in x and not 'python workqueue.py' in x]
+        current_running_python_jobs = [' '.join(x.split()[10:]) for x in current_running_python_jobs]      # 11th column is command
         # print "current_running_jobs = %s" % str(current_running_python_jobs)
 
         # save finished programs into this file
@@ -64,7 +60,7 @@ def main():
                 run_programs(command_list, next_job_index, next_job_index + num_of_programs_allowed - num_of_running_jobs)
                 next_job_index += num_of_programs_allowed - num_of_running_jobs
 
-    print "Done all programs in " + args.cmdfile
+    print("Done all programs in " + args.cmdfile)
     return
 
 
@@ -79,7 +75,7 @@ def run_programs(command_list, start_index, end_index):
                 command_arg = command_arg[:-1]
 
             command_arg = command_arg.split()
-            print ("running command: " + " ".join(command_arg))
+            print(("running command: " + " ".join(command_arg)))
             subprocess.Popen(command_arg)
 
     return

@@ -25,6 +25,6 @@ assert (np.all(momentum_range[0] <= params[:, 1]) and np.all(params[:, 1] <= mom
 
 for index in range(args.num_each_param):
     for each_param in params:
-        print "OMP_NUM_THREADS=6 python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %f,%f --output_file temp_%f_%f_%02d.pkl --in_data %s --out_data %s" % (
+        print("OMP_NUM_THREADS=6 python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %f,%f --output_file temp_%f_%f_%02d.pkl --in_data %s --out_data %s" % (
             each_param[0], each_param[1], each_param[0], each_param[1], index, args.in_data, args.out_data
-        )
+        ))

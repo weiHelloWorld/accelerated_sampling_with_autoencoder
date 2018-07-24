@@ -6,6 +6,7 @@ import random
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
 from helper_func import *
+from functools import reduce
 
 class Sutils(object):
     def __init__(self):
@@ -135,7 +136,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list_for_pdb_file_list(list_of_files, index_list, new_pdb_file_name):
-        print "note that order may not be preserved!"
+        print("note that order may not be preserved!")
         remaining_index_list = index_list
         for _1 in list_of_files:
             remaining_index_list = Sutils.write_some_frames_into_a_new_file_based_on_index_list(_1, remaining_index_list, new_pdb_file_name)
@@ -182,7 +183,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1,  # start_index included, end_index not included
                                           new_pdb_file_name=None, method=1):
-        print ('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
+        print(('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval)))
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
@@ -297,9 +298,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
             output_file_list += [output_file]
             if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
-                print ("coordinate file already exists: %s (remove previous one if needed)" % output_file)
+                print(("coordinate file already exists: %s (remove previous one if needed)" % output_file))
             else:
-                print ('generating coordinates of ' + input_file)
+                print(('generating coordinates of ' + input_file))
 
                 with open(input_file) as f_in:
                     with open(output_file, 'w') as f_out:
@@ -362,7 +363,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         """
         filenames = subprocess.check_output(['find', folder_for_pdb, '-name', '*.pdb']).split('\n')[:-1]
         for item in filenames:
-            print ('removing water molecules from pdb file: ' + item)
+            print(('removing water molecules from pdb file: ' + item))
             output_file = item[:-4] + '_rm_tmp.pdb'
             is_line_removed_flag = False
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
@@ -408,14 +409,12 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         # simply find the points that are lower than average of its 4 neighbors
 
         if preprocessing:
-            hist_matrix = np.array(map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix))   # preprocessing process
+            hist_matrix = np.array([[- np.exp(- y) for y in x] for x in hist_matrix])   # preprocessing process
 
         if is_circular_boundary:  # typically works for circular autoencoder
             diff_with_neighbors = hist_matrix - 1.0 / (2 * dimensionality) \
                                             * sum(
-                                                map(lambda x: np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x),
-                                                    list(range(dimensionality))
-                                                    )
+                                                [np.roll(hist_matrix, 1, axis=x) + np.roll(hist_matrix, -1, axis=x) for x in list(range(dimensionality))]
                                                 )
         else:
             # TODO: code not concise and general enough, fix this later
@@ -424,7 +423,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             for grid_index in itertools.product(*temp_1):
                 neighbor_index_list = [(np.array(grid_index) + temp_2).astype(int) for temp_2 in np.eye(dimensionality)]
                 neighbor_index_list += [(np.array(grid_index) - temp_2).astype(int) for temp_2 in np.eye(dimensionality)]
-                neighbor_index_list = filter(lambda x: np.all(x >= 0) and np.all(x < num_of_bins), neighbor_index_list)
+                neighbor_index_list = [x for x in neighbor_index_list if np.all(x >= 0) and np.all(x < num_of_bins)]
                 # print "grid_index = %s" % str(grid_index)
                 # print "neighbor_index_list = %s" % str(neighbor_index_list)
                 diff_with_neighbors[tuple(grid_index)] = hist_matrix[tuple(grid_index)] - np.average(
@@ -432,7 +431,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                 )
 
         # get grid centers
-        edge_centers = map(lambda x: 0.5 * (np.array(x[1:]) + np.array(x[:-1])), edges)
+        edge_centers = [0.5 * (np.array(x[1:]) + np.array(x[:-1])) for x in edges]
         grid_centers = np.array(list(itertools.product(*edge_centers)))  # "itertools.product" gives Cartesian/direct product of several lists
         grid_centers = np.reshape(grid_centers, np.append(num_of_bins * np.ones(dimensionality), dimensionality).astype(int))
         # print grid_centers
@@ -451,13 +450,13 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                         *temp_seperate_index
                         ))
 
-        index_of_grids =  filter(lambda x: diff_with_neighbors[x] < 0, index_of_grids)     # only apply to grids with diff_with_neighbors value < 0
+        index_of_grids =  [x for x in index_of_grids if diff_with_neighbors[x] < 0]     # only apply to grids with diff_with_neighbors value < 0
         sorted_index_of_grids = sorted(index_of_grids, key = lambda x: diff_with_neighbors[x]) # sort based on histogram, return index values
         if reverse_sorting_mode:
             sorted_index_of_grids.reverse()
 
         for index in sorted_index_of_grids[:num_of_boundary_points]:  # note index can be of dimension >= 2
-            temp_potential_center = map(lambda x: round(x, 2), grid_centers[index])
+            temp_potential_center = [round(x, 2) for x in grid_centers[index]]
             potential_centers.append(temp_potential_center)
 
         return potential_centers
@@ -557,7 +556,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                 if neighbor_matrix[ii][jj]:
                     RMSD_diff_of_neighbors[ii, jj] = RMSD_diff_of_neighbors[jj, ii] \
                         = Sutils.get_RMSD_after_alignment(positions[ii], positions[jj])
-        average_RMSD_wrt_neighbors = [np.average(filter(lambda x: x, RMSD_diff_of_neighbors[ii]))
+        average_RMSD_wrt_neighbors = [np.average([x for x in RMSD_diff_of_neighbors[ii] if x])
                                       for ii in range(len(PCs))]
         return average_RMSD_wrt_neighbors
 
@@ -624,7 +623,7 @@ class Alanine_dipeptide(Sutils):
         diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
-        normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
+        normal_vectors_normalized = np.array([x / sqrt(np.dot(x,x)) for x in normal_vectors])
         normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:]
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
@@ -643,7 +642,7 @@ class Alanine_dipeptide(Sutils):
 
     @staticmethod
     def get_many_cossin_from_coordinates(coordinates):
-        return map(Alanine_dipeptide.get_cossin_from_a_coordinate, coordinates)
+        return list(map(Alanine_dipeptide.get_cossin_from_a_coordinate, coordinates))
 
     @staticmethod
     def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
@@ -706,7 +705,7 @@ class Trp_cage(Sutils):
         diff_coordinates = coords_of_four[1:num_of_coordinates, :] - coords_of_four[0:num_of_coordinates - 1,:]  # bond vectors
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
         normal_vectors = np.cross(diff_coordinates_1, diff_coordinates_2)
-        normal_vectors_normalized = np.array(map(lambda x: x / sqrt(np.dot(x,x)), normal_vectors))
+        normal_vectors_normalized = np.array([x / sqrt(np.dot(x,x)) for x in normal_vectors])
         normal_vectors_normalized_1 = normal_vectors_normalized[0:num_of_coordinates-3, :]; normal_vectors_normalized_2 = normal_vectors_normalized[1:num_of_coordinates-2,:]
         diff_coordinates_mid = diff_coordinates[1:num_of_coordinates-2] # these are bond vectors in the middle (remove the first and last one), they should be perpendicular to adjacent normal vectors
 
@@ -724,7 +723,7 @@ class Trp_cage(Sutils):
         try:
             assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)
         except:
-            print ("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2))
+            print(("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2)))
             # print ("coordinates of four atoms are:")
             # print (coords_of_four)
 
@@ -738,21 +737,17 @@ class Trp_cage(Sutils):
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
         total_num_of_residues = 20
-        list_of_idx_four_atoms = map(lambda x: [[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2],
-                                                [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]],
-                                                list(range(total_num_of_residues)))
+        list_of_idx_four_atoms = [[[3 * x - 1, 3 * x, 3 * x + 1, 3 * x + 2],
+                                                [3 * x, 3 * x + 1, 3 * x + 2, 3 * x + 3]] for x in list(range(total_num_of_residues))]
         list_of_idx_four_atoms = reduce(lambda x, y: x + y, list_of_idx_four_atoms)
-        list_of_idx_four_atoms = filter(lambda x: x[0] >= 0 and x[3] < 3 * total_num_of_residues, list_of_idx_four_atoms)
+        list_of_idx_four_atoms = [x for x in list_of_idx_four_atoms if x[0] >= 0 and x[3] < 3 * total_num_of_residues]
 
         assert (len(list_of_idx_four_atoms) == 38)
 
         result = []
 
         for item in list_of_idx_four_atoms:
-            parameter_list = map(
-                    lambda x: Trp_cage.get_coordinates_of_atom_with_index(a_coordinate, x),
-                    item
-                    )
+            parameter_list = [Trp_cage.get_coordinates_of_atom_with_index(a_coordinate, x) for x in item]
             [cos_value, sin_value] = Trp_cage.get_cossin_of_a_dihedral_from_four_atoms(*parameter_list)
             # print(item)
             # print(cos_value, sin_value)
@@ -762,7 +757,7 @@ class Trp_cage(Sutils):
 
     @staticmethod
     def get_many_cossin_from_coordinates(coordinates):
-        return map(Trp_cage.get_cossin_from_a_coordinate, coordinates)
+        return list(map(Trp_cage.get_cossin_from_a_coordinate, coordinates))
 
     @staticmethod
     def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
@@ -819,7 +814,7 @@ class Trp_cage(Sutils):
     def metric_get_diff_pairwise_distance_matrices_of_alpha_carbon(list_of_files, ref_file ='../resources/1l2y.pdb', step_interval = 1):
         ref = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms([ref_file])
         sample = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval)
-        diff = map(lambda x: np.linalg.norm(ref[0] - x), sample)
+        diff = [np.linalg.norm(ref[0] - x) for x in sample]
         return diff
 
     @staticmethod
@@ -873,8 +868,7 @@ class Trp_cage(Sutils):
         ref = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms([ref_file])
         sample = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(list_of_files, step_interval)
 
-        result = map(lambda x: sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))),
-                     sample)
+        result = [sum(sum(((x < threshold) & (ref[0] < threshold)).astype(int))) for x in sample]
         return result
 
     @staticmethod
@@ -912,7 +906,7 @@ class Trp_cage(Sutils):
         class_labels = dbscan_obj.labels_
         max_class_label = max(class_labels)
         num_in_each_class = {label: np.where(class_labels == label)[0].shape[0] for label in range(-1, max_class_label + 1)}
-        most_common_class_labels = sorted(num_in_each_class.keys(), key=lambda x: num_in_each_class[x], reverse=True)
+        most_common_class_labels = sorted(list(num_in_each_class.keys()), key=lambda x: num_in_each_class[x], reverse=True)
         with open(sample_file, 'r') as in_file:
             content = [item for item in in_file.readlines() if not 'REMARK' in item]
             content = ''.join(content)

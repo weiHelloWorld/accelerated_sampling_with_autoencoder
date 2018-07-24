@@ -1,4 +1,5 @@
-import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse, matplotlib
+from __future__ import print_function, division
+import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse, matplotlib, glob
 matplotlib.use('agg')
 from scipy import io as sciio
 import numpy as np, pandas as pd, seaborn as sns
@@ -221,7 +222,7 @@ elif temp_home_directory == "/u/sciteam/chen21":
     CONFIG_24 = 'cluster'
     CONFIG_25 = temp_home_directory + '/.openmm/lib/plugins'
 else:
-    print ('unknown user directory: %s' % temp_home_directory)
+    print(('unknown user directory: %s' % temp_home_directory))
 
 CONFIG_27 =  CONFIG_17[:2]  # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)

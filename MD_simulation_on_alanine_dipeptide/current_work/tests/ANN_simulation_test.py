@@ -2,6 +2,7 @@
 '''
 
 import sys, os, math, subprocess, matplotlib
+from functools import reduce
 matplotlib.use('agg')
 
 sys.path.append('../src/')  # add the source file folder
@@ -49,20 +50,20 @@ class test_Sutils(object):
         """generate plotting for tests"""
         cov = [[0.1, 0], [0, 0.1]]  # diagonal covariance
         get_points = lambda mean: np.random.multivariate_normal(mean, cov, 50)
-        points = reduce(lambda x, y: np.concatenate((x, y)), map(get_points, [[0, 1], [0, -1]]))
+        points = reduce(lambda x, y: np.concatenate((x, y)), list(map(get_points, [[0, 1], [0, -1]])))
         boundary_points = Sutils.get_boundary_points(points, preprocessing=True)
-        x, y = zip(*points)
-        x1, y1 = zip(*boundary_points)
+        x, y = list(zip(*points))
+        x1, y1 = list(zip(*boundary_points))
         fig, ax = plt.subplots()
         ax.scatter(x, y, c='b')
         ax.scatter(x1, y1, c='r')
         fig.savefig('test_get_boundary_points_noncircular.png')
 
-        points = reduce(lambda x, y: np.concatenate((x, y)), map(get_points, [[-.8, -.8]]))
+        points = reduce(lambda x, y: np.concatenate((x, y)), list(map(get_points, [[-.8, -.8]])))
         boundary_points = Sutils.get_boundary_points(points, preprocessing=True, is_circular_boundary=True,
                                                      range_of_PCs=[[-1, 1], [-1, 1]])
-        x, y = zip(*points)
-        x1, y1 = zip(*boundary_points)
+        x, y = list(zip(*points))
+        x1, y1 = list(zip(*boundary_points))
         fig, ax = plt.subplots()
         ax.scatter(x, y, c='b')
         ax.scatter(x1, y1, c='r')
@@ -88,13 +89,11 @@ class test_Sutils(object):
             [0, 0, 0, 0, 0, 0, 0, 0],
         ]
         hist_matrix = np.array(hist_matrix)
-        hist_matrix_processed = map(lambda x: map(lambda y: - np.exp(- y), x), hist_matrix)  # preprocessing process
+        hist_matrix_processed = [[- np.exp(- y) for y in x] for x in hist_matrix]  # preprocessing process
 
         diff_with_neighbors = hist_matrix_processed - 1.0 / (2 * dimensionality) * sum(
-            map(lambda x: np.roll(hist_matrix_processed, 1, axis=x)
-                          + np.roll(hist_matrix_processed, -1, axis=x),
-                range(dimensionality)
-                )
+            [np.roll(hist_matrix_processed, 1, axis=x)
+                          + np.roll(hist_matrix_processed, -1, axis=x) for x in range(dimensionality)]
         )
         temp_fontsize = 25
         sns.heatmap(hist_matrix, ax=axes[0][0], annot=True, cbar=False)
@@ -160,7 +159,7 @@ class test_Alanine_dipeptide(object):
     def test_get_many_dihedrals_from_cossin():
         angle = [.4, -.7, math.pi, -.45]
         cossin = [[1, 0, -1, 0, 1, 0, -1, 0], [0, 1, 0, -1, 0, 1, 0, -1],
-                  reduce(lambda x, y: x + y, map(lambda x: [cos(x), sin(x)], angle))
+                  reduce(lambda x, y: x + y, [[cos(x), sin(x)] for x in angle])
                   ]
         actual = Alanine_dipeptide().get_many_dihedrals_from_cossin(cossin)
         expected = [[0, 0, 0, 0], [math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2], angle]
@@ -260,14 +259,14 @@ class test_cluster_management(object):
 
         temp = cluster_management()
         commands = temp.create_sge_files_from_a_file_containing_commands(input_file, folder_to_store_sge_files)
-        commands = map(lambda x: x[:-1].strip(), commands)
-        print commands
+        commands = [x[:-1].strip() for x in commands]
+        print(commands)
         for out_file in subprocess.check_output(['ls', folder_to_store_sge_files]).strip().split('\n'):
             with open(folder_to_store_sge_files + out_file, 'r') as temp_file:
                 content = temp_file.readlines()
-                content = map(lambda x: x.strip(), content)
-                this_command = filter(lambda x: x.startswith('python'), content)
-                print this_command[0]
+                content = [x.strip() for x in content]
+                this_command = [x for x in content if x.startswith('python')]
+                print(this_command[0])
                 assert this_command[0] in commands
 
         subprocess.check_output(['rm', '-rf', folder_to_store_sge_files])
@@ -329,7 +328,7 @@ class test_autoencoder_Keras(object):
                                       )
             _, history = model.train(hierarchical_variant=hier_var)
             PCs = model.get_PCs()
-            [x, y] = zip(*PCs)
+            [x, y] = list(zip(*PCs))
             psi = [item[2] for item in dihedrals]
             fig, ax = plt.subplots()
             ax.scatter(x, y, c=psi, cmap='gist_rainbow')
@@ -351,7 +350,7 @@ class test_autoencoder_Keras(object):
                                       )
             _, history = model.train()
             PCs = model.get_PCs()
-            [x, y] = zip(*PCs)
+            [x, y] = list(zip(*PCs))
             psi = [item[2] for item in dihedrals]
             fig, ax = plt.subplots()
             ax.scatter(x, y, c=psi, cmap='gist_rainbow')
@@ -369,7 +368,7 @@ class test_autoencoder_Keras(object):
                                   )
         model.train()
         PCs = model.get_PCs()
-        [x, y] = zip(*PCs)
+        [x, y] = list(zip(*PCs))
         psi = [item[2] for item in dihedrals]
         fig, ax = plt.subplots()
         ax.scatter(x, y, c=psi, cmap='gist_rainbow')
@@ -396,14 +395,14 @@ class test_autoencoder_Keras(object):
         scaling_factor_v = 26.9704478916
         scaling_factor_u = 29.1703348377
         r_high = 5.5
-        atom_indices = range(1, 25)
+        atom_indices = list(range(1, 25))
         water_index_string = '75-11421:3'
 
         ae = autoencoder.load_from_pkl_file('../tests/dependency/solute_plus_solvent_AE/temp_alpha_0.5.pkl')
         with open('../tests/dependency/solute_plus_solvent_AE/temp_plumed.txt', 'r') as my_f:
             expected_plumed = my_f.read().strip()
         plumed_string = ae.get_plumed_script_for_biased_simulation_with_solute_pairwise_dis_and_solvent_cg_input_and_ANN(
-            range(1, 25), scaling_factor_u, water_index_string, atom_indices, -5, r_high, scaling_factor_v)
+            list(range(1, 25)), scaling_factor_u, water_index_string, atom_indices, -5, r_high, scaling_factor_v)
         assert (plumed_string == expected_plumed)
 
         AE = autoencoder.load_from_pkl_file('../tests/dependency/solvent_AE/solvent_test.pkl')
@@ -438,8 +437,8 @@ class test_biased_simulation(object):
         input_data = coordinates_data_files_list([output_folder]).get_coor_data(5.0)
         input_data = Sutils.remove_translation(input_data)
         PCs = my_network.get_PCs(input_data)
-        x, y = zip(*PCs)
-        ax.scatter(x, y, c=range(len(x)), cmap='gist_rainbow')
+        x, y = list(zip(*PCs))
+        ax.scatter(x, y, c=list(range(len(x))), cmap='gist_rainbow')
         fig.savefig('test_biased_simulation_%s.png' % potential_center)
         subprocess.check_output(['rm', '-rf', output_folder])
         return
@@ -470,13 +469,13 @@ class test_biased_simulation(object):
         ax.set_xlabel('CV1')
         ax.set_ylabel('CV2')
         ax.set_title('CV data generated by autoencoder')
-        im = ax.scatter(PCs[:, 0], PCs[:, 1], c=range(PCs.shape[0]), cmap='gist_rainbow', s=4)
+        im = ax.scatter(PCs[:, 0], PCs[:, 1], c=list(range(PCs.shape[0])), cmap='gist_rainbow', s=4)
         fig.colorbar(im, ax=ax)
 
         out_data = np.loadtxt('temp_MTD_out.txt')
 
         ax = axes[1]
-        im = ax.scatter(out_data[:, 1], out_data[:, 2], c=range(out_data.shape[0]), cmap='gist_rainbow', s=4)
+        im = ax.scatter(out_data[:, 1], out_data[:, 2], c=list(range(out_data.shape[0])), cmap='gist_rainbow', s=4)
         ax.set_xlabel('CV1')
         ax.set_ylabel('CV2')
         ax.set_title('CV data generated by PLUMED')
@@ -486,7 +485,7 @@ class test_biased_simulation(object):
         dihedrals = Alanine_dipeptide.get_many_dihedrals_from_cossin(
             Alanine_dipeptide.get_many_cossin_from_coordinates(data))
         dihedrals = np.array(dihedrals)
-        im = ax.scatter(dihedrals[:, 1], dihedrals[:, 2], c=range(len(dihedrals)), cmap="gist_rainbow", s=4)
+        im = ax.scatter(dihedrals[:, 1], dihedrals[:, 2], c=list(range(len(dihedrals))), cmap="gist_rainbow", s=4)
         ax.set_xlabel('$\phi$')
         ax.set_ylabel('$\psi$')
         ax.set_title('data in phi-psi space')
@@ -586,7 +585,7 @@ PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' )
         temp_u = Universe(out_pdb)
         reporter_file = out_pdb.replace('output', 'report').replace('.pdb', '.txt')
         box_length_list = Helper_func.get_box_length_list_fom_reporter_file(reporter_file, unit='A')
-        print box_length_list
+        print(box_length_list)
         O_sel = temp_u.select_atoms('name O and resname HOH')
         N_sel = temp_u.select_atoms('resnum 1 and name N')
         O_coords = np.array([O_sel.positions for _ in temp_u.trajectory]).reshape(num_frames, 2772 * 3)

@@ -24,30 +24,30 @@ class Helper_func(object):
 
     @staticmethod
     def generate_alkane_residue_code_in_openmm_xml(num, name):
-        print '''<Residue name="%s">
+        print('''<Residue name="%s">
 <Atom charge="0.09" name="H11" type="HGA3"/>
 <Atom charge="0.09" name="H12" type="HGA3"/>
 <Atom charge="0.09" name="H13" type="HGA3"/>
-<Atom charge="-0.27" name="C1" type="CG331"/>''' % name
+<Atom charge="-0.27" name="C1" type="CG331"/>''' % name)
         for item in range(num - 2):
-            print '''<Atom charge="0.09" name="H%d1" type="HGA2"/>
+            print('''<Atom charge="0.09" name="H%d1" type="HGA2"/>
 <Atom charge="0.09" name="H%d2" type="HGA2"/>
-<Atom charge="-0.18" name="C%d" type="CG321"/>''' % (item + 2, item + 2, item + 2)
-        print """<Atom charge="0.09" name="H%d1" type="HGA3"/>
+<Atom charge="-0.18" name="C%d" type="CG321"/>''' % (item + 2, item + 2, item + 2))
+        print("""<Atom charge="0.09" name="H%d1" type="HGA3"/>
 <Atom charge="0.09" name="H%d2" type="HGA3"/>
 <Atom charge="0.09" name="H%d3" type="HGA3"/>
 <Atom charge="-0.27" name="C%d" type="CG331"/>
 <Bond atomName1="H11" atomName2="C1"/>
 <Bond atomName1="H12" atomName2="C1"/>
-<Bond atomName1="H13" atomName2="C1"/>""" % (num, num, num, num)
+<Bond atomName1="H13" atomName2="C1"/>""" % (num, num, num, num))
         for item in range(num - 1):
-            print """<Bond atomName1="C%d" atomName2="C%d"/>
+            print("""<Bond atomName1="C%d" atomName2="C%d"/>
 <Bond atomName1="H%d1" atomName2="C%d"/>
-<Bond atomName1="H%d2" atomName2="C%d"/>""" % (item + 1, item + 2, item + 2, item + 2, item + 2, item + 2)
-        print """<Bond atomName1="H%d3" atomName2="C%d"/>
+<Bond atomName1="H%d2" atomName2="C%d"/>""" % (item + 1, item + 2, item + 2, item + 2, item + 2, item + 2))
+        print("""<Bond atomName1="H%d3" atomName2="C%d"/>
 <AllowPatch name="MET1"/>
 <AllowPatch name="MET2"/>
-</Residue>""" % (num, num)
+</Residue>""" % (num, num))
         return
 
     @staticmethod
@@ -190,7 +190,7 @@ class Helper_func(object):
         total_num_failed_jobs = 0
         for item in range(int(len(commands) / num_of_jobs_in_parallel) + 1):
             temp_commands_parallel = commands[item * num_of_jobs_in_parallel: (item + 1) * num_of_jobs_in_parallel]
-            print ("running: \t" + '\n'.join(temp_commands_parallel))
+            print(("running: \t" + '\n'.join(temp_commands_parallel)))
             procs_to_run_commands = [subprocess.Popen(_1.strip(), shell=True) for _1 in temp_commands_parallel]
             exit_codes = [p.wait() for p in procs_to_run_commands]
             total_num_failed_jobs += sum(exit_codes)

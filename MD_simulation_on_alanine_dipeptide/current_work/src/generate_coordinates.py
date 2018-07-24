@@ -13,4 +13,4 @@ temp_path = args.path
 if os.path.exists(temp_path):
     molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=temp_path, step_interval=args.step_interval)
 else:
-    print "%s not existed!" % temp_path
+    print("%s not existed!" % temp_path)

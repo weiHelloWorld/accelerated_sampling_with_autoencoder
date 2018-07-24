@@ -21,4 +21,4 @@ for iter_index in range(start_index, end_index):
             num_nodes_per_CV = 2 if args.circular else 1
             command = "python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --num_PCs %d " % (
                 num_nodes_per_CV * num_CVs) + "--output_file %s --data_folder up_to_iter_%d" % (pkl_file, iter_index)
-            print command
+            print(command)

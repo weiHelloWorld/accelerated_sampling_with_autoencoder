@@ -57,7 +57,7 @@ parser.add_argument("--autoencoder_file", type=str, help="pkl file that stores a
 parser.add_argument("--remove_previous", help="remove previous outputs while adjusting force constants", action="store_true")
 args = parser.parse_args()
 
-print "start simulation at %s" % datetime.datetime.now()  # to calculate compile time
+print("start simulation at %s" % datetime.datetime.now())  # to calculate compile time
 
 record_interval = args.record_interval
 total_number_of_steps = args.total_num_of_steps
@@ -77,8 +77,8 @@ if float(force_constant) != 0:
 folder_to_store_output_files = args.folder_to_store_output_files # this is used to separate outputs for different networks into different folders
 autoencoder_info_file = args.autoencoder_info_file
 
-potential_center = list(map(lambda x: float(x), args.pc_potential_center.replace('"','')\
-                                .replace('pc_','').split(',')))   # this API is the generalization for higher-dimensional cases
+potential_center = list([float(x) for x in args.pc_potential_center.replace('"','')\
+                                .replace('pc_','').split(',')])   # this API is the generalization for higher-dimensional cases
 
 def run_simulation(force_constant, number_of_simulation_steps):
     if not os.path.exists(folder_to_store_output_files):
@@ -115,7 +115,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_sf_%s.pdb' % \
                                 args.starting_pdb_file.split('_sf_')[0].split('.pdb')[0].split('/')[-1]   # 'sf' means 'starting_from'
 
-    print "start_pdb = %s" % input_pdb_file_of_molecule
+    print("start_pdb = %s" % input_pdb_file_of_molecule)
     if args.starting_frame != 0:
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
 
@@ -274,28 +274,28 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     # print "positions = "
     # print (modeller.positions)
     simulation.context.setPositions(modeller.positions)
-    print datetime.datetime.now()
+    print(datetime.datetime.now())
 
     if args.starting_checkpoint != 'none':
         if args.starting_checkpoint == "auto":  # restart from checkpoint if it exists
             if os.path.isfile(checkpoint_file):
-                print ("resume simulation from %s" % checkpoint_file)
+                print(("resume simulation from %s" % checkpoint_file))
                 simulation.loadCheckpoint(checkpoint_file)
         else:
-            print ("resume simulation from %s" % args.starting_checkpoint)
+            print(("resume simulation from %s" % args.starting_checkpoint))
             simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
 
     if args.minimize_energy:
         print('begin Minimizing energy...')
-        print datetime.datetime.now()
+        print(datetime.datetime.now())
         simulation.minimizeEnergy()
         print('Done minimizing energy.')
-        print datetime.datetime.now()
+        print(datetime.datetime.now())
     else:
         print('energy minimization not required')
 
     print("begin equilibrating...")
-    print datetime.datetime.now()
+    print(datetime.datetime.now())
     simulation.step(args.equilibration_steps)
     previous_distance_to_potential_center = 100
     current_distance_to_potential_center = 90
@@ -309,12 +309,12 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             current_distance_to_potential_center = get_distance_between_data_cloud_center_and_potential_center(
                             temp_pdb_reporter_file_for_auto_equilibration)
             subprocess.check_output(['rm', temp_pdb_reporter_file_for_auto_equilibration])
-            print "previous_distance_to_potential_center =  %f\ncurrent_distance_to_potential_center = %f" % (
+            print("previous_distance_to_potential_center =  %f\ncurrent_distance_to_potential_center = %f" % (
                 previous_distance_to_potential_center, current_distance_to_potential_center
-            )
+            ))
 
     print("Done equilibration")
-    print datetime.datetime.now()
+    print(datetime.datetime.now())
 
     simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, time=True,
@@ -329,19 +329,19 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         simulation.saveCheckpoint(checkpoint_file)
 
     print('Done!')
-    print datetime.datetime.now()
+    print(datetime.datetime.now())
     return pdb_reporter_file
 
 def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     coor_file = Trp_cage().generate_coordinates_from_pdb_files(pdb_file)[0]
     temp_network = autoencoder.load_from_pkl_file(args.autoencoder_file)
-    print coor_file
+    print(coor_file)
     this_simulation_data = single_biased_simulation_data(temp_network, coor_file)
     offset = this_simulation_data.get_offset_between_potential_center_and_data_cloud_center(input_data_type)
     if CONFIG_17[1] == "Circular":
         offset = [min(abs(item), abs(item + 2 * np.pi), abs(item - 2 * np.pi)) for item in offset]
-        print "circular offset"
-    print 'offset = %s' % str(offset)
+        print("circular offset")
+    print('offset = %s' % str(offset))
     distance = sqrt(sum([item * item for item in offset]))
     return distance
 
@@ -366,10 +366,10 @@ if __name__ == '__main__':
                     command = 'rm %s/*%s*' % (folder_to_store_output_files, str(potential_center).replace(' ',''))
                     command = command.replace('[','').replace(']','')
                     subprocess.check_output(command, shell=True)
-                    print "removing previous results..."
+                    print("removing previous results...")
                 except:
                     pass
             pdb_file = run_simulation(force_constant, total_number_of_steps)
             distance_of_data_cloud_center = get_distance_between_data_cloud_center_and_potential_center(pdb_file)
             force_constant += args.fc_step
-            print "distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center
+            print("distance_between_data_cloud_center_and_potential_center = %f" % distance_of_data_cloud_center)

@@ -17,7 +17,7 @@ class String_method_1(object):  # with autoencoder approach
         PCs = temp_autoencoder.get_PCs(coor_data)
         image_params = np.linspace(PCs.min(), PCs.max(), num_images + 2)
         index_list_of_images = [(np.abs(PCs - temp_image_param)).argmin() for temp_image_param in image_params]
-        print index_list_of_images, PCs[index_list_of_images].flatten(), image_params.flatten()
+        print(index_list_of_images, PCs[index_list_of_images].flatten(), image_params.flatten())
         if os.path.exists(new_pdb_file_name):
             subprocess.check_output(['rm', new_pdb_file_name])
 
@@ -34,7 +34,7 @@ class String_method_1(object):  # with autoencoder approach
         _2 = coordinates_data_files_list([temp_coor_file])
         coor_data = Sutils.remove_translation(_2.get_coor_data(scaling_factor=scaling_factor))
         expected = PCs[index_list_of_images]; actual = temp_autoencoder.get_PCs(coor_data)
-        print "actual = %s" % str(actual.flatten())
+        print("actual = %s" % str(actual.flatten()))
         assert_almost_equal(expected, actual, decimal=4)   # TODO: order is not preserved, fix this later
         return new_pdb_file_name
 
@@ -44,7 +44,7 @@ class String_method_1(object):  # with autoencoder approach
                                  '--data_folder', folder_containing_data_in_previous_iteration,
                                  '--num_PCs', '1'
                                  ])
-        print temp_output
+        print(temp_output)
         autoencoder_filename = temp_output.strip().split('\n')[-1]
         new_pdb_file_name = self.get_images_and_write_into_a_pdb_file(folder_containing_data_in_previous_iteration,
                                              autoencoder_filename, num_images)
@@ -66,7 +66,7 @@ class String_method_1(object):  # with autoencoder approach
                            '--starting_pdb_file', pdb_file, '--starting_frame', str(item),
                            '--temperature', '0', '--equilibration_steps', '0',
                            '--minimize_energy', '0']
-                print ' '.join(command)
+                print(' '.join(command))
                 command_list.append(command)
                 subprocess.check_output(command)
         return
@@ -89,7 +89,7 @@ class String_method_1(object):  # with autoencoder approach
         current_data_folder = start_data_folder
         for item in range(start_index, num_iterations + start_index):
             current_data_folder = self.run_iteration(current_data_folder, item, num_images=num_images)
-            print "iteration %d for string method done!" %(item)
+            print("iteration %d for string method done!" %(item))
         return
 
 
@@ -196,14 +196,14 @@ class String_method(object):
                                    for index in range(num_intervals + 1)]
         for index in range(1, num_intervals + 1):
             Sutils.write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name=pdb_file,
-                    index_list=range((index - 1) * num_frames_per_pdb, index * num_frames_per_pdb),
+                    index_list=list(range((index - 1) * num_frames_per_pdb, index * num_frames_per_pdb)),
                     new_pdb_file_name=temp_new_pdb_file_names[index], overwrite=True)
         Sutils.write_some_frames_into_a_new_file_based_on_index_list(pdb_file_name=pdb_file,
-                                             index_list=range(10),  # pick first few frames
+                                             index_list=list(range(10)),  # pick first few frames
                                              new_pdb_file_name=temp_new_pdb_file_names[0],
                                              overwrite=True
                                              )
-        print [Universe(item).trajectory.n_frames for item in temp_new_pdb_file_names]
+        print([Universe(item).trajectory.n_frames for item in temp_new_pdb_file_names])
         self.remove_water_and_align('../target/' + CONFIG_30)
         return temp_new_pdb_file_names
 
@@ -281,7 +281,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
             num_steps_of_equilibration = self._num_steps_of_equilibration
         temp_root_target_folder = '../target/' + CONFIG_30
         temp_root_resources_folder = '../resources/' + CONFIG_30
-        print len(positions_list)
+        print(len(positions_list))
         output_pdb_file_list_list = []
         command_list = []
         folder_to_store_plumed_related_files = temp_root_resources_folder + '/string_method_%04d' % iter_index
@@ -329,7 +329,7 @@ restraint: MOVINGRESTRAINT ARG=rmsd AT0=0 STEP0=0 KAPPA0=%f STEP1=%d KAPPA1=%f S
                                  '--plumed_file', plumed_script_file]
                 else:
                     raise Exception('molecule type error')
-                print ' '.join(command)
+                print(' '.join(command))
                 command_list.append(' '.join(command))
 
         temp_iteration_object = iteration(index=1447)

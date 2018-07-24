@@ -41,7 +41,7 @@ else:
     temp_list_of_directories_contanining_data = [args.data_folder]
 
 if (args.in_data is None) and (args.out_data is None):
-    print "data folder is %s" % str(temp_list_of_directories_contanining_data)
+    print("data folder is %s" % str(temp_list_of_directories_contanining_data))
     my_coor_data_obj = coordinates_data_files_list(
         list_of_dir_of_coor_data_files=temp_list_of_directories_contanining_data)
     coor_data_obj_input = my_coor_data_obj.create_sub_coor_data_files_list_using_filter_conditional(
@@ -124,16 +124,16 @@ if use_representative_points_for_training:
     data_set, output_data_set = Sutils.select_representative_points(data_set, output_data_set)
     
 if input_data_type == 'Cartesian' and args.in_data is None:
-    print 'applying data augmentation...'
+    print('applying data augmentation...')
     data_set, output_data_set = Sutils.data_augmentation(data_set, output_data_set, num_of_copies,
                              is_output_reconstructed_Cartesian=(output_data_type == 'Cartesian'))
     fraction_of_data_to_be_saved = 1.0 / num_of_copies
 else:
-    print "data augmentation not applied"
+    print("data augmentation not applied")
 
 scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to put more weights on some components in the output
 if not scaling_factor_for_expected_output is None:
-    print "expected output is weighted by %s" % str(scaling_factor_for_expected_output)
+    print("expected output is weighted by %s" % str(scaling_factor_for_expected_output))
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
 
 temp_node_num = CONFIG_3[:]  # deep copy list
@@ -145,13 +145,13 @@ additional_argument_list['node_num'] = temp_node_num
 
 if args.auto_scale:
     auto_scaling_factor = np.max(np.abs(data_set)).astype(np.float)
-    print ("auto_scaling_factor = %f" % auto_scaling_factor)
+    print(("auto_scaling_factor = %f" % auto_scaling_factor))
     data_set /= auto_scaling_factor
     output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
     assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
 
-print ("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
-                                                                  np.min(data_set), np.max(data_set)))
+print(("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
+                                                                  np.min(data_set), np.max(data_set))))
 
 if args.save_train_data:
     np.save('temp_input', data_set)
@@ -171,10 +171,10 @@ for item in temp_network_list: item.train()
 
 temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
 max_FVE = np.max(temp_FVE_list)
-print 'temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE)
+print('temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE))
 best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
 
 assert (isinstance(best_network, autoencoder))
 assert (best_network.get_fraction_of_variance_explained() == max_FVE)
 best_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
-print "excited! this is the name of best network: %s" % best_network._filename_to_save_network  # this line is used to locate file name of neural network
+print("excited! this is the name of best network: %s" % best_network._filename_to_save_network)  # this line is used to locate file name of neural network
