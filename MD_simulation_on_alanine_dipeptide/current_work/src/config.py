@@ -209,7 +209,7 @@ CONFIG_70 = 15              # biasfactor for well-tempered metadynamics
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
-CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA', 'CUDA'])              # simulation platform
+CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA', 'CUDA', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
 if temp_home_directory == "/home/kengyangyao":
