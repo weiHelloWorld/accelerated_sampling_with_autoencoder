@@ -15,7 +15,7 @@ parser.add_argument("--num_PCs", type=int, default=None, help="number of PCs")
 parser.add_argument("--output_file", type=str, default=None, help="file name to save autoencoder")
 parser.add_argument('--data_folder', type=str, default=None, help="folder containing training data")
 parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
-parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data")
+parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data, if in_data is not None while out_data is None, then out_data is set to be in_data")
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
 parser.add_argument('--save_train_data', type=int, default=False, help="save training data to npy files")
@@ -72,6 +72,8 @@ else:
 # getting output data
 if not args.out_data is None:
     output_data_set = np.load(args.out_data)
+elif not args.in_data is None:       # if in_data is not None while out_data is None, then out_data is set to be in_data
+    output_data_set = np.load(args.in_data)
 elif output_data_type == 'cossin':   # output type
     output_data_set = data_set   # done above
 elif output_data_type == 'Cartesian':
