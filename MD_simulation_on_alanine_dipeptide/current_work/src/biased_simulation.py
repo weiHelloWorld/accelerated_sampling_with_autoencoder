@@ -197,7 +197,7 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
     elif args.bias_method == "plumed_other":
         from openmmplumed import PlumedForce
         with open(args.plumed_file, 'r') as f_in:
-            plumed_force_string = f_in.read() + args.plumed_add_string
+            plumed_force_string = f_in.read().strip() + args.plumed_add_string
         system.addForce(PlumedForce(plumed_force_string))
     else:
         raise Exception('bias method error')
