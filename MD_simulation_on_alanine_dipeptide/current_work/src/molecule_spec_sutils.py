@@ -368,7 +368,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             is_line_removed_flag = False
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
                 for line in f_in:
-                    if not 'HOH' in line and not 'CL' in line and not "NA" in line and not 'SPC' in line:
+                    if not 'HOH' in line and not 'CL' in line and not "NA" in line and not 'SPC' in line and not 'pseu' in line:
                         f_out.write(line)
                     else: is_line_removed_flag = True
 

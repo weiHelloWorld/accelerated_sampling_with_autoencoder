@@ -183,7 +183,8 @@ class classification_sampler(object):
             command += ' --scaling_factor %f' % self._scaling_factor
         else: raise Exception('mode error')
         print(command)
-        subprocess.check_output(command, shell=True)
+        try: subprocess.check_output(command, shell=True)
+        except: pass
         self._all_states.append(out_pdb)
         return
 
