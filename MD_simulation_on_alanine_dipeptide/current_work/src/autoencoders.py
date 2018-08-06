@@ -808,7 +808,9 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
     def tune_hyperparams_using_Bayes_optimization(in_data, out_data, folder, lr_range, momentum_range,
                                                   lr_log_scale=True, train_num_per_iter=5,
                                                   total_iter_num=20,
-                                                  num_training_per_param=3):
+                                                  num_training_per_param=3,
+                                                  print_command_only=False   # only print commands, does no training, basically doing random search of parameters
+                                                  ):
         """use Bayes optimization for tuning hyperparameters,
         see http://neupy.com/2016/12/17/hyperparameter_optimization_for_neural_networks.html#bayesian-optimization"""
         def next_parameter_by_ei(best_y, y_mean, y_std, x_choices, num_choices):
@@ -862,12 +864,16 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 for index in range(num_training_per_param):
                     command = "THEANO_FLAGS=device=cuda%d python train_network_and_save_for_iter.py 1447 --num_of_trainings 1 --lr_m %f,%f --output_file %s/temp_%02d_%s_%02d.pkl --in_data %s --out_data %s" % (
                         cuda_index, item_param[0], item_param[1], folder, iter_index,
-                        str(item_param).strip().replace(' ',''), index, in_data, out_data
+                        str(item_param).strip().replace(' ','').replace('[','').replace(']',''), index, in_data, out_data
                     )
                     cuda_index = 1 - cuda_index      # use two GPUs
                     command_list.append(command)
-
-            num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(command_list, num_of_jobs_in_parallel=2)
+            if not print_command_only:
+                num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(
+                    command_list, num_of_jobs_in_parallel=2)
+            else:
+                for item_commad in command_list: print item_commad
+                return
             print("num_failed_jobs = %d" % num_failed_jobs)
         return
 

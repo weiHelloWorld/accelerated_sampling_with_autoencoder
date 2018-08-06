@@ -526,8 +526,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                                                                     sample_atom_selection.positions))
 
                 index += 1
-
-        return result_rmsd_of_atoms
+        return np.array(result_rmsd_of_atoms)
 
     @staticmethod
     def get_positions_from_list_of_pdb(pdb_file_list, atom_selection_statement='name CA'):
