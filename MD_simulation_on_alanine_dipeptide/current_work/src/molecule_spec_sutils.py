@@ -207,7 +207,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             with open(pdb_file_name, 'r') as f_in, open(new_pdb_file_name, 'w') as f_out:
                 for item in f_in:
                     if 'MODEL' in item: index += 1
-                    if (not 'REMARK' in item) and (not 'END\n' in item) and (index % step_interval == 0):
+                    if (not 'REMARK' in item) and (not 'END\n' in item) and (index % step_interval == 0) \
+                            and (start_index <= index < end_index):
                         f_out.write(item)
         return
 
