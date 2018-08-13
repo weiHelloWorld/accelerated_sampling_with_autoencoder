@@ -208,7 +208,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                 for item in f_in:
                     if 'MODEL' in item: index += 1
                     if (not 'REMARK' in item) and (not 'END\n' in item) and (index % step_interval == 0) \
-                            and (start_index <= index < end_index):
+                            and (
+                            (end_index != 0 and (start_index <= index < end_index))
+                            or (end_index == 0 and index >= start_index)):
                         f_out.write(item)
         return
 
