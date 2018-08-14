@@ -112,6 +112,15 @@ class Helper_func(object):
         return cg_1 - cg_2, actual_1 - actual_2
 
     @staticmethod
+    def get_cg_count_slice_representation(dis, r_shell_low, r_shell_high, num, rcut, sig):
+        temp_r = np.linspace(r_shell_low, r_shell_high, num)
+        r_low_list = temp_r[:-1]
+        r_high_list = temp_r[1:]
+        result = [Helper_func.get_cg_count_in_shell(dis, r_low, r_high, rcut, sig)[0]
+                  for (r_low, r_high) in zip(r_low_list, r_high_list)]
+        return np.concatenate(result, axis=1)
+
+    @staticmethod
     def get_box_length_list_fom_reporter_file(reporter_file, unit):  # require unit explicitly
         reporter_file_content = np.loadtxt(reporter_file, delimiter=',', usecols=(6,))  # column 6 is volume of box
         if unit == 'nm': scaling_factor = 1
