@@ -66,6 +66,8 @@ exit 0
 . /etc/zsh.zshrc.local
 source /u/sciteam/chen21/.zshrc
 cd $PBS_O_WORKDIR
+export PMI_NO_FORK=1
+export PMI_NO_PREINITIALIZE=1
 # source /u/sciteam/chen21/.bashrc
 %s
 echo "This job is DONE!"
