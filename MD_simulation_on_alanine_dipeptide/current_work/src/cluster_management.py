@@ -77,8 +77,12 @@ exit 0
 
     @staticmethod
     def generate_sge_filename_for_a_command(command):
-        sge_filename = command.split('>')[0].replace('"','').replace(' ', '_').replace('..', '_').replace('/','_')\
-                .replace('&', '').replace('--', '_').replace('\\','').replace(':', '_').strip() + '.sge'
+        sge_filename = command.split('>')[0]
+        for item in ('"', '&', 'python', "'", '\\'):
+            sge_filename = sge_filename.replace(item, '')
+        for item in (' ', '..', '/', '--', ':'):
+            sge_filename = sge_filename.replace(item, '_')
+        sge_filename = sge_filename.strip() + '.sge'
         sge_filename = re.sub('_+', '_', sge_filename)
         if len(sge_filename) > 255:  # max length of file names in Linux
             temp = hashlib.md5()
