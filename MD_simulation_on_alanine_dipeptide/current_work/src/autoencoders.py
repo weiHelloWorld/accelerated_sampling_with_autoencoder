@@ -395,7 +395,8 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         assert (len(relative_err) == len(input_data)), (len(relative_err), len(input_data))
         return relative_err
 
-    def get_fraction_of_variance_explained(self, hierarchical_FVE=False, output_index_range=None):
+    def get_fraction_of_variance_explained(self, hierarchical_FVE=False,
+                                           output_index_range=None, featurewise=False):
         """ here num_of_PCs is the same with that in get_training_error() """
         index_CV_layer = (len(self._node_num) - 1) / 2
         input_data = np.array(self._data_set)
@@ -409,28 +410,27 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" \
                 else self._node_num[index_CV_layer]
             length_for_hierarchical_component = expected_output_data.shape[1] / num_PCs
-            hierarchical_actual_output_list = [actual_output_data[:,
+            actual_output_list = [actual_output_data[:,
                                     item * length_for_hierarchical_component:
                                     (item + 1) * length_for_hierarchical_component]
                                                for item in range(num_PCs)]
-            expected_output_component = expected_output_data[:, -length_for_hierarchical_component:]
-            if not output_index_range is None:
-                hierarchical_actual_output_list = [item[:, output_index_range] for item in hierarchical_actual_output_list]
-                expected_output_component = expected_output_component[:, output_index_range]
-            assert (expected_output_component.shape == hierarchical_actual_output_list[0].shape)
-            var_of_expected_output_component = sum(np.var(expected_output_component, axis=0))
-            var_of_actual_output_component_list = [sum(np.var(item - expected_output_component, axis=0)) for item in hierarchical_actual_output_list]
-            result = [1 - item / var_of_expected_output_component for item in var_of_actual_output_component_list]
-            if not hierarchical_FVE:
-                result = result[-1]   # it is more reasonable to return only last FVE (which includes information from all CV nodes)
+            expected_output_part = expected_output_data[:, -length_for_hierarchical_component:]
         else:
-            if not output_index_range is None:
-                actual_output_data = actual_output_data[:, output_index_range]
-                expected_output_data = expected_output_data[:, output_index_range]
-
-            var_of_output = sum(np.var(expected_output_data, axis=0))
-            var_of_err = sum(np.var(actual_output_data - expected_output_data, axis=0))
-            result = 1 - var_of_err / var_of_output
+            actual_output_list = [actual_output_data]    # use list, consistent with hierarchical case
+            expected_output_part = expected_output_data
+        if not output_index_range is None:
+            actual_output_list = [item[:, output_index_range] for item in actual_output_list]
+            expected_output_part = expected_output_part[:, output_index_range]
+        assert (expected_output_part.shape == actual_output_list[0].shape)
+        var_of_expected_output_part = np.var(expected_output_part, axis=0)
+        var_of_err_list = [np.var(item - expected_output_part, axis=0)
+                                     for item in actual_output_list]
+        if featurewise:
+            result = [1 - item / var_of_expected_output_part for item in var_of_err_list]
+        else:
+            result = [1 - np.sum(item) / np.sum(var_of_expected_output_part) for item in var_of_err_list]
+        if not hierarchical_FVE:
+            result = result[-1]  # it is reasonable to return only last FVE (constructed from all CVs)
         return result
 
     def get_commands_for_further_biased_simulations(self, list_of_potential_center=None,

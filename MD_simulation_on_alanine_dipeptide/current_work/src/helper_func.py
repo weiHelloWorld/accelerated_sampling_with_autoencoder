@@ -118,7 +118,7 @@ class Helper_func(object):
         r_high_list = temp_r[1:]
         result = [Helper_func.get_cg_count_in_shell(dis, r_low, r_high, rcut, sig)[0]
                   for (r_low, r_high) in zip(r_low_list, r_high_list)]
-        return np.concatenate(result, axis=1)
+        return np.concatenate(result, axis=1), temp_r
 
     @staticmethod
     def get_box_length_list_fom_reporter_file(reporter_file, unit):  # require unit explicitly
