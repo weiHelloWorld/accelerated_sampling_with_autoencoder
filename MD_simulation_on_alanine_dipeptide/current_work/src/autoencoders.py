@@ -1056,19 +1056,15 @@ class autoencoder_Keras(autoencoder):
             plot_model(molecule_net, show_shapes=True, to_file='model.png')
         except: pass
 
+        temp_optimizer = SGD(lr=self._network_parameters[0],
+                               momentum=self._network_parameters[1],
+                               decay=self._network_parameters[2],
+                               nesterov=self._network_parameters[3])
+        # temp_optimizer = Adam(lr=self._network_parameters[0])
         molecule_net.compile(loss=loss_function, metrics=[loss_function],
-                             optimizer=SGD(lr=self._network_parameters[0],
-                                           momentum=self._network_parameters[1],
-                                           decay=self._network_parameters[2],
-                                           nesterov=self._network_parameters[3])
-                             )
+                             optimizer= temp_optimizer)
         encoder_net.compile(loss=loss_function, metrics=[loss_function],
-                             optimizer=SGD(lr=self._network_parameters[0],
-                                           momentum=self._network_parameters[1],
-                                           decay=self._network_parameters[2],
-                                           nesterov=self._network_parameters[3])
-                             )  # not needed, but do not want to see endless warning...
-
+                             optimizer=temp_optimizer)  # not needed, but do not want to see endless warning...
         training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
 parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
                               (self._index, self._max_num_of_training, str(self._node_num),
@@ -1112,80 +1108,6 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         except: print("training history not plotted!"); pass
         return self, train_history
 
-    def train_bak(self):
-        """this is kept for old version"""
-        node_num = self._node_num
-        data = self._data_set
-        if hasattr(self, '_output_data_set') and not self._output_data_set is None:
-            print ("outputs different from inputs")
-            output_data_set = self._output_data_set
-        else:
-            output_data_set = data
-
-        num_of_hidden_layers = len(self._hidden_layers_type)
-        if self._hierarchical:
-            raise Exception('hierarchical version not implemented')
-        elif num_of_hidden_layers != 3:
-            raise Exception('not implemented for this case')
-        else:
-            molecule_net = Sequential()
-            molecule_net.add(Dense(input_dim=node_num[0], output_dim=node_num[1], activation='tanh',W_regularizer=l2(self._network_parameters[4][0])))   # input layer
-            if self._hidden_layers_type[1] == "Circular":
-                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='linear',W_regularizer=l2(self._network_parameters[4][1])))
-                molecule_net.add(Reshape((node_num[2] / 2, 2), input_shape=(node_num[2],)))
-                molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
-                molecule_net.add(Reshape((node_num[2],)))
-                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
-                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
-
-            elif self._hidden_layers_type[1] == "Tanh":
-                molecule_net.add(Dense(input_dim=node_num[1], output_dim=node_num[2], activation='tanh',W_regularizer=l2(self._network_parameters[4][1])))
-                molecule_net.add(Dense(input_dim=node_num[2], output_dim=node_num[3], activation='tanh',W_regularizer=l2(self._network_parameters[4][2])))
-                molecule_net.add(Dense(input_dim=node_num[3], output_dim=node_num[4], activation='linear',W_regularizer=l2(self._network_parameters[4][3])))
-            else:
-                raise Exception ('this type of hidden layer not implemented')
-
-            if hasattr(self, '_output_as_circular') and self._output_as_circular:
-                molecule_net.add(Reshape((node_num[4] / 2, 2), input_shape=(node_num[4],)))
-                molecule_net.add(Lambda(temp_lambda_func_for_circular_for_Keras))  # circular layer
-                molecule_net.add(Reshape((node_num[4],)))
-
-            molecule_net.compile(loss='mean_squared_error', metrics=['accuracy'],
-                                 optimizer=SGD(lr=self._network_parameters[0],
-                                               momentum=self._network_parameters[1],
-                                               decay= self._network_parameters[2],
-                                               nesterov=self._network_parameters[3])
-                                 )
-
-            training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
-                                  (self._index, self._max_num_of_training, str(self._node_num),
-                                   str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
-                                   len(data),
-                                   self._network_parameters[0], self._network_parameters[1],
-                                   self._network_parameters[2], str(self._network_parameters[4]), str(self._output_as_circular))
-
-            print(("Start " + training_print_info + str(datetime.datetime.now())))
-            call_back_list = []
-            earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
-            if self._enable_early_stopping:
-                call_back_list += [earlyStopping]
-
-
-            molecule_net.fit(data, output_data_set, nb_epoch=self._max_num_of_training, batch_size=self._batch_size,
-                             verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
-
-            dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
-            for _1 in range(len(dense_layers)):
-                assert(dense_layers[_1].get_weights()[0].shape[0] == node_num[_1]), (dense_layers[_1].get_weights()[0].shape[1], node_num[_1])   # check shapes of weights
-
-            self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in molecule_net.layers if isinstance(item, Dense)]  # transpose the weights for consistency
-            self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if isinstance(item, Dense)]
-
-            print(('Done ' + training_print_info + str(datetime.datetime.now())))
-            self._molecule_net = molecule_net
-
-        return self
 
 def temp_lambda_func_for_circular_for_Keras(x):
     """This has to be defined at the module level here, otherwise the pickle will not work
@@ -1238,33 +1160,4 @@ def get_mse_weighted(weight_for_MSE=None):   # take weight as input, return loss
     return mse_weighted
 
 mse_weighted = get_mse_weighted()      # requires a global mse_weighted(), for backward compatibility
-
-# class autoencoder_pytorch(autoencoder):
-#     def _init_extra(self,
-#                     network_parameters = CONFIG_4,
-#                     batch_size = 100,
-#                     enable_early_stopping=True
-#                     ):
-#         self._network_parameters = network_parameters
-#         self._batch_size = batch_size
-#         self._enable_early_stopping = enable_early_stopping
-#         return
-#
-#     def train(self, hierarchical=None, hierarchical_variant=CONFIG_77):
-#         return
-#
-#
-# class encoder_pytorch(nn.Module):
-#     def __init__(self, node_num, activations):
-#         super(encoder_pytorch, self).__init__()
-#         assert len(activations) + 1 == len(node_num)
-#         self._layers = nn.ModuleList([nn.Linear(node_num[item], node_num[item + 1])
-#                                       for item in range(len(activations))])
-#         self._activations = activations
-#
-#     def forward(self, x):
-#         for item in range(len(self._layers)):
-#             x = self._layers[item](x)
-#             if self._activations[item] == 'Tanh': x = F.tanh(x)
-#         return x
 
