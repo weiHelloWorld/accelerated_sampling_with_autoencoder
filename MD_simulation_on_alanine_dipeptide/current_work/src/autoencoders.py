@@ -928,6 +928,25 @@ class autoencoder_Keras(autoencoder):
         model = Model(input=inputs, output=x)
         return model.predict(input_PC)
 
+    def layerwise_pretrain(self, data, dim_in, dim_out):
+        """ref: https://www.kaggle.com/baogorek/autoencoder-with-greedy-layer-wise-pretraining/notebook"""
+        data_in = Input(shape=(dim_in,))
+        encoded = Dense(dim_out, activation='tanh')(data_in)
+        data_out = Dense(dim_in, activation='tanh')(encoded)
+        temp_ae = Model(inputs=data_in, outputs=data_out)
+        encoder = Model(inputs=data_in, outputs=encoded)
+        sgd = SGD(lr=0.3, decay=0, momentum=0.9, nesterov=True)
+        temp_ae.compile(loss='mean_squared_error', optimizer=sgd)
+        encoder.compile(loss='mean_squared_error', optimizer=sgd)
+        temp_ae.fit(data, data, epochs=20, batch_size=50,
+                    validation_split=0.20, shuffle=True, verbose=False)
+        encoded_data = encoder.predict(data)
+        reconstructed = temp_ae.predict(data)
+        var_of_output = np.sum(np.var(data, axis=0))
+        var_of_err = np.sum(np.var(reconstructed - data, axis=0))
+        fve = 1 - var_of_err / var_of_output
+        return temp_ae.layers[1].get_weights(), encoded_data, fve
+
     def train(self, hierarchical=None, hierarchical_variant = CONFIG_77):
         if hierarchical is None: hierarchical = self._hierarchical
         output_layer_activation = self._out_layer_type.lower()
@@ -1065,6 +1084,15 @@ class autoencoder_Keras(autoencoder):
                              optimizer= temp_optimizer)
         encoder_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer=temp_optimizer)  # not needed, but do not want to see endless warning...
+        pretraining = True
+        data_for_pretraining = self._data_set
+        if pretraining:
+            for index_layer in range(1, 3):   # TODO: currently only for first 2 Dense layers
+                temp_weights, data_for_pretraining, fve = self.layerwise_pretrain(
+                    data_for_pretraining, self._node_num[index_layer - 1], self._node_num[index_layer])
+                molecule_net.layers[index_layer].set_weights(temp_weights)
+                print "fve of pretraining for layer %d = %f" % (index_layer, fve)
+
         training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
 parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
                               (self._index, self._max_num_of_training, str(self._node_num),
@@ -1079,7 +1107,6 @@ parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff:
         earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
         if self._enable_early_stopping:
             call_back_list += [earlyStopping]
-
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
         train_history = molecule_net.fit(train_in, train_out, epochs=self._max_num_of_training, batch_size=self._batch_size,
                          verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
