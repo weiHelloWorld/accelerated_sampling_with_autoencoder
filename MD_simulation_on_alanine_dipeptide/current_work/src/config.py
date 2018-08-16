@@ -157,9 +157,6 @@ CONFIG_42 = False                             # whether to enable force constant
 CONFIG_44 = True                             # whether to use hierarchical autoencoder
 CONFIG_77 = 2                      # hierarchical autoencoder variant index
 CONFIG_46 = False                             # whether to enable verbose mode (print training status)
-CONFIG_47 = False                        # whether to set the output layer as circular layer
-if CONFIG_47:
-    raise Exception("Warning: this is a bad choice!  " + WARNING_INFO)
 
 CONFIG_13 = 3                   # num of network trainings we are going to run, and pick the one with least FVE from them
 CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers

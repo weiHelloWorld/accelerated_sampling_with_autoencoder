@@ -41,7 +41,6 @@ class autoencoder(object):
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
                  network_verbose=CONFIG_46,
-                 output_as_circular=CONFIG_47,
                  *args, **kwargs           # for extra init functions for subclasses
                  ):
 
@@ -73,7 +72,6 @@ class autoencoder(object):
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
         self._molecule_net_layers = self._molecule_net = self._encoder_net = self._decoder_net = None
-        self._output_as_circular = output_as_circular
         self._init_extra(*args, **kwargs)
         return
 
@@ -904,9 +902,6 @@ class autoencoder_Keras(autoencoder):
     def get_PCs(self, input_data=None):
         index_CV_layer = (len(self._node_num) - 1) / 2
         if input_data is None: input_data = self._data_set
-        if hasattr(self, '_output_as_circular') and self._output_as_circular:  # use hasattr for backward compatibility
-            raise Exception('no longer supported')
-
         if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
             PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in self._encoder_net.predict(input_data)])
@@ -953,7 +948,7 @@ class autoencoder_Keras(autoencoder):
         node_num = self._node_num
         data = self._data_set
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
-            print ("outputs different from inputs")
+            print ("outputs may be different from inputs")
             output_data_set = self._output_data_set
         else:
             output_data_set = data
@@ -1079,12 +1074,13 @@ class autoencoder_Keras(autoencoder):
                                momentum=self._network_parameters[1],
                                decay=self._network_parameters[2],
                                nesterov=self._network_parameters[3])
-        # temp_optimizer = Adam(lr=self._network_parameters[0])
+        temp_optimizer = Adam(lr=self._network_parameters[0])
+        temp_optimizer_name = "Adam"
         molecule_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer= temp_optimizer)
         encoder_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer=temp_optimizer)  # not needed, but do not want to see endless warning...
-        pretraining = True
+        pretraining = False
         data_for_pretraining = self._data_set
         if pretraining:
             for index_layer in range(1, 3):   # TODO: currently only for first 2 Dense layers
@@ -1093,14 +1089,11 @@ class autoencoder_Keras(autoencoder):
                 molecule_net.layers[index_layer].set_weights(temp_weights)
                 print "fve of pretraining for layer %d = %f" % (index_layer, fve)
 
-        training_print_info = '''training network with index = %d, training maxEpochs = %d, structure = %s, layers = %s, num of data = %d,
-parameter = [learning rate: %f, momentum: %f, lrdecay: %f, regularization coeff: %s], output as circular = %s\n''' % \
-                              (self._index, self._max_num_of_training, str(self._node_num),
-                               str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
-                               len(data),
-                               self._network_parameters[0], self._network_parameters[1],
-                               self._network_parameters[2], str(self._network_parameters[4]),
-                               str(self._output_as_circular))
+        training_print_info = '''training, index = %d, maxEpochs = %d, node_num = %s, layers = %s, num_data = %d,
+parameter = %s, optimizer = %s\n''' % (
+            self._index, self._max_num_of_training, str(self._node_num),
+            str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
+            len(data), str(self._network_parameters), temp_optimizer_name)
 
         print(("Start " + training_print_info + str(datetime.datetime.now())))
         call_back_list = []
