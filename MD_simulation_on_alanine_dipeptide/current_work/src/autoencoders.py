@@ -37,11 +37,11 @@ class autoencoder(object):
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
-                 max_num_of_training=CONFIG_5,
+                 epochs=CONFIG_5,
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
-                 network_verbose=CONFIG_46,
-                 *args, **kwargs           # for extra init functions for subclasses
+                 network_verbose=False,
+                 *args, **kwargs  # for extra init functions for subclasses
                  ):
 
         self._index = index
@@ -53,12 +53,11 @@ class autoencoder(object):
         else:
             self._autoencoder_info_file = autoencoder_info_file
 
-        if not in_layer_type is None: self._in_layer_type = in_layer_type
-        if not hidden_layers_types is None: self._hidden_layers_type = hidden_layers_types
-        if not out_layer_type is None: self._out_layer_type = out_layer_type
-
+        self._in_layer_type = in_layer_type
+        self._hidden_layers_type = hidden_layers_types
+        self._out_layer_type = out_layer_type
         self._node_num = node_num
-        self._max_num_of_training = max_num_of_training
+        self._epochs = epochs
         if filename_to_save_network is None:
             self._filename_to_save_network = "../resources/%s/network_%s.pkl" % (
             CONFIG_30, str(self._index))  # by default naming with its index
@@ -1091,7 +1090,7 @@ class autoencoder_Keras(autoencoder):
 
         training_print_info = '''training, index = %d, maxEpochs = %d, node_num = %s, layers = %s, num_data = %d,
 parameter = %s, optimizer = %s\n''' % (
-            self._index, self._max_num_of_training, str(self._node_num),
+            self._index, self._epochs, str(self._node_num),
             str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
             len(data), str(self._network_parameters), temp_optimizer_name)
 
@@ -1101,8 +1100,8 @@ parameter = %s, optimizer = %s\n''' % (
         if self._enable_early_stopping:
             call_back_list += [earlyStopping]
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
-        train_history = molecule_net.fit(train_in, train_out, epochs=self._max_num_of_training, batch_size=self._batch_size,
-                         verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
+        train_history = molecule_net.fit(train_in, train_out, epochs=self._epochs, batch_size=self._batch_size,
+                                         verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
 
         dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
         for _1 in range(2):  # check first two layers only

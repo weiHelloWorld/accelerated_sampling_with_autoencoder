@@ -288,8 +288,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return result
 
     @staticmethod
-    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1,
-                                             start_index_of_xyz_field=6):
+    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
         index_of_backbone_atoms = [str(item) for item in index_of_backbone_atoms]
         filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
         output_file_list = []

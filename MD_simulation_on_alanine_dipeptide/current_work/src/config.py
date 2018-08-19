@@ -57,15 +57,8 @@ CONFIG_57 = [
     # get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'not name H*'),
     get_index_list_with_selection_statement('../resources/1l2y.pdb', 'backbone and not name O'),
     # get_index_list_with_selection_statement('../resources/2src.pdb', 'backbone and not name O'),
-    # get_index_list_with_selection_statement('../resources/2src.pdb',
-    #                                         '(resid 144:170 or resid 44:58) and not name H*'),
-    [ 694,  704,  714,  719,  729,  734,  744,  760,  764,  771,  783,
-        793,  800,  810,  815,  825,  835,  842,  858,  869,  875,  891,
-        897,  913,  919,  926, 2311, 2321, 2328, 2333, 2349, 2353, 2360,
-       2367, 2379, 2389, 2404, 2413, 2420, 2432, 2451, 2461, 2466, 2473,
-       2478, 2485, 2492, 2502, 2507, 2523, 2528, 2542, 2552, 2567, 2576,
-       2586, 2593, 2600, 2610, 2626, 2632, 2648, 2651, 2661, 2666, 2685,
-       2701, 2707, 2714, 2731],
+    get_index_list_with_selection_statement('../resources/2src.pdb',
+                                            '(resid 144:170 or resid 44:58) and not name H*'),
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O'),
     get_index_list_with_selection_statement('../resources/C24.pdb', 'name C*')
 ]                                          # index list of atoms for training and biased simulations
@@ -102,7 +95,7 @@ if CONFIG_45 == 'keras':
         CONFIG_4 = get_mol_param([
             [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
             [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: tune this
+            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
             [0.7, 0.8, 0, True, [0.00, 0.0000, 0.00, 0.00]]
         ])
     else: raise Exception('error')
@@ -156,13 +149,7 @@ CONFIG_51 = 'NVT'                  # simulation ensemble type
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = True                             # whether to use hierarchical autoencoder
 CONFIG_77 = 2                      # hierarchical autoencoder variant index
-CONFIG_46 = False                             # whether to enable verbose mode (print training status)
-
-CONFIG_13 = 3                   # num of network trainings we are going to run, and pick the one with least FVE from them
-CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers
-if CONFIG_43:
-    raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)
-
+CONFIG_13 = 3              # num of trainings to run, and pick best one
 CONFIG_31 = 10        # maximum number of failed simulations allowed in each iteration
 
 CONFIG_56 = get_mol_param([20, 8, 6, 6])    # number of biased simulations running in parallel
