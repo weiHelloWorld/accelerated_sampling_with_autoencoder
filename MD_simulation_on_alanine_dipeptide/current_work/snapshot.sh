@@ -1,10 +1,6 @@
 #!/bin/bash
 
-if [[ "$#" -eq 1 ]]; then
-	prefix=$1
-else
-	prefix="../../previous_runs"
-fi
+prefix=$1
 
 current_time=$(date -u +%Y_%m_%d_%H_%M_%S)
 dir_name=${prefix}"/snapshot_"${current_time}
