@@ -16,6 +16,7 @@ parser.add_argument("--output_file", type=str, default=None, help="file name to 
 parser.add_argument('--data_folder', type=str, default=None, help="folder containing training data")
 parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
 parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data, if in_data is not None while out_data is None, then out_data is set to be in_data")
+parser.add_argument('--node_num', type=str, default=None, help="node number")
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
 parser.add_argument('--save_train_data', type=int, default=False, help="save training data to npy files")
@@ -138,7 +139,11 @@ if not scaling_factor_for_expected_output is None:
     print("expected output is weighted by %s" % str(scaling_factor_for_expected_output))
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
 
-temp_node_num = CONFIG_3[:]  # deep copy list
+if args.node_num is None:
+    temp_node_num = CONFIG_3[:]       # deep copy list
+else:
+    temp_node_num = [int(item) for item in args.node_num.split(',')]
+
 if not args.num_PCs is None:
     index_CV_layer = (len(temp_node_num) - 1) / 2
     temp_node_num[index_CV_layer] = args.num_PCs
