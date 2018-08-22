@@ -40,7 +40,6 @@ class autoencoder(object):
                  epochs=CONFIG_5,
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
-                 network_verbose=False,
                  *args, **kwargs  # for extra init functions for subclasses
                  ):
 
@@ -65,9 +64,6 @@ class autoencoder(object):
             self._filename_to_save_network = filename_to_save_network
 
         self._hierarchical = hierarchical
-        self._network_verbose = network_verbose
-        num_of_PC_nodes_for_each_PC = 2 if self._hidden_layers_type[1] == "Circular" else 1
-        self._num_of_PCs = self._node_num[2] / num_of_PC_nodes_for_each_PC
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
         self._molecule_net_layers = self._molecule_net = self._encoder_net = self._decoder_net = None
@@ -952,7 +948,6 @@ class autoencoder_Keras(autoencoder):
         else:
             output_data_set = data
 
-        num_of_hidden_layers = len(self._hidden_layers_type)
         index_CV_layer = (len(node_num) - 1) / 2
         num_CVs = node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" else \
             node_num[index_CV_layer]
@@ -1101,7 +1096,7 @@ parameter = %s, optimizer = %s\n''' % (
             call_back_list += [earlyStopping]
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
         train_history = molecule_net.fit(train_in, train_out, epochs=self._epochs, batch_size=self._batch_size,
-                                         verbose=int(self._network_verbose), validation_split=0.2, callbacks=call_back_list)
+                                         verbose=False, validation_split=0.2, callbacks=call_back_list)
 
         dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
         for _1 in range(2):  # check first two layers only
