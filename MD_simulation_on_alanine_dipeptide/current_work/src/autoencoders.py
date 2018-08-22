@@ -397,7 +397,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
             expected_output_data = self._output_data_set
         else:
-            expected_output_data = input_data
+            expected_output_data = input_data     # TODO: consider hierarchical case
 
         if self._hierarchical:
             num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" \
@@ -1064,12 +1064,15 @@ class autoencoder_Keras(autoencoder):
             plot_model(molecule_net, show_shapes=True, to_file='model.png')
         except: pass
 
-        temp_optimizer = SGD(lr=self._network_parameters[0],
-                               momentum=self._network_parameters[1],
-                               decay=self._network_parameters[2],
-                               nesterov=self._network_parameters[3])
-        temp_optimizer = Adam(lr=self._network_parameters[0])
         temp_optimizer_name = "Adam"
+        if temp_optimizer_name == 'SGD':
+            temp_optimizer = SGD(lr=self._network_parameters[0],
+                                   momentum=self._network_parameters[1],
+                                   decay=self._network_parameters[2],
+                                   nesterov=self._network_parameters[3])
+        elif temp_optimizer_name == 'Adam':
+            temp_optimizer = Adam(lr=self._network_parameters[0])
+
         molecule_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer= temp_optimizer)
         encoder_net.compile(loss=loss_function, metrics=[loss_function],
@@ -1091,7 +1094,7 @@ parameter = %s, optimizer = %s\n''' % (
 
         print(("Start " + training_print_info + str(datetime.datetime.now())))
         call_back_list = []
-        earlyStopping = EarlyStopping(monitor='val_loss', patience=30, verbose=0, mode='min')
+        earlyStopping = EarlyStopping(monitor='val_loss', patience=100, verbose=0, mode='min')
         if self._enable_early_stopping:
             call_back_list += [earlyStopping]
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
@@ -1116,6 +1119,7 @@ parameter = %s, optimizer = %s\n''' % (
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history.history['loss'])
             axes[1].plot(train_history.history['val_loss'])
+            fig.suptitle(str(self._node_num) + str(self._network_parameters) + temp_optimizer_name)
             png_file = 'history_%02d.png' % self._index
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
