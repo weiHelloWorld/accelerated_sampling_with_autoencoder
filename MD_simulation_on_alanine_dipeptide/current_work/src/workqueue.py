@@ -64,7 +64,7 @@ def main():
     return
 
 
-def run_programs(command_list, start_index, end_index):
+def run_programs(command_list, start_index, end_index, shell=False):
     """
     run programs with index [start_index, end_index - 1]
     """
@@ -74,9 +74,9 @@ def run_programs(command_list, start_index, end_index):
             if command_arg[-1] == "&":
                 command_arg = command_arg[:-1]
 
-            command_arg = command_arg.split()
-            print(("running command: " + " ".join(command_arg)))
-            subprocess.Popen(command_arg)
+            print("running command: " + command_arg)
+            if not shell: command_arg = command_arg.split()
+            subprocess.Popen(command_arg, shell=shell)
 
     return
     
