@@ -40,6 +40,7 @@ class autoencoder(object):
                  epochs=CONFIG_5,
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
+                 hi_variant=CONFIG_77,
                  *args, **kwargs  # for extra init functions for subclasses
                  ):
 
@@ -64,6 +65,7 @@ class autoencoder(object):
             self._filename_to_save_network = filename_to_save_network
 
         self._hierarchical = hierarchical
+        self._hi_variant = hi_variant
         self._connection_between_layers_coeffs = None
         self._connection_with_bias_layers_coeffs = None
         self._molecule_net_layers = self._molecule_net = self._encoder_net = self._decoder_net = None
@@ -937,8 +939,9 @@ class autoencoder_Keras(autoencoder):
         fve = 1 - var_of_err / var_of_output
         return temp_ae.layers[1].get_weights(), encoded_data, fve
 
-    def train(self, hierarchical=None, hierarchical_variant = CONFIG_77):
+    def train(self, hierarchical=None, hierarchical_variant = None):
         if hierarchical is None: hierarchical = self._hierarchical
+        if hierarchical_variant is None: hierarchical_variant = self._hi_variant
         output_layer_activation = self._out_layer_type.lower()
         node_num = self._node_num
         data = self._data_set
@@ -1087,10 +1090,10 @@ class autoencoder_Keras(autoencoder):
                 print "fve of pretraining for layer %d = %f" % (index_layer, fve)
 
         training_print_info = '''training, index = %d, maxEpochs = %d, node_num = %s, layers = %s, num_data = %d,
-parameter = %s, optimizer = %s\n''' % (
+parameter = %s, optimizer = %s, hierarchical = %d with variant %d\n''' % (
             self._index, self._epochs, str(self._node_num),
-            str(self._hidden_layers_type).replace("class 'pybrain.structure.modules.", ''),
-            len(data), str(self._network_parameters), temp_optimizer_name)
+            str(self._hidden_layers_type), len(data), str(self._network_parameters), temp_optimizer_name,
+            self._hierarchical, self._hi_variant)
 
         print(("Start " + training_print_info + str(datetime.datetime.now())))
         call_back_list = []

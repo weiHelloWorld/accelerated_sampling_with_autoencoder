@@ -324,9 +324,9 @@ class test_autoencoder_Keras(object):
                                       node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
                                       hidden_layers_types=["Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh"],
                                       network_parameters = [0.02, 0.9,0, True, [0.001]* 8],
-                                      batch_size=100, hierarchical=is_hi
+                                      batch_size=100, hierarchical=is_hi, hi_variant=hier_var
                                       )
-            _, history = model.train(hierarchical_variant=hier_var)
+            _, history = model.train()
             PCs = model.get_PCs()
             [x, y] = list(zip(*PCs))
             psi = [item[2] for item in dihedrals]
