@@ -2,6 +2,7 @@ from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from keras.models import Sequential, Model, load_model
 from keras.optimizers import *
 from keras.layers import Dense, Activation, Lambda, Reshape, Input
@@ -939,6 +940,13 @@ class autoencoder_Keras(autoencoder):
         fve = 1 - var_of_err / var_of_output
         return temp_ae.layers[1].get_weights(), encoded_data, fve
 
+    def get_pca_fve(self, data=None):
+        """compare the autoencoder against PCA"""
+        if data is None: data = self._data_set
+        pca = PCA(n_components=self._node_num[(len(self._node_num) - 1) / 2])
+        actual_output = pca.inverse_transform(pca.fit_transform(data))
+        return (1 - np.sum((actual_output - data).var(axis=0)) / np.sum(data.var(axis=0)), pca)
+
     def train(self, hierarchical=None, hierarchical_variant = None):
         if hierarchical is None: hierarchical = self._hierarchical
         if hierarchical_variant is None: hierarchical_variant = self._hi_variant
@@ -1090,10 +1098,10 @@ class autoencoder_Keras(autoencoder):
                 print "fve of pretraining for layer %d = %f" % (index_layer, fve)
 
         training_print_info = '''training, index = %d, maxEpochs = %d, node_num = %s, layers = %s, num_data = %d,
-parameter = %s, optimizer = %s, hierarchical = %d with variant %d\n''' % (
+parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should not be less than %f (PCA)\n''' % (
             self._index, self._epochs, str(self._node_num),
             str(self._hidden_layers_type), len(data), str(self._network_parameters), temp_optimizer_name,
-            self._hierarchical, self._hi_variant)
+            self._hierarchical, self._hi_variant, self.get_pca_fve()[0])
 
         print(("Start " + training_print_info + str(datetime.datetime.now())))
         call_back_list = []
