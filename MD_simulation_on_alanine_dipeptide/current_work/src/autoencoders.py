@@ -34,7 +34,6 @@ class autoencoder(object):
                  output_data_set = None,  # output data may not be the same with the input data
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
                  training_data_interval=CONFIG_2,
-                 in_layer_type="Linear",
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
@@ -53,8 +52,6 @@ class autoencoder(object):
             self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" % (CONFIG_30, index)
         else:
             self._autoencoder_info_file = autoencoder_info_file
-
-        self._in_layer_type = in_layer_type
         self._hidden_layers_type = hidden_layers_types
         self._out_layer_type = out_layer_type
         self._node_num = node_num
@@ -97,7 +94,7 @@ class autoencoder(object):
     
     def remove_pybrain_dependency(self):    
         """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
-        self._in_layer_type = layer_type_to_name_mapping[self._in_layer_type]
+        self._in_layer_type = None
         self._hidden_layers_type = [layer_type_to_name_mapping[item] for item in self._hidden_layers_type]
         self._out_layer_type = layer_type_to_name_mapping[self._out_layer_type]
         return
