@@ -85,18 +85,18 @@ if CONFIG_45 == 'keras':
         ])
     elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
         CONFIG_4 = get_mol_param([
-            [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [.5, 0.5, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
             ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
     elif CONFIG_76 == 'pairwise_distance':
         CONFIG_4 = get_mol_param([
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.7, 0.8, 0, True, [0.00, 0.0000, 0.00, 0.00]]
+            [0.3, 0.9, 0, True, 0.0],
+            [1.5, 0.9, 0, True, 0.0],
+            [1.5, 0.9, 0, True, 0.0],
+            [0.7, 0.8, 0, True, 0.0]
         ])
     else: raise Exception('error')
 else:

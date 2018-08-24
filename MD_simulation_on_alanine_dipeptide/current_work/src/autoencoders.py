@@ -884,6 +884,9 @@ class autoencoder_Keras(autoencoder):
                     mse_weights=None
                     ):
         self._network_parameters = network_parameters
+        if not isinstance(self._network_parameters[4], list):
+            self._network_parameters[4] = [self._network_parameters[4]] * (len(self._node_num) - 1)    # simplify regularization for deeper networks
+        assert isinstance(self._network_parameters[4], list)
         self._batch_size = batch_size
         self._enable_early_stopping = enable_early_stopping
         self._mse_weights = mse_weights
