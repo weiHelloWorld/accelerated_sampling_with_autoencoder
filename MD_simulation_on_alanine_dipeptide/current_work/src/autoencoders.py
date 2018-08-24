@@ -904,11 +904,9 @@ class autoencoder_Keras(autoencoder):
             PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in self._encoder_net.predict(input_data)])
             assert (len(PCs[0]) == self._node_num[index_CV_layer] / 2), (len(PCs[0]), self._node_num[index_CV_layer] / 2)
-        elif self._hidden_layers_type[index_CV_layer - 1] == "Tanh":
+        else:
             PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[index_CV_layer])
-        else:
-            raise Exception("PC layer type error")
         return PCs
 
     def get_outputs_from_PC(self, input_PC):
@@ -997,7 +995,14 @@ class autoencoder_Keras(autoencoder):
                 x_next_1 = [x_next[0]]
                 for item in range(2, len(x_next) + 1):
                     x_next_1.append(layers.Add()(x_next[:item]))
-                x_next_1 = [temp_lambda_tanh_layer(item) for item in x_next_1]
+                if act_funcs[index_CV_layer] == 'tanh':
+                    x_next_1 = [temp_lambda_tanh_layer(item) for item in x_next_1]
+                elif act_funcs[index_CV_layer] == 'sigmoid':
+                    x_next_1 = [temp_lambda_sigmoid_layer(item) for item in x_next_1]
+                elif act_funcs[index_CV_layer] == 'linear':
+                    x_next_1 = x_next_1
+                else:
+                    raise Exception('activation function not implemented')
                 assert (len(x_next) == len(x_next_1))
                 for item_index in range(index_CV_layer + 2, len(node_num) - 1):
                     x_next_1 = [Dense(node_num[item_index], activation=act_funcs[item_index - 1], kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(item_2)
@@ -1054,11 +1059,9 @@ class autoencoder_Keras(autoencoder):
                 x = Reshape((node_num[index_CV_layer] / 2, 2), input_shape=(node_num[index_CV_layer],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
                 encoded = Reshape((node_num[index_CV_layer],))(x)
-            elif act_funcs[index_CV_layer - 1] == "tanh":
+            else:
                 encoded = Dense(node_num[index_CV_layer], activation=act_funcs[index_CV_layer - 1],
                             kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
-            else:
-                raise Exception('CV layer type error')
             x = Dense(node_num[index_CV_layer + 1], activation=act_funcs[index_CV_layer],
                       kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(encoded)
             for item_index in range(index_CV_layer + 2, len(node_num)):
@@ -1143,6 +1146,7 @@ def temp_lambda_func_for_circular_for_Keras(x):
     return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
 
 temp_lambda_tanh_layer = Lambda(lambda x: K.tanh(x))
+temp_lambda_sigmoid_layer = Lambda(lambda x: K.sigmoid(x))
 # not sure if there are better ways to do this, since Lambda layer has to be defined at top level of the file,
 # following line does not work
 # temp_lambda_slice_layers = [Lambda(lambda x: x[:, [index]], output_shape=(1,)) for index in range(20)]
