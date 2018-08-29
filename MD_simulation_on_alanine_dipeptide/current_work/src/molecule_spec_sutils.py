@@ -595,6 +595,16 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return np.array(result)
 
     @staticmethod
+    def get_non_repeated_pairwise_distance_from_pos_npy(pos_npy):
+        from sklearn.metrics.pairwise import pairwise_distances
+        num_atoms = pos_npy.shape[1] / 3
+        temp_pos_npy = pos_npy.reshape(pos_npy.shape[0], num_atoms, 3)
+        pairwise_dis = np.array([pairwise_distances(item, item) for item in temp_pos_npy])
+        temp_result = np.array(
+            [[item[_1][_2] for _1 in range(num_atoms) for _2 in range(_1 + 1, num_atoms)] for item in pairwise_dis])
+        return temp_result
+
+    @staticmethod
     def get_residue_relative_position_list(sample_file):
         sample = Universe(sample_file)
         temp_heavy_atoms = sample.select_atoms('not name H*')
