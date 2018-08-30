@@ -985,9 +985,9 @@ class autoencoder_Keras(autoencoder):
                 encoded = Reshape((node_num[index_CV_layer],))(x)
                 encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(num_CVs)]
             else:
-                encoded = Dense(node_num[index_CV_layer], activation=act_funcs[index_CV_layer - 1],
-                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
-                encoded_split = [temp_lambda_slice_layers[item](encoded) for item in range(num_CVs)]
+                encoded_split = [Dense(1, activation=act_funcs[index_CV_layer - 1],
+                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x) for _ in range(num_CVs)]
+                encoded = layers.Concatenate()(encoded_split)
 
             if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
                 x_next = [Dense(node_num[index_CV_layer + 1], activation='linear',
@@ -1150,12 +1150,6 @@ temp_lambda_sigmoid_layer = Lambda(lambda x: K.sigmoid(x))
 # not sure if there are better ways to do this, since Lambda layer has to be defined at top level of the file,
 # following line does not work
 # temp_lambda_slice_layers = [Lambda(lambda x: x[:, [index]], output_shape=(1,)) for index in range(20)]
-temp_lambda_slice_layers = [
-    Lambda(lambda x: x[:, [0]], output_shape=(1,)), Lambda(lambda x: x[:, [1]], output_shape=(1,)),
-    Lambda(lambda x: x[:, [2]], output_shape=(1,)), Lambda(lambda x: x[:, [3]], output_shape=(1,)),
-    Lambda(lambda x: x[:, [4]], output_shape=(1,)), Lambda(lambda x: x[:, [5]], output_shape=(1,)),
-    Lambda(lambda x: x[:, [6]], output_shape=(1,)), Lambda(lambda x: x[:, [7]], output_shape=(1,)),
-    Lambda(lambda x: x[:, [8]], output_shape=(1,)), Lambda(lambda x: x[:, [9]], output_shape=(1,))]
 temp_lambda_slice_layers_circular = [
     Lambda(lambda x: x[:, [0,1]], output_shape=(2,)),   Lambda(lambda x: x[:, [2,3]], output_shape=(2,)),
     Lambda(lambda x: x[:, [4,5]], output_shape=(2,)),   Lambda(lambda x: x[:, [6,7]], output_shape=(2,)),
