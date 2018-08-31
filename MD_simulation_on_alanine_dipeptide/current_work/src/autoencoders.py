@@ -960,6 +960,8 @@ class autoencoder_Keras(autoencoder):
         index_CV_layer = (len(node_num) - 1) / 2
         num_CVs = node_num[index_CV_layer] / 2 if act_funcs[index_CV_layer - 1] == "circular" else \
             node_num[index_CV_layer]
+        if self._node_num[index_CV_layer] == 1:
+            hierarchical = False
         if hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
             temp_output_shape = output_data_set.shape
