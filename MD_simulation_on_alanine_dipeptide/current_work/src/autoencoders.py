@@ -896,15 +896,6 @@ class autoencoder_Keras(autoencoder):
             assert (len(PCs[0]) == self._node_num[self._index_CV])
         return PCs
 
-    def get_outputs_from_PC(self, input_PC):
-        if self._hidden_layers_type[self._index_CV - 1] == "Circular": raise Exception('not implemented')
-        inputs = Input(shape=(self._node_num[self._index_CV],))
-        x = inputs
-        for item in self._molecule_net.layers[-self._index_CV:]:
-            x = item(x)     # using functional API
-        model = Model(input=inputs, output=x)
-        return model.predict(input_PC)
-
     def layerwise_pretrain(self, data, dim_in, dim_out):
         """ref: https://www.kaggle.com/baogorek/autoencoder-with-greedy-layer-wise-pretraining/notebook"""
         data_in = Input(shape=(dim_in,))
@@ -1096,16 +1087,9 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
         train_history = molecule_net.fit(train_in, train_out, epochs=self._epochs, batch_size=self._batch_size,
                                          verbose=False, validation_split=0.2, callbacks=call_back_list)
-
-        dense_layers = [item for item in molecule_net.layers if isinstance(item, Dense)]
-        for _1 in range(2):  # check first two layers only
-            assert (dense_layers[_1].get_weights()[0].shape[0] == node_num[_1]), (
-            dense_layers[_1].get_weights()[0].shape[1], node_num[_1])  # check shapes of weights
-
         self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
-                                                  molecule_net.layers if isinstance(item,
-                                                                                    Dense)]  # transpose the weights for consistency
-        self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in molecule_net.layers if
+                                                  encoder_net.layers if isinstance(item, Dense)]  # transpose the weights for consistency
+        self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in encoder_net.layers if
                                                     isinstance(item, Dense)]
 
         print(('Done ' + training_print_info + str(datetime.datetime.now())))
