@@ -962,6 +962,7 @@ class autoencoder_Keras(autoencoder):
             for item in range(2, self._index_CV):
                 x = Dense(node_num[item], activation=act_funcs[item - 1], kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
             if act_funcs[self._index_CV - 1] == "circular":
+                # TODO: make this part consistent with else branch
                 x = Dense(node_num[self._index_CV], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
                 x = Reshape((num_CVs, 2), input_shape=(node_num[self._index_CV],))(x)
@@ -994,8 +995,6 @@ class autoencoder_Keras(autoencoder):
                 shared_final_layer = Dense(node_num[-1], activation=act_funcs[-1],
                                            kernel_regularizer=l2(self._network_parameters[4][-1]))
                 outputs_net = layers.Concatenate()([shared_final_layer(item) for item in x_next_1])
-                encoder_net = Model(inputs=inputs_net, outputs=encoded)
-                molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             elif hierarchical_variant == 1:   # simplified version, no shared layer after CV (encoded) layer
                 concat_layers = [encoded_split[0]]
                 concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, num_CVs + 1)]
@@ -1007,8 +1006,6 @@ class autoencoder_Keras(autoencoder):
                 x = [Dense(node_num[-1], activation=act_funcs[-1],
                                 kernel_regularizer=l2(self._network_parameters[4][-1]))(item) for item in x]
                 outputs_net = layers.Concatenate()(x)
-                encoder_net = Model(inputs=inputs_net, outputs=encoded)
-                molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             elif hierarchical_variant == 2:
                 # boosted hierarchical autoencoders, CV i in encoded layer learns remaining error that has
                 # not been learned by previous CVs
@@ -1024,9 +1021,9 @@ class autoencoder_Keras(autoencoder):
                     x_out.append(layers.Add()(x[:item]))
                 assert (len(x_out) == len(x))
                 outputs_net = layers.Concatenate()(x_out)
-                encoder_net = Model(inputs=inputs_net, outputs=encoded)
-                molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             else: raise Exception('error variant')
+            encoder_net = Model(inputs=inputs_net, outputs=encoded)
+            molecule_net = Model(inputs=inputs_net, outputs=outputs_net)
             # print molecule_net.summary()
             loss_function = get_mse_weighted(self._mse_weights)
         # elif num_of_hidden_layers != 3:
