@@ -37,6 +37,7 @@ class autoencoder(object):
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
+                 index_CV=None,   # index of CV layer
                  epochs=CONFIG_5,
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
@@ -55,6 +56,10 @@ class autoencoder(object):
         self._hidden_layers_type = hidden_layers_types
         self._out_layer_type = out_layer_type
         self._node_num = node_num
+        if index_CV is None:
+            self._index_CV = (len(self._node_num) - 1) / 2
+        else:
+            self._index_CV = index_CV
         self._epochs = epochs
         if filename_to_save_network is None:
             self._filename_to_save_network = "../resources/%s/network_%s.pkl" % (
@@ -90,6 +95,8 @@ class autoencoder(object):
             a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'),custom_objects={'mse_weighted': get_mse_weighted()})
         else:
             raise Exception('TODO: construct encoder from _molecule_net') # TODO
+        if not hasattr(a, '_index_CV'):
+            a._index_CV = (len(a._node_num) - 1) / 2
         return a
     
     def remove_pybrain_dependency(self):    
@@ -140,17 +147,16 @@ class autoencoder(object):
         return
 
     def get_expression_script_for_plumed(self, mode="native", node_num=None, connection_between_layers_coeffs=None,
-                                         connection_with_bias_layers_coeffs=None, index_CV_layer=None,
+                                         connection_with_bias_layers_coeffs=None,
                                          activation_function_list=None):
         if node_num is None: node_num = self._node_num
         if connection_between_layers_coeffs is None: connection_between_layers_coeffs = self._connection_between_layers_coeffs
         if connection_with_bias_layers_coeffs is None: connection_with_bias_layers_coeffs = self._connection_with_bias_layers_coeffs
-        if index_CV_layer is None: index_CV_layer = (len(node_num) - 1) / 2
         plumed_script = ''
         if mode == "native":  # using native implementation by PLUMED (using COMBINE and MATHEVAL)
             plumed_script += "bias_const: CONSTANT VALUE=1.0\n"  # used for bias
-            if activation_function_list is None: activation_function_list = ['tanh'] * index_CV_layer
-            for layer_index in range(1, index_CV_layer + 1):
+            if activation_function_list is None: activation_function_list = ['tanh'] * self._index_CV
+            for layer_index in range(1, self._index_CV + 1):
                 for item in range(node_num[layer_index]):
                     plumed_script += "l_%d_in_%d: COMBINE PERIODIC=NO COEFFICIENTS=" % (layer_index, item)
                     plumed_script += "%s" % \
@@ -180,7 +186,7 @@ class autoencoder(object):
                         plumed_script += 'l_%d_out_%d: MATHEVAL ARG=l_%d_in_%d,sum_output_layer FUNC=exp(x)/y PERIODIC=NO\n' % (
                             layer_index, item, layer_index, item)
         elif mode == "ANN":  # using ANN class
-            temp_num_of_layers_used = index_CV_layer + 1
+            temp_num_of_layers_used = self._index_CV + 1
             temp_input_string = ','.join(['l_0_out_%d' % item for item in range(node_num[0])])
             temp_num_nodes_string = ','.join([str(item) for item in node_num[:temp_num_of_layers_used]])
             temp_layer_type_string = CONFIG_17[:2]
@@ -265,13 +271,12 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         return
 
     def write_coefficients_of_connections_into_file(self, out_file=None):
-        index_CV_layer = (len(self._node_num) - 1) / 2
         if out_file is None: out_file = self._autoencoder_info_file
         with open(out_file, 'w') as f_out:
-            for item in range(index_CV_layer):
+            for item in range(self._index_CV):
                 f_out.write(str(list(self._connection_between_layers_coeffs[item])))
                 f_out.write(',\n')
-            for item in range(index_CV_layer):
+            for item in range(self._index_CV):
                 f_out.write(str(list(self._connection_with_bias_layers_coeffs[item])))
                 f_out.write(',\n')
         return
@@ -372,7 +377,6 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
     def get_fraction_of_variance_explained(self, hierarchical_FVE=False,
                                            output_index_range=None, featurewise=False):
         """ here num_of_PCs is the same with that in get_training_error() """
-        index_CV_layer = (len(self._node_num) - 1) / 2
         input_data = np.array(self._data_set)
         actual_output_data = self.get_output_data()
         if hasattr(self, '_output_data_set') and not self._output_data_set is None:
@@ -381,8 +385,8 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             expected_output_data = input_data
 
         if self._hierarchical:
-            num_PCs = self._node_num[index_CV_layer] / 2 if self._hidden_layers_type[index_CV_layer - 1] == "Circular" \
-                else self._node_num[index_CV_layer]
+            num_PCs = self._node_num[self._index_CV] / 2 if self._hidden_layers_type[self._index_CV - 1] == "Circular" \
+                else self._node_num[self._index_CV]
             length_for_hierarchical_component = actual_output_data.shape[1] / num_PCs
             actual_output_list = [actual_output_data[:,
                                     item * length_for_hierarchical_component:
@@ -879,23 +883,21 @@ class autoencoder_Keras(autoencoder):
         return self._molecule_net.predict(input_data)
 
     def get_PCs(self, input_data=None):
-        index_CV_layer = (len(self._node_num) - 1) / 2
         if input_data is None: input_data = self._data_set
-        if self._hidden_layers_type[index_CV_layer - 1] == "Circular":
+        if self._hidden_layers_type[self._index_CV - 1] == "Circular":
             PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
                    for item in self._encoder_net.predict(input_data)])
-            assert (len(PCs[0]) == self._node_num[index_CV_layer] / 2), (len(PCs[0]), self._node_num[index_CV_layer] / 2)
+            assert (len(PCs[0]) == self._node_num[self._index_CV] / 2), (len(PCs[0]), self._node_num[self._index_CV] / 2)
         else:
             PCs = self._encoder_net.predict(input_data)
-            assert (len(PCs[0]) == self._node_num[index_CV_layer])
+            assert (len(PCs[0]) == self._node_num[self._index_CV])
         return PCs
 
     def get_outputs_from_PC(self, input_PC):
-        index_CV_layer = (len(self._node_num) - 1) / 2
-        if self._hidden_layers_type[index_CV_layer - 1] == "Circular": raise Exception('not implemented')
-        inputs = Input(shape=(self._node_num[index_CV_layer],))
+        if self._hidden_layers_type[self._index_CV - 1] == "Circular": raise Exception('not implemented')
+        inputs = Input(shape=(self._node_num[self._index_CV],))
         x = inputs
-        for item in self._molecule_net.layers[-index_CV_layer:]:
+        for item in self._molecule_net.layers[-self._index_CV:]:
             x = item(x)     # using functional API
         model = Model(input=inputs, output=x)
         return model.predict(input_PC)
@@ -938,10 +940,9 @@ class autoencoder_Keras(autoencoder):
         else:
             output_data_set = data
 
-        index_CV_layer = (len(node_num) - 1) / 2
-        num_CVs = node_num[index_CV_layer] / 2 if act_funcs[index_CV_layer - 1] == "circular" else \
-            node_num[index_CV_layer]
-        if self._node_num[index_CV_layer] == 1:
+        num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
+            node_num[self._index_CV]
+        if self._node_num[self._index_CV] == 1:
             hierarchical = False
         if hierarchical:
             # functional API: https://keras.io/getting-started/functional-api-guide
@@ -958,36 +959,36 @@ class autoencoder_Keras(autoencoder):
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation=act_funcs[0],
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            for item in range(2, index_CV_layer):
+            for item in range(2, self._index_CV):
                 x = Dense(node_num[item], activation=act_funcs[item - 1], kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
-            if act_funcs[index_CV_layer - 1] == "circular":
-                x = Dense(node_num[index_CV_layer], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
-                x = Reshape((num_CVs, 2), input_shape=(node_num[index_CV_layer],))(x)
+            if act_funcs[self._index_CV - 1] == "circular":
+                x = Dense(node_num[self._index_CV], activation='linear',
+                            kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
+                x = Reshape((num_CVs, 2), input_shape=(node_num[self._index_CV],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
-                encoded = Reshape((node_num[index_CV_layer],))(x)
+                encoded = Reshape((node_num[self._index_CV],))(x)
                 encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(num_CVs)]
             else:
-                encoded_split = [Dense(1, activation=act_funcs[index_CV_layer - 1],
-                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x) for _ in range(num_CVs)]
+                encoded_split = [Dense(1, activation=act_funcs[self._index_CV - 1],
+                                kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x) for _ in range(num_CVs)]
                 encoded = layers.Concatenate()(encoded_split)
 
             if hierarchical_variant == 0:  # this is logically equivalent to original version by Scholz
-                x_next = [Dense(node_num[index_CV_layer + 1], activation='linear',
-                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(item) for item in encoded_split]
+                x_next = [Dense(node_num[self._index_CV + 1], activation='linear',
+                                kernel_regularizer=l2(self._network_parameters[4][self._index_CV]))(item) for item in encoded_split]
                 x_next_1 = [x_next[0]]
                 for item in range(2, len(x_next) + 1):
                     x_next_1.append(layers.Add()(x_next[:item]))
-                if act_funcs[index_CV_layer] == 'tanh':
+                if act_funcs[self._index_CV] == 'tanh':
                     x_next_1 = [temp_lambda_tanh_layer(item) for item in x_next_1]
-                elif act_funcs[index_CV_layer] == 'sigmoid':
+                elif act_funcs[self._index_CV] == 'sigmoid':
                     x_next_1 = [temp_lambda_sigmoid_layer(item) for item in x_next_1]
-                elif act_funcs[index_CV_layer] == 'linear':
+                elif act_funcs[self._index_CV] == 'linear':
                     x_next_1 = x_next_1
                 else:
                     raise Exception('activation function not implemented')
                 assert (len(x_next) == len(x_next_1))
-                for item_index in range(index_CV_layer + 2, len(node_num) - 1):
+                for item_index in range(self._index_CV + 2, len(node_num) - 1):
                     x_next_1 = [Dense(node_num[item_index], activation=act_funcs[item_index - 1], kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(item_2)
                                 for item_2 in x_next_1]
                 shared_final_layer = Dense(node_num[-1], activation=act_funcs[-1],
@@ -998,9 +999,9 @@ class autoencoder_Keras(autoencoder):
             elif hierarchical_variant == 1:   # simplified version, no shared layer after CV (encoded) layer
                 concat_layers = [encoded_split[0]]
                 concat_layers += [layers.Concatenate()(encoded_split[:item]) for item in range(2, num_CVs + 1)]
-                x = [Dense(node_num[index_CV_layer + 1], activation=act_funcs[index_CV_layer],
-                                kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(item) for item in concat_layers]
-                for item_index in range(index_CV_layer + 2, len(node_num) - 1):
+                x = [Dense(node_num[self._index_CV + 1], activation=act_funcs[self._index_CV],
+                                kernel_regularizer=l2(self._network_parameters[4][self._index_CV]))(item) for item in concat_layers]
+                for item_index in range(self._index_CV + 2, len(node_num) - 1):
                     x = [Dense(node_num[item_index], activation=act_funcs[item_index - 1],
                                kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(item) for item in x]
                 x = [Dense(node_num[-1], activation=act_funcs[-1],
@@ -1011,9 +1012,9 @@ class autoencoder_Keras(autoencoder):
             elif hierarchical_variant == 2:
                 # boosted hierarchical autoencoders, CV i in encoded layer learns remaining error that has
                 # not been learned by previous CVs
-                x = [Dense(node_num[index_CV_layer + 1], activation=act_funcs[index_CV_layer],
-                           kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(item) for item in encoded_split]
-                for item_index in range(index_CV_layer + 2, len(node_num) - 1):
+                x = [Dense(node_num[self._index_CV + 1], activation=act_funcs[self._index_CV],
+                           kernel_regularizer=l2(self._network_parameters[4][self._index_CV]))(item) for item in encoded_split]
+                for item_index in range(self._index_CV + 2, len(node_num) - 1):
                     x = [Dense(node_num[item_index], activation=act_funcs[item_index - 1],
                                kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(item) for item in x]
                 x = [Dense(node_num[-1], activation=act_funcs[-1],
@@ -1034,20 +1035,20 @@ class autoencoder_Keras(autoencoder):
             inputs_net = Input(shape=(node_num[0],))
             x = Dense(node_num[1], activation=act_funcs[0],
                       kernel_regularizer=l2(self._network_parameters[4][0]))(inputs_net)
-            for item in range(2, index_CV_layer):
+            for item in range(2, self._index_CV):
                 x = Dense(node_num[item], activation=act_funcs[item - 1], kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
-            if act_funcs[index_CV_layer - 1] == "circular":
-                x = Dense(node_num[index_CV_layer], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
-                x = Reshape((node_num[index_CV_layer] / 2, 2), input_shape=(node_num[index_CV_layer],))(x)
+            if act_funcs[self._index_CV - 1] == "circular":
+                x = Dense(node_num[self._index_CV], activation='linear',
+                            kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
+                x = Reshape((node_num[self._index_CV] / 2, 2), input_shape=(node_num[self._index_CV],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
-                encoded = Reshape((node_num[index_CV_layer],))(x)
+                encoded = Reshape((node_num[self._index_CV],))(x)
             else:
-                encoded = Dense(node_num[index_CV_layer], activation=act_funcs[index_CV_layer - 1],
-                            kernel_regularizer=l2(self._network_parameters[4][index_CV_layer - 1]))(x)
-            x = Dense(node_num[index_CV_layer + 1], activation=act_funcs[index_CV_layer],
-                      kernel_regularizer=l2(self._network_parameters[4][index_CV_layer]))(encoded)
-            for item_index in range(index_CV_layer + 2, len(node_num)):
+                encoded = Dense(node_num[self._index_CV], activation=act_funcs[self._index_CV - 1],
+                            kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
+            x = Dense(node_num[self._index_CV + 1], activation=act_funcs[self._index_CV],
+                      kernel_regularizer=l2(self._network_parameters[4][self._index_CV]))(encoded)
+            for item_index in range(self._index_CV + 2, len(node_num)):
                 x = Dense(node_num[item_index], activation=act_funcs[item_index - 1],
                           kernel_regularizer=l2(self._network_parameters[4][item_index - 1]))(x)
             molecule_net = Model(inputs=inputs_net, outputs=x)
