@@ -871,7 +871,7 @@ class autoencoder_Keras(autoencoder):
         assert isinstance(self._network_parameters[4], list)
         self._batch_size = batch_size
         self._enable_early_stopping = enable_early_stopping
-        if self._hierarchical and self._node_num[self._index_CV] > 1:
+        if not (mse_weights is None) and self._hierarchical and self._node_num[self._index_CV] > 1:
             self._mse_weights = np.array(mse_weights.tolist() * self._node_num[self._index_CV])
         else:
             self._mse_weights = mse_weights
@@ -914,7 +914,6 @@ class autoencoder_Keras(autoencoder):
         encoder = Model(inputs=data_in, outputs=encoded)
         sgd = SGD(lr=0.3, decay=0, momentum=0.9, nesterov=True)
         temp_ae.compile(loss='mean_squared_error', optimizer=sgd)
-        encoder.compile(loss='mean_squared_error', optimizer=sgd)
         temp_ae.fit(data, data, epochs=20, batch_size=50,
                     validation_split=0.20, shuffle=True, verbose=False)
         encoded_data = encoder.predict(data)
