@@ -275,8 +275,8 @@ class test_cluster_management(object):
     @staticmethod
     def test_generate_sge_filename_for_a_command():
         actual = cluster_management.generate_sge_filename_for_a_command('python main____work.py :::: && -- ../target')
-        expected = 'python_main_work.py_target.sge'
-        assert (actual == expected)
+        expected = '_main_work.py_target.sge'
+        assert (actual == expected), (actual, expected)
         return
 
 
@@ -396,6 +396,25 @@ class test_autoencoder_Keras(object):
         _ = autoencoder.load_from_pkl_file('test_save_into_file.pkl')
         return
 
+    def check_two_plumed_strings_containing_floats(self, string_1, string_2):
+        """due to precision issue, string literals may not be exactly the same for two plumed strings, so we
+                need to explicitly compare the float values"""
+        def is_float(s):
+            try:
+                float(s)
+                return True
+            except ValueError:
+                return False
+        split_1 = re.split(' |\n|=|,', string_1)
+        split_2 = re.split(' |\n|=|,', string_2)
+        assert (len(split_1) == len(split_2)), (len(split_1), len(split_2))
+        for _1, _2 in zip(split_1, split_2):
+            if is_float(_1):
+                assert_almost_equal(float(_1), float(_2), decimal=4)
+            else:
+                assert (_1 == _2), (_1, _2)
+        return
+
     def test_get_plumed_script_for_biased_simulation_with_solute_pairwise_dis_and_solvent_cg_input_and_ANN(self):
         scaling_factor_v = 26.9704478916
         scaling_factor_u = 29.1703348377
@@ -408,14 +427,14 @@ class test_autoencoder_Keras(object):
             expected_plumed = my_f.read().strip()
         plumed_string = ae.get_plumed_script_for_biased_simulation_with_solute_pairwise_dis_and_solvent_cg_input_and_ANN(
             list(range(1, 25)), scaling_factor_u, water_index_string, atom_indices, -5, r_high, scaling_factor_v)
-        assert (plumed_string == expected_plumed)
+        self.check_two_plumed_strings_containing_floats(plumed_string, expected_plumed)
 
         AE = autoencoder.load_from_pkl_file('../tests/dependency/solvent_AE/solvent_test.pkl')
         with open('../tests/dependency/solvent_AE/temp_plumed.txt', 'r') as my_f:
             expected_plumed = my_f.read().strip()
         plumed_string = AE.get_plumed_script_for_biased_simulation_with_INDUS_cg_input_and_ANN(
             water_index_string, atom_indices, -5, r_high, scaling_factor_v).strip()
-        assert (plumed_string == expected_plumed)
+        self.check_two_plumed_strings_containing_floats(plumed_string, expected_plumed)
         return
 
 
