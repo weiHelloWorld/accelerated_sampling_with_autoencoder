@@ -1072,8 +1072,8 @@ class autoencoder_Keras(autoencoder):
 
         molecule_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer= temp_optimizer)
-        encoder_net.compile(loss=loss_function, metrics=[loss_function],
-                             optimizer=temp_optimizer)  # not needed, but do not want to see endless warning...
+        # encoder_net.compile(loss=loss_function, metrics=[loss_function],
+        #                      optimizer=temp_optimizer)  # not needed, but do not want to see endless warning...
         pretraining = False
         data_for_pretraining = self._data_set
         if pretraining:
