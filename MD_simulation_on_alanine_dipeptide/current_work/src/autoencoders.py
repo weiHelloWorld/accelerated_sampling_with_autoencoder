@@ -871,7 +871,10 @@ class autoencoder_Keras(autoencoder):
         assert isinstance(self._network_parameters[4], list)
         self._batch_size = batch_size
         self._enable_early_stopping = enable_early_stopping
-        self._mse_weights = mse_weights
+        if self._hierarchical and self._node_num[self._index_CV] > 1:
+            self._mse_weights = np.array(mse_weights.tolist() * self._node_num[self._index_CV])
+        else:
+            self._mse_weights = mse_weights
         self._molecule_net_layers = None              # why don't I save molecule_net (Keras model) instead? since it it not picklable:
                                                       # https://github.com/luispedro/jug/issues/30
                                                       # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
