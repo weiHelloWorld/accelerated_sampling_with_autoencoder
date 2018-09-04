@@ -272,6 +272,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 
     def write_coefficients_of_connections_into_file(self, out_file=None):
         if out_file is None: out_file = self._autoencoder_info_file
+        Helper_func.backup_rename_file_if_exists(out_file)
         with open(out_file, 'w') as f_out:
             for item in range(self._index_CV):
                 f_out.write(str(list(self._connection_between_layers_coeffs[item])))
@@ -921,6 +922,13 @@ class autoencoder_Keras(autoencoder):
         actual_output = pca.inverse_transform(pca.fit_transform(data))
         return (1 - np.sum((actual_output - data).var(axis=0)) / np.sum(data.var(axis=0)), pca)
 
+    @staticmethod
+    def get_outbound_layers(layer):
+        """get outbound layers to which this layer is connected,
+        see https://stackoverflow.com/questions/50814880/keras-retrieve-layers-that-the-layer-connected-to"""
+        temp_nodes = layer._outbound_nodes
+        return [item.outbound_layer for item in temp_nodes]
+
     def train(self, hierarchical=None, hierarchical_variant = None):
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if hierarchical is None: hierarchical = self._hierarchical
@@ -1087,10 +1095,19 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
         train_history = molecule_net.fit(train_in, train_out, epochs=self._epochs, batch_size=self._batch_size,
                                          verbose=False, validation_split=0.2, callbacks=call_back_list)
-        self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
-                                                  encoder_net.layers if isinstance(item, Dense)]  # transpose the weights for consistency
-        self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in encoder_net.layers if
-                                                    isinstance(item, Dense)]
+        self._connection_between_layers_coeffs, self._connection_with_bias_layers_coeffs = [], []
+        for item_l in encoder_net.layers:
+            outbound_layers = autoencoder_Keras.get_outbound_layers(item_l)
+            if len(outbound_layers) > 0 and isinstance(outbound_layers[0], Dense):
+                self._connection_between_layers_coeffs.append(
+                    np.concatenate([item_o.get_weights()[0] for item_o in outbound_layers], axis=-1).T.flatten())
+                self._connection_with_bias_layers_coeffs.append(
+                    np.concatenate([item_o.get_weights()[1] for item_o in outbound_layers], axis=-1))
+
+        # self._connection_between_layers_coeffs = [item.get_weights()[0].T.flatten() for item in
+        #                                           encoder_net.layers if isinstance(item, Dense)]  # transpose the weights for consistency
+        # self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in encoder_net.layers if
+        #                                             isinstance(item, Dense)]
 
         print(('Done ' + training_print_info + str(datetime.datetime.now())))
         self._molecule_net = molecule_net
