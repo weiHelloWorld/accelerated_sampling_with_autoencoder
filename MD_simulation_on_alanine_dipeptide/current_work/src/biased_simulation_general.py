@@ -203,7 +203,7 @@ def run_simulation(force_constant, number_of_simulation_steps):
                 assert (len(temp_coeffs[item_layer_index]) ==
                         num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1]), \
                     (len(temp_coeffs[item_layer_index]), num_of_nodes[item_layer_index], num_of_nodes[item_layer_index + 1])
-                assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1])
+                assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1]), (len(temp_bias[item_layer_index]), num_of_nodes[item_layer_index + 1])
 
             force.set_coeffients_of_connections(temp_coeffs)
             force.set_values_of_biased_nodes(temp_bias)
