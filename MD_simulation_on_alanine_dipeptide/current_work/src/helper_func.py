@@ -200,7 +200,7 @@ class Helper_func(object):
         if npy_file.strip()[-4:] != '.npy': npy_file += '.npy'
         if os.path.isfile(npy_file):
             content = np.load(npy_file)
-            if np.max(np.abs(npy_array - content)) > 1e-5:
+            if np.any(npy_array != content):
                 Helper_func.backup_rename_file_if_exists(npy_file)
         np.save(npy_file, npy_array)
         return
