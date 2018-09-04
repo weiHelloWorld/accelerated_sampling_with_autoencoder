@@ -18,7 +18,7 @@ parser.add_argument('--out_data', type=str, default=None, help="npy file contain
 parser.add_argument('--node_num', type=str, default=None, help="node number")
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
-parser.add_argument('--save_train_data', type=int, default=False, help="save training data to npy files")
+parser.add_argument('--save_to_data_files', type=str, default=None, help="save training data to external files if it is not None, example: 'temp_in.npy,temp_out.npy' ")
 args = parser.parse_args()
 
 def get_data_from_folder(temp_folder, input_type, output_type):
@@ -154,14 +154,14 @@ if args.auto_scale:
 print(("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
                                                                   np.min(data_set), np.max(data_set))))
 
-if args.save_train_data:
-    np.save('temp_input', data_set)
-    np.save('temp_output', output_data_set)
+if not args.save_to_data_files is None:
+    args.save_to_data_files = args.split(',')
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
                                          data_set_for_training=data_set,
                                          output_data_set=output_data_set,
+                                         data_files=args.save_to_data_files,
                                          training_data_interval=1,
                                          **additional_argument_list
                                          ) for _ in range(args.num_of_trainings)]

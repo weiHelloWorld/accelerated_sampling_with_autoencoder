@@ -32,6 +32,7 @@ class autoencoder(object):
                  index,  # the index of the current network
                  data_set_for_training,
                  output_data_set = None,  # output data may not be the same with the input data
+                 data_files = None,      # if None, store data in pkl, otherwise store data in separate npy files, to save storage when we want to use the same data to train many different models
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
@@ -47,6 +48,7 @@ class autoencoder(object):
         self._index = index
         self._data_set = data_set_for_training
         self._output_data_set = output_data_set
+        self._data_files = data_files
         if autoencoder_info_file is None:
             self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" % (CONFIG_30, index)
         else:
@@ -92,10 +94,22 @@ class autoencoder(object):
         if os.path.isfile(filename.replace('.pkl', '_encoder.hdf5')):
             a._encoder_net = load_model(filename.replace('.pkl', '_encoder.hdf5'),custom_objects={'mse_weighted': get_mse_weighted()})
         else:
-            raise Exception('TODO: construct encoder from _molecule_net') # TODO
+            raise Exception('obsolete, not going to do this')
         if not hasattr(a, '_index_CV'):
             a._index_CV = (len(a._node_num) - 1) / 2
+        if hasattr(a, '_data_files') and not a._data_files is None:
+            a._data_set = np.load(a._data_files[0])
+            a._output_data_set = np.load(a._data_files[1])
         return a
+
+    @staticmethod
+    def move_data_from_pkl_to_external_files(model_pkl, data_files):
+        """this function is used for backward compatibility, move training data from pkl to external files to save storage"""
+        ae = autoencoder.load_from_pkl_file(model_pkl)
+        assert (isinstance(ae, autoencoder))
+        ae._data_files = data_files
+        ae.save_into_file(model_pkl)
+        return
     
     def remove_pybrain_dependency(self):    
         """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
@@ -136,11 +150,18 @@ class autoencoder(object):
         self._encoder_net.save(hdf5_file_name_encoder)
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
         self._molecule_net = self._molecule_net_layers = self._encoder_net = self._decoder_net = None  # we save model in hdf5, not in pkl
+        if hasattr(self, '_data_files') and not self._data_files is None:
+            np.save(self._data_files[0], self._data_set)       # save to external files
+            np.save(self._data_files[1], self._output_data_set)
+            self._data_set = self._output_data_set = None
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
 
+        # restore
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': get_mse_weighted()})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': get_mse_weighted()})
+        self._data_set = np.load(self._data_files[0])
+        self._output_data_set = np.load(self._data_files[1])
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 
@@ -1110,7 +1131,7 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
         #                                             isinstance(item, Dense)]
 
         print('Done ' + training_print_info + str(datetime.datetime.now()))
-        self._molecule_net = molecule_netW
+        self._molecule_net = molecule_net
         self._encoder_net = encoder_net
         try:
             fig, axes = plt.subplots(1, 2)

@@ -326,6 +326,7 @@ class test_autoencoder_Keras(object):
         for item_activation in range(2):
             for is_hi, hier_var in [(0, 0), (1,0), (1,1), (1,2)]:
                 model = autoencoder_Keras(1447, data,
+                                          data_files=['/tmp/train_in.npy', '/tmp/train_out.npy'],
                                           node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
                                           hidden_layers_types=hidden_layers_list[item_activation],
                                           network_parameters = [0.02, 0.9,0, True, [reg_list[item_activation]]* 8],
