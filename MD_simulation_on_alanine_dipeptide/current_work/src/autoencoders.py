@@ -32,7 +32,7 @@ class autoencoder(object):
                  index,  # the index of the current network
                  data_set_for_training,
                  output_data_set = None,  # output data may not be the same with the input data
-                 data_files = None,      # if None, store data in pkl, otherwise store data in separate npy files, to save storage when we want to use the same data to train many different models
+                 data_files = None,      # if None, store data in pkl, otherwise store data in separate npy files (use relative path), to save storage when we want to use the same data to train many different models
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
@@ -98,8 +98,10 @@ class autoencoder(object):
         if not hasattr(a, '_index_CV'):
             a._index_CV = (len(a._node_num) - 1) / 2
         if hasattr(a, '_data_files') and not a._data_files is None:
-            a._data_set = np.load(a._data_files[0])
-            a._output_data_set = np.load(a._data_files[1])
+            data_file_paths = [os.path.join(os.path.dirname(os.path.realpath(filename)), item_file) for item_file in
+                               a._data_files]
+            a._data_set = np.load(data_file_paths[0])
+            a._output_data_set = np.load(data_file_paths[1])
         return a
 
     @staticmethod
@@ -151,8 +153,9 @@ class autoencoder(object):
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
         self._molecule_net = self._molecule_net_layers = self._encoder_net = self._decoder_net = None  # we save model in hdf5, not in pkl
         if hasattr(self, '_data_files') and not self._data_files is None:
-            Helper_func.save_npy_array_into_file_with_backup(self._data_files[0], self._data_set)       # save to external files
-            Helper_func.save_npy_array_into_file_with_backup(self._data_files[1], self._output_data_set)
+            data_file_paths = [os.path.join(os.path.dirname(os.path.realpath(filename)), item_file) for item_file in self._data_files]    # use relative paths to store data files to avoid issue when loading model from a different directory (e.g. from Jupyter notebook)
+            Helper_func.save_npy_array_into_file_with_backup(data_file_paths[0], self._data_set)       # save to external files
+            Helper_func.save_npy_array_into_file_with_backup(data_file_paths[1], self._output_data_set)
             self._data_set = self._output_data_set = None
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
@@ -161,8 +164,8 @@ class autoencoder(object):
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': get_mse_weighted()})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': get_mse_weighted()})
         if hasattr(self, '_data_files') and not self._data_files is None:
-            self._data_set = np.load(self._data_files[0])
-            self._output_data_set = np.load(self._data_files[1])
+            self._data_set = np.load(data_file_paths[0])
+            self._output_data_set = np.load(data_file_paths[1])
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 
