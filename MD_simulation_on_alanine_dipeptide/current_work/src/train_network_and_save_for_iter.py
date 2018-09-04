@@ -11,7 +11,6 @@ parser.add_argument("--training_interval", type=int, default=1, help="training i
 parser.add_argument("--num_of_trainings", type=int, default=CONFIG_13, help="total number of trainings (and pick the best one to save)")
 parser.add_argument("--num_of_copies", type=int, default=CONFIG_52, help="num of copies for data augmentation")
 parser.add_argument("--lr_m", type=str, default=None, help="learning rate and momentum")
-parser.add_argument("--num_PCs", type=int, default=None, help="number of PCs")
 parser.add_argument("--output_file", type=str, default=None, help="file name to save autoencoder")
 parser.add_argument('--data_folder', type=str, default=None, help="folder containing training data")
 parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
@@ -34,10 +33,6 @@ if not args.lr_m is None:
 num_of_copies = args.num_of_copies
 if args.data_folder is None:
     temp_list_of_directories_contanining_data = ['../target/' + CONFIG_30]
-elif "up_to_iter_" in args.data_folder:
-    temp_iter_index = int(args.data_folder.split('up_to_iter_')[1])
-    temp_list_of_directories_contanining_data = ['../target/%s/unbiased/' % CONFIG_30] \
-                 + ['../target/%s/network_%d' % (CONFIG_30, item) for item in range(1, temp_iter_index + 1)]
 else:
     temp_list_of_directories_contanining_data = [args.data_folder]
 
@@ -73,7 +68,7 @@ else:
 # getting output data
 if not args.out_data is None:
     output_data_set = np.load(args.out_data)
-elif not args.in_data is None:       # if in_data is not None while out_data is None, then out_data is set to be in_data
+elif not args.in_data is None:
     output_data_set = np.load(args.in_data)
 elif output_data_type == 'cossin':   # output type
     output_data_set = data_set   # done above
@@ -134,7 +129,7 @@ if input_data_type == 'Cartesian' and args.in_data is None:
 else:
     print("data augmentation not applied")
 
-scaling_factor_for_expected_output = CONFIG_75  # this is useful if we want to put more weights on some components in the output
+scaling_factor_for_expected_output = CONFIG_75  # TODO: is this useful?
 if not scaling_factor_for_expected_output is None:
     print("expected output is weighted by %s" % str(scaling_factor_for_expected_output))
     output_data_set = np.dot(output_data_set, np.diag(scaling_factor_for_expected_output))
@@ -144,9 +139,6 @@ if args.node_num is None:
 else:
     temp_node_num = [int(item) for item in args.node_num.split(',')]
 
-if not args.num_PCs is None:
-    index_CV_layer = (len(temp_node_num) - 1) / 2
-    temp_node_num[index_CV_layer] = args.num_PCs
 if args.auto_dim: temp_node_num[0], temp_node_num[-1] = data_set.shape[1], output_data_set.shape[1]
 additional_argument_list['node_num'] = temp_node_num
 
