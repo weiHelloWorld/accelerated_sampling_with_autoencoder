@@ -33,7 +33,6 @@ class autoencoder(object):
                  data_set_for_training,
                  output_data_set = None,  # output data may not be the same with the input data
                  autoencoder_info_file=None,  # this might be expressions, or coefficients
-                 training_data_interval=CONFIG_2,
                  hidden_layers_types=CONFIG_17,
                  out_layer_type=CONFIG_78,  # different layers
                  node_num=CONFIG_3,  # the structure of ANN
@@ -48,7 +47,6 @@ class autoencoder(object):
         self._index = index
         self._data_set = data_set_for_training
         self._output_data_set = output_data_set
-        self._training_data_interval = training_data_interval
         if autoencoder_info_file is None:
             self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" % (CONFIG_30, index)
         else:
@@ -472,13 +470,13 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 elif CONFIG_53 == "flexible":
                     input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
-                    print(("PC_folded_state = %s" % str(PC_folded_state)))
+                    print("PC_folded_state = %s" % str(PC_folded_state))
                     force_constant_for_biased = [2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2
                                                  for item in list_of_potential_center]
                 elif CONFIG_53 == "truncated":
                     input_folded_state = np.loadtxt(temp_state_coor_file) / CONFIG_49
                     PC_folded_state = self.get_PCs(Sutils.remove_translation(input_folded_state))[0]
-                    print(("PC_folded_state = %s" % str(PC_folded_state)))
+                    print("PC_folded_state = %s" % str(PC_folded_state))
                     force_constant_for_biased = [min(2 * CONFIG_54 / np.linalg.norm(np.array(item) - PC_folded_state) ** 2,
                                                      CONFIG_9) for item in list_of_potential_center]
                 else:
@@ -897,8 +895,10 @@ class autoencoder_Keras(autoencoder):
             assert (len(PCs[0]) == self._node_num[self._index_CV])
         return PCs
 
-    def layerwise_pretrain(self, data, dim_in, dim_out):
+    @staticmethod
+    def layerwise_pretrain(data, dim_in, dim_out):
         """ref: https://www.kaggle.com/baogorek/autoencoder-with-greedy-layer-wise-pretraining/notebook"""
+        # TODO: 1. use better training parameters. 2. use consistant activation functions, 3. consider how to do this for hierarchical case
         data_in = Input(shape=(dim_in,))
         encoded = Dense(dim_out, activation='tanh')(data_in)
         data_out = Dense(dim_in, activation='tanh')(encoded)
@@ -920,7 +920,7 @@ class autoencoder_Keras(autoencoder):
         if data is None: data = self._data_set
         pca = PCA(n_components=self._node_num[(len(self._node_num) - 1) / 2])
         actual_output = pca.inverse_transform(pca.fit_transform(data))
-        return (1 - np.sum((actual_output - data).var(axis=0)) / np.sum(data.var(axis=0)), pca)
+        return 1 - np.sum((actual_output - data).var(axis=0)) / np.sum(data.var(axis=0)), pca
 
     @staticmethod
     def get_outbound_layers(layer):
@@ -1087,7 +1087,7 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
             str(act_funcs), len(data), str(self._network_parameters), temp_optimizer_name,
             self._hierarchical, self._hi_variant, self.get_pca_fve()[0])
 
-        print(("Start " + training_print_info + str(datetime.datetime.now())))
+        print("Start " + training_print_info + str(datetime.datetime.now()))
         call_back_list = []
         earlyStopping = EarlyStopping(monitor='val_loss', patience=100, verbose=0, mode='min')
         if self._enable_early_stopping:
@@ -1109,8 +1109,8 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
         # self._connection_with_bias_layers_coeffs = [item.get_weights()[1] for item in encoder_net.layers if
         #                                             isinstance(item, Dense)]
 
-        print(('Done ' + training_print_info + str(datetime.datetime.now())))
-        self._molecule_net = molecule_net
+        print('Done ' + training_print_info + str(datetime.datetime.now()))
+        self._molecule_net = molecule_netW
         self._encoder_net = encoder_net
         try:
             fig, axes = plt.subplots(1, 2)

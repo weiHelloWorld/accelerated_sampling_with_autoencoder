@@ -77,7 +77,6 @@ CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
 CONFIG_17 = ['Tanh', 'Tanh', 'Tanh']  # types of hidden layers
 CONFIG_78 = "Linear"                    # output layer type
 CONFIG_79 = True                         # determine dimensionality of input/output of autoencoder automatically
-CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'keras':
     if CONFIG_76 == 'cossin':
         CONFIG_4 = get_mol_param([
