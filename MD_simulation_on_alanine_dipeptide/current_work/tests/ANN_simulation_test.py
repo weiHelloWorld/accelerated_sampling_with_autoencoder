@@ -560,6 +560,25 @@ class test_Helper_func(object):
             assert( [b1[item], b2[item]] in a)
         return
 
+    @staticmethod
+    def test_save_npy_array_into_file_with_backup():
+        import shutil
+        def get_num_files_in_folder(temp_folder): return len(os.listdir(temp_folder))
+        a = 2 * np.eye(3, 3)
+        folder = 'temp_test_save_npy'
+        if os.path.exists(folder): shutil.rmtree(folder)
+        os.mkdir(folder)
+        filename = folder + '/1.npy'
+        Helper_func.save_npy_array_into_file_with_backup(filename, a)
+        assert (os.path.isfile(filename))
+        assert (get_num_files_in_folder(folder) == 1)
+        Helper_func.save_npy_array_into_file_with_backup(filename, a)
+        assert (get_num_files_in_folder(folder) == 1)
+        Helper_func.save_npy_array_into_file_with_backup(filename, a+1)
+        assert (get_num_files_in_folder(folder) == 2)
+        shutil.rmtree(folder)
+        return
+
 
 class test_others(object):
     @staticmethod
