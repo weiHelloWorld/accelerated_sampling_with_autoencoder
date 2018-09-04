@@ -151,8 +151,8 @@ class autoencoder(object):
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
         self._molecule_net = self._molecule_net_layers = self._encoder_net = self._decoder_net = None  # we save model in hdf5, not in pkl
         if hasattr(self, '_data_files') and not self._data_files is None:
-            np.save(self._data_files[0], self._data_set)       # save to external files
-            np.save(self._data_files[1], self._output_data_set)
+            Helper_func.save_npy_array_into_file_with_backup(self._data_files[0], self._data_set)       # save to external files
+            Helper_func.save_npy_array_into_file_with_backup(self._data_files[1], self._output_data_set)
             self._data_set = self._output_data_set = None
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
@@ -160,8 +160,9 @@ class autoencoder(object):
         # restore
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': get_mse_weighted()})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': get_mse_weighted()})
-        self._data_set = np.load(self._data_files[0])
-        self._output_data_set = np.load(self._data_files[1])
+        if hasattr(self, '_data_files') and not self._data_files is None:
+            self._data_set = np.load(self._data_files[0])
+            self._output_data_set = np.load(self._data_files[1])
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 

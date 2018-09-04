@@ -195,6 +195,17 @@ class Helper_func(object):
         return new_filename
 
     @staticmethod
+    def save_npy_array_into_file_with_backup(npy_file, npy_array):
+        """when trying to save a npy array to a file, if it exists and contains a different value, then make a backup"""
+        if npy_file.strip()[-4:] != '.npy': npy_file += '.npy'
+        if os.path.isfile(npy_file):
+            content = np.load(npy_file)
+            if np.max(np.abs(npy_array - content)) > 1e-5:
+                Helper_func.backup_rename_file_if_exists(npy_file)
+        np.save(npy_file, npy_array)
+        return
+
+    @staticmethod
     def run_multiple_jobs_on_local_machine(commands, num_of_jobs_in_parallel=CONFIG_56):
         total_num_failed_jobs = 0
         for item in range(int(len(commands) / num_of_jobs_in_parallel) + 1):
