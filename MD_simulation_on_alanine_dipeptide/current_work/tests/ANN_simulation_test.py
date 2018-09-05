@@ -561,7 +561,7 @@ class test_Helper_func(object):
         return
 
     @staticmethod
-    def test_save_npy_array_into_file_with_backup():
+    def test_attempt_to_save_npy():
         import shutil
         def get_num_files_in_folder(temp_folder): return len(os.listdir(temp_folder))
         a = 2 * np.eye(3, 3)
@@ -569,13 +569,14 @@ class test_Helper_func(object):
         if os.path.exists(folder): shutil.rmtree(folder)
         os.mkdir(folder)
         filename = folder + '/1.npy'
-        Helper_func.save_npy_array_into_file_with_backup(filename, a)
+        Helper_func.attempt_to_save_npy(filename, a)
         assert (os.path.isfile(filename))
         assert (get_num_files_in_folder(folder) == 1)
-        Helper_func.save_npy_array_into_file_with_backup(filename, a)
+        Helper_func.attempt_to_save_npy(filename, a)
         assert (get_num_files_in_folder(folder) == 1)
-        Helper_func.save_npy_array_into_file_with_backup(filename, a+1)
-        assert (get_num_files_in_folder(folder) == 2)
+        for item in range(10):
+            Helper_func.attempt_to_save_npy(filename, a+item)
+            assert (get_num_files_in_folder(folder) == item + 1)
         shutil.rmtree(folder)
         return
 
