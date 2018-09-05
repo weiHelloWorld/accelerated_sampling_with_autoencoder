@@ -162,7 +162,6 @@ if CONFIG_45 == 'keras':
                                          data_set_for_training=data_set,
                                          output_data_set=output_data_set,
                                          data_files=args.save_to_data_files,
-                                         training_data_interval=1,
                                          **additional_argument_list
                                          ) for _ in range(args.num_of_trainings)]
 else:
