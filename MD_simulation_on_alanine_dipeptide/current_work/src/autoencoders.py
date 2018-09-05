@@ -48,7 +48,10 @@ class autoencoder(object):
         self._index = index
         self._data_set = data_set_for_training
         self._output_data_set = output_data_set
-        self._data_files = data_files
+        if data_files is None:
+            self._data_files = data_files
+        else:
+            self._data_files = [os.path.basename(item_f) for item_f in data_files]   # require that data are store in the same folder as pkl file
         if autoencoder_info_file is None:
             self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" % (CONFIG_30, index)
         else:
@@ -110,6 +113,7 @@ class autoencoder(object):
         ae = autoencoder.load_from_pkl_file(model_pkl)
         assert (isinstance(ae, autoencoder))
         ae._data_files = data_files
+        print "data_files = %s" % str(ae._data_files)
         ae.save_into_file(model_pkl)
         return
     
@@ -157,7 +161,8 @@ class autoencoder(object):
             data_file_paths = [os.path.join(folder_of_pkl, item_file) for item_file in self._data_files]    # use relative paths to store data files to avoid issue when loading model from a different directory (e.g. from Jupyter notebook)
             data_file_paths[0] = Helper_func.attempt_to_save_npy(data_file_paths[0], self._data_set)       # save to external files
             data_file_paths[1] = Helper_func.attempt_to_save_npy(data_file_paths[1], self._output_data_set)
-            self._data_files = [item_1.split(folder_of_pkl + '/')[1] for item_1 in data_file_paths]   # restore relative paths
+            print data_file_paths
+            self._data_files = [os.path.basename(item_1) for item_1 in data_file_paths]   # restore relative paths
             self._data_set = self._output_data_set = None
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
