@@ -18,6 +18,7 @@ parser.add_argument('--out_data', type=str, default=None, help="npy file contain
 parser.add_argument('--node_num', type=str, default=None, help="node number")
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
+parser.add_argument('--lag_time', type=int, default=0, help='lag time for time lagged autoencoder')
 parser.add_argument('--save_to_data_files', type=str, default=None, help="save training data to external files if it is not None, example: 'temp_in.npy,temp_out.npy' ")
 args = parser.parse_args()
 
@@ -167,7 +168,7 @@ if CONFIG_45 == 'keras':
 else:
     raise Exception ('this training backend not implemented')
 
-for item in temp_network_list: item.train()
+for item in temp_network_list: item.train(lag_time=args.lag_time)
 
 temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
 max_FVE = np.max(temp_FVE_list)

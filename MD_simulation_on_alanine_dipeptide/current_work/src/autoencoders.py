@@ -961,7 +961,8 @@ class autoencoder_Keras(autoencoder):
         temp_nodes = layer._outbound_nodes
         return [item.outbound_layer for item in temp_nodes]
 
-    def train(self, hierarchical=None, hierarchical_variant = None):
+    def train(self, hierarchical=None, hierarchical_variant = None, lag_time=0):
+        """lag_time is included for training time-lagged autoencoder"""
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if hierarchical is None: hierarchical = self._hierarchical
         if hierarchical_variant is None: hierarchical_variant = self._hi_variant
@@ -972,6 +973,8 @@ class autoencoder_Keras(autoencoder):
             output_data_set = self._output_data_set
         else:
             output_data_set = data
+        if lag_time > 0:      # for training time-lagged AE
+            data, output_data_set = data[:-lag_time], output_data_set[lag_time:]
 
         num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
             node_num[self._index_CV]
@@ -1126,7 +1129,7 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
             call_back_list += [earlyStopping]
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
         train_history = molecule_net.fit(train_in, train_out, epochs=self._epochs, batch_size=self._batch_size,
-                                         verbose=False, validation_split=0.2, callbacks=call_back_list)
+                                         verbose=True, validation_split=0.2, callbacks=call_back_list)
         self._connection_between_layers_coeffs, self._connection_with_bias_layers_coeffs = [], []
         for item_l in encoder_net.layers:
             outbound_layers = autoencoder_Keras.get_outbound_layers(item_l)
