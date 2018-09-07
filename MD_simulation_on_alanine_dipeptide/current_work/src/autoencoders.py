@@ -975,6 +975,7 @@ class autoencoder_Keras(autoencoder):
             output_data_set = data
         if lag_time > 0:      # for training time-lagged AE
             data, output_data_set = data[:-lag_time], output_data_set[lag_time:]
+            assert np.all(data[lag_time:] == output_data_set[:-lag_time])
 
         num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
             node_num[self._index_CV]
@@ -1206,3 +1207,70 @@ def get_mse_weighted(weight_for_MSE=None):   # take weight as input, return loss
 
 mse_weighted = get_mse_weighted()      # requires a global mse_weighted(), for backward compatibility
 
+
+###################################################
+import torch
+from torch import nn
+from torch.autograd import Variable
+from torch.utils.data import DataLoader, Dataset
+from torchsample.modules import ModuleTrainer
+
+class autoencoder_torch(autoencoder):
+    class My_dataset(Dataset):
+        def __init__(self, data_in, data_out):
+            self._data_in = data_in
+            self._data_out = data_out
+
+        def __len__(self):
+            return len(self._data_in)
+
+        def __getitem__(self, index):
+            return self._data_in[index], self._data_out[index]
+
+    class AE_net(nn.Module):
+        def __init__(self, node_num_1, node_num_2, activations):
+            super(autoencoder_torch.AE_net, self).__init__()
+            self._activations = activations
+            encoder_list = [[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()]
+                            for item in range(len(node_num_1) - 1)]
+            self._encoder = nn.Sequential(*[nn.Sequential(*item) for item in encoder_list])
+            decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
+                            for item in range(len(node_num_2) - 1)]
+            self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
+            return
+
+        def forward(self, x):
+            latent_z = self._encoder(x)
+            rec_x = self._decoder(latent_z)
+            return rec_x, latent_z
+
+    @staticmethod
+    def get_var_from_np(np_array, cuda=False):
+        temp = Variable(torch.from_numpy(np_array), requires_grad=False).type(torch.FloatTensor)
+        if cuda: temp = temp.cuda()
+        return temp
+
+    def _init_extra(self,
+                    network_parameters = CONFIG_4, batch_size = 100):
+        self._network_parameters = network_parameters
+        self._batch_size = batch_size
+        act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
+        self._ae = self.AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
+                               activations=act_funcs)
+        return
+
+    def train(self):
+        train_data = self.My_dataset(self.get_var_from_np(self._data_set),
+                                     self.get_var_from_np(self._output_data_set))
+        optimizer = torch.optim.Adam(self._ae.parameters(), lr=0.001, weight_decay=0)
+        for _ in range(self._epochs):
+            dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
+            for train_in, train_out in dataset:
+                rec_x, latent_z = self._ae.forward(train_in)
+                rec_loss = nn.MSELoss()(rec_x, train_out)
+                loss = rec_loss
+                print loss.data.numpy()
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+        return
