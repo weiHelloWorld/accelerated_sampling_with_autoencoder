@@ -1245,8 +1245,8 @@ class autoencoder_torch(autoencoder):
             return rec_x, latent_z
 
     @staticmethod
-    def get_var_from_np(np_array, cuda=False):
-        temp = Variable(torch.from_numpy(np_array), requires_grad=False).type(torch.FloatTensor)
+    def get_var_from_np(np_array, cuda=False, requires_grad=False):
+        temp = Variable(torch.from_numpy(np_array.astype(np.float32)), requires_grad=requires_grad)
         if cuda: temp = temp.cuda()
         return temp
 
@@ -1266,7 +1266,7 @@ class autoencoder_torch(autoencoder):
         for _ in range(self._epochs):
             dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
             for train_in, train_out in dataset:
-                rec_x, latent_z = self._ae.forward(train_in)
+                rec_x, latent_z = self._ae(train_in)
                 rec_loss = nn.MSELoss()(rec_x, train_out)
                 loss = rec_loss
                 print loss.data.numpy()
