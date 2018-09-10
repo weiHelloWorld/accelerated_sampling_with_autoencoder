@@ -15,4 +15,5 @@ temp/**
 *.hdf5
 *.npy
 *.pdf
+temp_model.dot
 

@@ -1228,20 +1228,46 @@ class autoencoder_torch(autoencoder):
             return self._data_in[index], self._data_out[index]
 
     class AE_net(nn.Module):
-        def __init__(self, node_num_1, node_num_2, activations):
+        def __init__(self, node_num_1, node_num_2, activations, hierarchical=1, hi_variant=2):
             super(autoencoder_torch.AE_net, self).__init__()
             self._activations = activations
-            encoder_list = [[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()]
-                            for item in range(len(node_num_1) - 1)]
-            self._encoder = nn.Sequential(*[nn.Sequential(*item) for item in encoder_list])
-            decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
-                            for item in range(len(node_num_2) - 1)]
-            self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
+            self._hierarchical=hierarchical
+            self._hi_variant = hi_variant
+            encoder_list = [nn.Sequential(*[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()])
+                            for item in range(len(node_num_1) - 2)]
+            self._encoder_1 = nn.Sequential(*encoder_list)
+            if not hierarchical:
+                self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())]
+                decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
+                                for item in range(len(node_num_2) - 1)]
+                self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
+            else:
+                self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
+                                   for _ in range(node_num_1[-1])]
+                if hi_variant == 2:
+                    temp_node_num_2 = node_num_2[:]
+                    temp_node_num_2[0] = 1
+                    self._decoder = [nn.Sequential(*[nn.Sequential(
+                        nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                        for item in range(len(temp_node_num_2) - 1)])
+                                       for _ in range(node_num_2[0])]
             return
 
         def forward(self, x):
-            latent_z = self._encoder(x)
-            rec_x = self._decoder(latent_z)
+            temp = self._encoder_1(x)
+            latent_z_split = [item_l(temp) for item_l in self._encoder_2]
+            latent_z = torch.cat(latent_z_split, dim=-1)
+            if not self._hierarchical:
+                rec_x = self._decoder(latent_z)
+            elif self._hi_variant == 2:
+                temp_decoded = [self._decoder[item](latent_z_split[item]) for item in range(len(self._decoder))]
+                decoded_list = [temp_decoded[0]]
+                for item in temp_decoded[1:]:
+                    decoded_list.append(torch.add(decoded_list[-1], item))
+                rec_x = torch.cat(decoded_list, dim=-1)
+            from torchviz import make_dot, make_dot_from_trace
+            model_plot = make_dot(rec_x)
+            model_plot.save('temp_model.dot')    # save model plot for visualization
             return rec_x, latent_z
 
     @staticmethod
@@ -1256,12 +1282,17 @@ class autoencoder_torch(autoencoder):
         self._batch_size = batch_size
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         self._ae = self.AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
-                               activations=act_funcs)
+                               activations=act_funcs, hierarchical=self._hierarchical,
+                               hi_variant=self._hi_variant)
         return
 
     def train(self):
-        train_data = self.My_dataset(self.get_var_from_np(self._data_set),
-                                     self.get_var_from_np(self._output_data_set))
+        data_in, data_out = self._data_set, self._output_data_set
+        if self._hierarchical:
+            num_CVs = self._node_num[self._index_CV]
+            data_out = np.concatenate([data_out] * num_CVs, axis=-1)
+        train_data = self.My_dataset(self.get_var_from_np(data_in),
+                                     self.get_var_from_np(data_out))
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=0.001, weight_decay=0)
         for _ in range(self._epochs):
             dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
