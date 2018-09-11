@@ -1303,6 +1303,8 @@ class autoencoder_torch(autoencoder):
                                      self.get_var_from_np(data_out).data)
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=0.001, weight_decay=0)
         self._ae.train()    # set to training mode
+        train_history, val_history = [], []
+
         for _ in range(self._epochs):
             dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
             for train_in, train_out in dataset:
@@ -1317,16 +1319,26 @@ class autoencoder_torch(autoencoder):
                 # print autocorr_loss_num.shape, autocorr_loss_den.shape
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
                 loss = rec_loss + autocorr_loss
-                from torchviz import make_dot, make_dot_from_trace
-                model_plot = make_dot(loss)
-                model_plot.save('temp_model.dot')  # save model plot for visualization
-                if self._cuda:
-                    print rec_loss.cpu().data.numpy(), autocorr_loss.cpu().data.numpy(), loss.cpu().data.numpy()
-                else:
-                    print rec_loss.data.numpy(), autocorr_loss.data.numpy(), loss.data.numpy()
+                plot_model_loss = False
+                if plot_model_loss:
+                    from torchviz import make_dot, make_dot_from_trace
+                    model_plot = make_dot(loss)
+                    model_plot.save('temp_model.dot')  # save model plot for visualization
                 optimizer.zero_grad()
                 loss.backward()
+                loss_list = np.array(
+                    [rec_loss.cpu().data.numpy(), autocorr_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                print loss_list
+                train_history.append(loss_list)
                 optimizer.step()
+        try:
+            fig, axes = plt.subplots(1, 2)
+            axes[0].plot(train_history)
+            fig.suptitle(str(self._node_num) + str(self._network_parameters))
+            png_file = 'history_%02d.png' % self._index
+            Helper_func.backup_rename_file_if_exists(png_file)
+            fig.savefig(png_file)
+        except: print("training history not plotted!"); pass
         return
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
