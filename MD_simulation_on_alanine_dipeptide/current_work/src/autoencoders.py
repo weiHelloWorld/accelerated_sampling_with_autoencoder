@@ -1275,10 +1275,15 @@ class autoencoder_torch(autoencoder):
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 500, cuda=True):
+                    network_parameters = CONFIG_4, batch_size = 500, cuda=True,
+                    include_autocorr = True,    # include autocorrelation loss
+                    lagged_rec_loss = True      # use lagged, instead of standard reconstruction loss
+                    ):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
         self._cuda = cuda
+        self._include_autocorr = include_autocorr
+        self._lagged_rec_loss = lagged_rec_loss
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
@@ -1293,7 +1298,10 @@ class autoencoder_torch(autoencoder):
             data_in = np.concatenate([data_in[:-lag_time], data_in[lag_time:]], axis=-1)
         else:
             data_in = np.concatenate([data_in, data_in], axis=-1)
-        data_out = data_out[lag_time:]
+        if self._lagged_rec_loss:
+            data_out = data_out[lag_time:]
+        else:      # otherwise use standard reconstruction loss
+            data_out = data_out[:-lag_time] if lag_time > 0 else data_out
         assert (data_in.shape[0] == temp_in_shape[0] - lag_time), (data_in.shape[0], temp_in_shape[0] - lag_time)
         assert (data_in.shape[1] == 2 * temp_in_shape[1]), (data_in.shape[1], 2 * temp_in_shape[1])
         if self._hierarchical:
@@ -1311,14 +1319,17 @@ class autoencoder_torch(autoencoder):
                 rec_x, latent_z_1 = self._ae(Variable(train_in[:, :temp_in_shape[1]]))
                 _, latent_z_2 = self._ae(Variable(train_in[:, temp_in_shape[1]:]))
                 rec_loss = nn.MSELoss()(rec_x, Variable(train_out))
-                latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
-                # print latent_z_1.shape
-                latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
-                autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
-                # print autocorr_loss_num.shape, autocorr_loss_den.shape
-                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-                loss = rec_loss + autocorr_loss
+                if self._include_autocorr:
+                    latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
+                    # print latent_z_1.shape
+                    latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
+                    autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
+                    autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+                    # print autocorr_loss_num.shape, autocorr_loss_den.shape
+                    autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+                    loss = rec_loss + autocorr_loss
+                else:
+                    loss = rec_loss
                 plot_model_loss = False
                 if plot_model_loss:
                     from torchviz import make_dot, make_dot_from_trace
@@ -1327,7 +1338,7 @@ class autoencoder_torch(autoencoder):
                 optimizer.zero_grad()
                 loss.backward()
                 loss_list = np.array(
-                    [rec_loss.cpu().data.numpy(), autocorr_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
                 print loss_list
                 train_history.append(loss_list)
                 optimizer.step()
