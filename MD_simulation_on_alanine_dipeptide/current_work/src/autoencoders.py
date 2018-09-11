@@ -1269,20 +1269,23 @@ class autoencoder_torch(autoencoder):
         def __getitem__(self, index):
             return self._data_in[index], self._data_out[index]
 
-    @staticmethod
-    def get_var_from_np(np_array, cuda=False, requires_grad=False):
+    def get_var_from_np(self, np_array, cuda=None, requires_grad=False):
+        if cuda is None:
+            cuda = self._cuda
         temp = Variable(torch.from_numpy(np_array.astype(np.float32)), requires_grad=requires_grad)
         if cuda: temp = temp.cuda()
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 100):
+                    network_parameters = CONFIG_4, batch_size = 100, cuda=True):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
+        self._cuda = cuda
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
                                hi_variant=self._hi_variant)
+        if self._cuda: self._ae = self._ae.cuda()
         return
 
     def train(self, lag_time=10):
@@ -1301,6 +1304,7 @@ class autoencoder_torch(autoencoder):
         train_data = self.My_dataset(self.get_var_from_np(data_in),
                                      self.get_var_from_np(data_out))
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=0.001, weight_decay=0)
+        self._ae.train()    # set to training mode
         for _ in range(self._epochs):
             dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
             for train_in, train_out in dataset:
@@ -1318,7 +1322,10 @@ class autoencoder_torch(autoencoder):
                 from torchviz import make_dot, make_dot_from_trace
                 model_plot = make_dot(loss)
                 model_plot.save('temp_model.dot')  # save model plot for visualization
-                print rec_loss.data.numpy(), autocorr_loss.data.numpy(), loss.data.numpy()
+                if self._cuda:
+                    print rec_loss.cpu().data.numpy(), autocorr_loss.cpu().data.numpy(), loss.cpu().data.numpy()
+                else:
+                    print rec_loss.data.numpy(), autocorr_loss.data.numpy(), loss.data.numpy()
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
