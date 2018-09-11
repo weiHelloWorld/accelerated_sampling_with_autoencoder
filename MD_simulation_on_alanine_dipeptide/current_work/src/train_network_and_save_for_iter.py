@@ -165,6 +165,13 @@ if CONFIG_45 == 'keras':
                                          data_files=args.save_to_data_files,
                                          **additional_argument_list
                                          ) for _ in range(args.num_of_trainings)]
+elif CONFIG_45 == 'pytorch':
+    temp_network_list = [autoencoder_torch(index=args.index,
+                                           data_set_for_training=data_set,
+                                           output_data_set=output_data_set,
+                                           data_files=args.save_to_data_files,
+                                           **additional_argument_list
+                                           ) for _ in range(args.num_of_trainings)]
 else:
     raise Exception ('this training backend not implemented')
 

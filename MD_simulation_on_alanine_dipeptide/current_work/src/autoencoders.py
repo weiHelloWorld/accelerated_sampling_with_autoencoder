@@ -1276,22 +1276,24 @@ class autoencoder_torch(autoencoder):
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 100, lag_time=10):
+                    network_parameters = CONFIG_4, batch_size = 100):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
-        self._lag_time = lag_time
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
                                hi_variant=self._hi_variant)
         return
 
-    def train(self):
+    def train(self, lag_time=10):
         data_in, data_out = self._data_set, self._output_data_set
         temp_in_shape = data_in.shape
-        data_in = np.concatenate([data_in[:-self._lag_time], data_in[self._lag_time:]], axis=-1)
-        data_out = data_out[self._lag_time:]
-        assert (data_in.shape[0] == temp_in_shape[0] - self._lag_time), (data_in.shape[0], temp_in_shape[0] - self._lag_time)
+        if lag_time > 0:
+            data_in = np.concatenate([data_in[:-lag_time], data_in[lag_time:]], axis=-1)
+        else:
+            data_in = np.concatenate([data_in, data_in], axis=-1)
+        data_out = data_out[lag_time:]
+        assert (data_in.shape[0] == temp_in_shape[0] - lag_time), (data_in.shape[0], temp_in_shape[0] - lag_time)
         assert (data_in.shape[1] == 2 * temp_in_shape[1]), (data_in.shape[1], 2 * temp_in_shape[1])
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
@@ -1316,7 +1318,7 @@ class autoencoder_torch(autoencoder):
                 from torchviz import make_dot, make_dot_from_trace
                 model_plot = make_dot(loss)
                 model_plot.save('temp_model.dot')  # save model plot for visualization
-                print loss.data.numpy()
+                print rec_loss.data.numpy(), autocorr_loss.data.numpy(), loss.data.numpy()
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()

@@ -41,7 +41,7 @@ def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
 ##################   configurations  ##################################
 #######################################################################
 
-CONFIG_45 = 'keras'                         # training backend: "keras"
+CONFIG_45 = 'pytorch'                         # training backend: "keras"
 CONFIG_48 = 'pairwise_distance'           # input data type
 CONFIG_76 = 'pairwise_distance'           # output data type
 CONFIG_75 = get_mol_param([None, None, None, None, None])      # weights for the expected output (equivalent to modifying error functions)
