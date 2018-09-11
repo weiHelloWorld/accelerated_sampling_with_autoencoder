@@ -1354,3 +1354,11 @@ class autoencoder_torch(autoencoder):
             result = self._ae(self.get_var_from_np(input_data))[0]
         if self._cuda: result = result.cpu()
         return result.data.numpy()
+
+    def get_PCs(self, input_data=None):
+        if input_data is None: input_data = self._data_set
+        self._ae.eval()
+        with torch.no_grad():
+            result = self._ae(self.get_var_from_np(input_data))[1]
+        if self._cuda: result = result.cpu()
+        return result.data.numpy()
