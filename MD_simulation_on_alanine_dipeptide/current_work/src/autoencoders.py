@@ -1330,12 +1330,22 @@ class autoencoder_torch(autoencoder):
         return
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
-        # save both model and model parameters
         if filename is None:
             filename = self._filename_to_save_network
-        torch.save(self._ae, filename)
-        torch.save(self._ae.state_dict(), filename.replace('.pth', '_params.pth'))
+        # save both model and model parameters
+        torch.save(self._ae, filename.replace('.pkl', '.pth'))
+        torch.save(self._ae.state_dict(), filename.replace('.pkl', '_params.pth'))
+        self._ae = None    # do not save model in pkl file
+        with open(filename, 'wb') as my_file:
+            pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
+        self._ae = torch.load(filename.replace('.pkl', '.pth'))
         return
+
+    @staticmethod
+    def load_from_pkl_file(filename):
+        a = Sutils.load_object_from_pkl_file(filename)
+        a._ae = torch.load(filename.replace('.pkl', '.pth'))
+        return a
 
     def get_output_data(self, input_data=None):
         if input_data is None: input_data = self._data_set
