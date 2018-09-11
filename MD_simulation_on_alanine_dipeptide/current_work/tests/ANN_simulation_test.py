@@ -439,6 +439,27 @@ class test_autoencoder_Keras(object):
         self.check_two_plumed_strings_containing_floats(plumed_string, expected_plumed)
         return
 
+class test_autoencoder_torch(object):
+    @staticmethod
+    def test_general_train_save_and_load():
+        data = np.random.rand(1000, 21)
+        a = autoencoder_torch(1447, data,
+                              output_data_set=data,
+                              hierarchical=True,
+                              batch_size=500,
+                              node_num=[21, 100, 2, 100, 21], epochs=10)
+        a.train(lag_time=10)
+        a.save_into_file('/tmp/temp_save.pkl')
+        torch.save(a._ae, '/tmp/temp.df')
+        model_1 = torch.load('/tmp/temp.df')
+        torch.save(a._ae.state_dict(), '/tmp/temp_2.df')
+        model_2 = AE_net([21, 100, 2], [2, 100, 21], None).cuda()
+        model_2.load_state_dict(torch.load('/tmp/temp_2.df'))
+        data_in = torch.rand(1000, 21).cuda()
+        assert_almost_equal(model_1(data_in)[0].cpu().data.numpy(), a._ae(data_in)[0].cpu().data.numpy())
+        assert_almost_equal(model_2(data_in)[0].cpu().data.numpy(), a._ae(data_in)[0].cpu().data.numpy())
+        _ = autoencoder_torch.load_from_pkl_file('/tmp/temp_save.pkl')
+        return
 
 class test_biased_simulation(object):
     @staticmethod
