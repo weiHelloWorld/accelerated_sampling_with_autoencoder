@@ -1299,16 +1299,16 @@ class autoencoder_torch(autoencoder):
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
-        train_data = self.My_dataset(self.get_var_from_np(data_in),
-                                     self.get_var_from_np(data_out))
+        train_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                     self.get_var_from_np(data_out).data)
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=0.001, weight_decay=0)
         self._ae.train()    # set to training mode
         for _ in range(self._epochs):
             dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
             for train_in, train_out in dataset:
-                rec_x, latent_z_1 = self._ae(train_in[:, :temp_in_shape[1]])
-                _, latent_z_2 = self._ae(train_in[:, temp_in_shape[1]:])
-                rec_loss = nn.MSELoss()(rec_x, train_out)
+                rec_x, latent_z_1 = self._ae(Variable(train_in[:, :temp_in_shape[1]]))
+                _, latent_z_2 = self._ae(Variable(train_in[:, temp_in_shape[1]:]))
+                rec_loss = nn.MSELoss()(rec_x, Variable(train_out))
                 latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
                 # print latent_z_1.shape
                 latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
