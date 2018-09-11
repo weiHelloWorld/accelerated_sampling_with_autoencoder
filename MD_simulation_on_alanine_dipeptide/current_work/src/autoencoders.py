@@ -1215,6 +1215,47 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
 from torchsample.modules import ModuleTrainer
 
+
+class AE_net(nn.Module):
+    def __init__(self, node_num_1, node_num_2, activations, hierarchical=1, hi_variant=2):
+        super(AE_net, self).__init__()
+        self._activations = activations
+        self._hierarchical = hierarchical
+        self._hi_variant = hi_variant
+        encoder_list = [nn.Sequential(*[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()])
+                        for item in range(len(node_num_1) - 2)]
+        self._encoder_1 = nn.Sequential(*encoder_list)
+        if not hierarchical:
+            self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())]
+            decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
+                            for item in range(len(node_num_2) - 1)]
+            self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
+        else:
+            self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
+                               for _ in range(node_num_1[-1])]
+            if hi_variant == 2:
+                temp_node_num_2 = node_num_2[:]
+                temp_node_num_2[0] = 1
+                self._decoder = [nn.Sequential(*[nn.Sequential(
+                    nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                    for item in range(len(temp_node_num_2) - 1)])
+                                 for _ in range(node_num_2[0])]
+        return
+
+    def forward(self, x):
+        temp = self._encoder_1(x)
+        latent_z_split = [item_l(temp) for item_l in self._encoder_2]
+        latent_z = torch.cat(latent_z_split, dim=-1)
+        if not self._hierarchical:
+            rec_x = self._decoder(latent_z)
+        elif self._hi_variant == 2:
+            temp_decoded = [self._decoder[item](latent_z_split[item]) for item in range(len(self._decoder))]
+            decoded_list = [temp_decoded[0]]
+            for item in temp_decoded[1:]:
+                decoded_list.append(torch.add(decoded_list[-1], item))
+            rec_x = torch.cat(decoded_list, dim=-1)
+        return rec_x, latent_z
+
 class autoencoder_torch(autoencoder):
     class My_dataset(Dataset):
         def __init__(self, data_in, data_out):
@@ -1226,46 +1267,6 @@ class autoencoder_torch(autoencoder):
 
         def __getitem__(self, index):
             return self._data_in[index], self._data_out[index]
-
-    class AE_net(nn.Module):
-        def __init__(self, node_num_1, node_num_2, activations, hierarchical=1, hi_variant=2):
-            super(autoencoder_torch.AE_net, self).__init__()
-            self._activations = activations
-            self._hierarchical=hierarchical
-            self._hi_variant = hi_variant
-            encoder_list = [nn.Sequential(*[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()])
-                            for item in range(len(node_num_1) - 2)]
-            self._encoder_1 = nn.Sequential(*encoder_list)
-            if not hierarchical:
-                self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())]
-                decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
-                                for item in range(len(node_num_2) - 1)]
-                self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
-            else:
-                self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
-                                   for _ in range(node_num_1[-1])]
-                if hi_variant == 2:
-                    temp_node_num_2 = node_num_2[:]
-                    temp_node_num_2[0] = 1
-                    self._decoder = [nn.Sequential(*[nn.Sequential(
-                        nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
-                        for item in range(len(temp_node_num_2) - 1)])
-                                       for _ in range(node_num_2[0])]
-            return
-
-        def forward(self, x):
-            temp = self._encoder_1(x)
-            latent_z_split = [item_l(temp) for item_l in self._encoder_2]
-            latent_z = torch.cat(latent_z_split, dim=-1)
-            if not self._hierarchical:
-                rec_x = self._decoder(latent_z)
-            elif self._hi_variant == 2:
-                temp_decoded = [self._decoder[item](latent_z_split[item]) for item in range(len(self._decoder))]
-                decoded_list = [temp_decoded[0]]
-                for item in temp_decoded[1:]:
-                    decoded_list.append(torch.add(decoded_list[-1], item))
-                rec_x = torch.cat(decoded_list, dim=-1)
-            return rec_x, latent_z
 
     @staticmethod
     def get_var_from_np(np_array, cuda=False, requires_grad=False):
@@ -1279,7 +1280,7 @@ class autoencoder_torch(autoencoder):
         self._batch_size = batch_size
         self._lag_time = lag_time
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
-        self._ae = self.AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
+        self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
                                hi_variant=self._hi_variant)
         return
