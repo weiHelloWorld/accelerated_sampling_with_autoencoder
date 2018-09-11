@@ -1226,20 +1226,21 @@ class AE_net(nn.Module):
                         for item in range(len(node_num_1) - 2)]
         self._encoder_1 = nn.Sequential(*encoder_list)
         if not hierarchical:
-            self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())]
+            # use ModuleList instead of plain list for saving parameters
+            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())])
             decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
                             for item in range(len(node_num_2) - 1)]
             self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
         else:
-            self._encoder_2 = [nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
-                               for _ in range(node_num_1[-1])]
+            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
+                               for _ in range(node_num_1[-1])])
             if hi_variant == 2:
                 temp_node_num_2 = node_num_2[:]
                 temp_node_num_2[0] = 1
-                self._decoder = [nn.Sequential(*[nn.Sequential(
+                self._decoder = nn.ModuleList([nn.Sequential(*[nn.Sequential(
                     nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
                     for item in range(len(temp_node_num_2) - 1)])
-                                 for _ in range(node_num_2[0])]
+                                 for _ in range(node_num_2[0])])
         return
 
     def forward(self, x):
