@@ -77,29 +77,26 @@ CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
 CONFIG_17 = ['Tanh', 'Tanh', 'Tanh']  # types of hidden layers
 CONFIG_78 = "Linear"                    # output layer type
 CONFIG_79 = True                         # determine dimensionality of input/output of autoencoder automatically
-if CONFIG_45 == 'keras':
-    if CONFIG_76 == 'cossin':
-        CONFIG_4 = get_mol_param([
-            [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == "Circular" else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]]
-        ])
-    elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
-        CONFIG_4 = get_mol_param([
-            [.5, 0.5, 0, True, 0.0],
-            [0.3, 0.9, 0, True, 0.0],
-            [0.3, 0.9, 0, True, 0.0],
-            [0.3, 0.9, 0, True, 0.0],
-            [0.3, 0.9, 0, True, 0.0],
-            ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
-    elif CONFIG_76 == 'pairwise_distance':
-        CONFIG_4 = get_mol_param([
-            [0.3, 0.9, 0, True, 0.0],
-            [1.5, 0.9, 0, True, 0.0],
-            [1.5, 0.9, 0, True, 0.0],
-            [0.7, 0.8, 0, True, 0.0]
-        ])
-    else: raise Exception('error')
-else:
-    raise Exception('training backend not implemented')
+if CONFIG_76 == 'cossin':
+    CONFIG_4 = get_mol_param([
+        [.5,.4,0, True, [0.001, 0.001, 0.001, 0.001]] if CONFIG_17[1] == "Circular" else [0.3, 0.9, 0, True, [0.00, 0.1, 0.00, 0.00]]
+    ])
+elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
+    CONFIG_4 = get_mol_param([
+        [.5, 0.5, 0, True, 0.0],
+        [0.3, 0.9, 0, True, 0.0],
+        [0.3, 0.9, 0, True, 0.0],
+        [0.3, 0.9, 0, True, 0.0],
+        [0.3, 0.9, 0, True, 0.0],
+        ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
+elif CONFIG_76 == 'pairwise_distance':
+    CONFIG_4 = get_mol_param([
+        [0.3, 0.9, 0, True, 0.0],
+        [1.5, 0.9, 0, True, 0.0],
+        [1.5, 0.9, 0, True, 0.0],
+        [0.7, 0.8, 0, True, 0.0]
+    ])
+else: raise Exception('error')
 
 CONFIG_5 = 200                   # max number of training epochs
 CONFIG_6 = None                # filename to save this network

@@ -1321,3 +1321,10 @@ class autoencoder_torch(autoencoder):
                 loss.backward()
                 optimizer.step()
         return
+
+    def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
+        # save both model and model parameters
+        torch.save(self._ae, filename)
+        torch.save(self._ae.state_dict(), filename.replace('.pth', '_params.pth'))
+        return
+
