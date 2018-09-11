@@ -1265,9 +1265,6 @@ class autoencoder_torch(autoencoder):
                 for item in temp_decoded[1:]:
                     decoded_list.append(torch.add(decoded_list[-1], item))
                 rec_x = torch.cat(decoded_list, dim=-1)
-            from torchviz import make_dot, make_dot_from_trace
-            model_plot = make_dot(rec_x)
-            model_plot.save('temp_model.dot')    # save model plot for visualization
             return rec_x, latent_z
 
     @staticmethod
@@ -1277,9 +1274,10 @@ class autoencoder_torch(autoencoder):
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 100):
+                    network_parameters = CONFIG_4, batch_size = 100, lag_time=10):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
+        self._lag_time = lag_time
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         self._ae = self.AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
@@ -1288,6 +1286,11 @@ class autoencoder_torch(autoencoder):
 
     def train(self):
         data_in, data_out = self._data_set, self._output_data_set
+        temp_in_shape = data_in.shape
+        data_in = np.concatenate([data_in[:-self._lag_time], data_in[self._lag_time:]], axis=-1)
+        data_out = data_out[self._lag_time:]
+        assert (data_in.shape[0] == temp_in_shape[0] - self._lag_time), (data_in.shape[0], temp_in_shape[0] - self._lag_time)
+        assert (data_in.shape[1] == 2 * temp_in_shape[1]), (data_in.shape[1], 2 * temp_in_shape[1])
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
@@ -1297,9 +1300,20 @@ class autoencoder_torch(autoencoder):
         for _ in range(self._epochs):
             dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
             for train_in, train_out in dataset:
-                rec_x, latent_z = self._ae(train_in)
+                rec_x, latent_z_1 = self._ae(train_in[:, :temp_in_shape[1]])
+                _, latent_z_2 = self._ae(train_in[:, temp_in_shape[1]:])
                 rec_loss = nn.MSELoss()(rec_x, train_out)
-                loss = rec_loss
+                latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
+                # print latent_z_1.shape
+                latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
+                autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
+                autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+                # print autocorr_loss_num.shape, autocorr_loss_den.shape
+                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+                loss = rec_loss + autocorr_loss
+                from torchviz import make_dot, make_dot_from_trace
+                model_plot = make_dot(loss)
+                model_plot.save('temp_model.dot')  # save model plot for visualization
                 print loss.data.numpy()
                 optimizer.zero_grad()
                 loss.backward()
