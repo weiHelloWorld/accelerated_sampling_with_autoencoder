@@ -1213,8 +1213,6 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
-from torchsample.modules import ModuleTrainer
-
 
 class AE_net(nn.Module):
     def __init__(self, node_num_1, node_num_2, activations, hierarchical=1, hi_variant=2):
@@ -1333,7 +1331,16 @@ class autoencoder_torch(autoencoder):
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         # save both model and model parameters
+        if filename is None:
+            filename = self._filename_to_save_network
         torch.save(self._ae, filename)
         torch.save(self._ae.state_dict(), filename.replace('.pth', '_params.pth'))
         return
 
+    def get_output_data(self, input_data=None):
+        if input_data is None: input_data = self._data_set
+        self._ae.eval()
+        with torch.no_grad():
+            result = self._ae(self.get_var_from_np(input_data))[0]
+        if self._cuda: result = result.cpu()
+        return result.data.numpy()
