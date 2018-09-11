@@ -151,7 +151,7 @@ class autoencoder(object):
             Helper_func.backup_rename_file_if_exists(item_filename)
         folder_to_store_files = os.path.dirname(filename)
         if folder_to_store_files != '' and (not os.path.exists(folder_to_store_files)):
-            subprocess.check_output(['mkdir', '-p', folder_to_store_files])
+            os.makedirs(folder_to_store_files)
         self._molecule_net.save(hdf5_file_name)
         self._encoder_net.save(hdf5_file_name_encoder)
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
@@ -1275,7 +1275,7 @@ class autoencoder_torch(autoencoder):
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 100, cuda=True):
+                    network_parameters = CONFIG_4, batch_size = 500, cuda=True):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
         self._cuda = cuda
@@ -1332,6 +1332,9 @@ class autoencoder_torch(autoencoder):
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
             filename = self._filename_to_save_network
+        folder_to_store_files = os.path.dirname(filename)
+        if folder_to_store_files != '' and (not os.path.exists(folder_to_store_files)):
+            os.makedirs(folder_to_store_files)
         # save both model and model parameters
         torch.save(self._ae, filename.replace('.pkl', '.pth'))
         torch.save(self._ae.state_dict(), filename.replace('.pkl', '_params.pth'))
