@@ -1376,7 +1376,10 @@ class autoencoder_torch(autoencoder):
     def get_output_data(self, input_data=None):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
-        with torch.no_grad():
+        if temp_home_directory == '/home/kengyangyao':    # temp code for dealing with blue waters issues
+            with torch.no_grad():
+                result = self._ae(self.get_var_from_np(input_data))[0]
+        else:
             result = self._ae(self.get_var_from_np(input_data))[0]
         if self._cuda: result = result.cpu()
         return result.data.numpy()
@@ -1384,7 +1387,10 @@ class autoencoder_torch(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
-        with torch.no_grad():
+        if temp_home_directory == '/home/kengyangyao':  # temp code for dealing with blue waters issues
+            with torch.no_grad():
+                result = self._ae(self.get_var_from_np(input_data))[1]
+        else:
             result = self._ae(self.get_var_from_np(input_data))[1]
         if self._cuda: result = result.cpu()
         return result.data.numpy()
