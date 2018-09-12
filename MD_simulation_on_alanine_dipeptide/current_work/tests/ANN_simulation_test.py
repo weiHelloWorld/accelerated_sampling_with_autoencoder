@@ -389,7 +389,8 @@ class test_autoencoder_Keras(object):
                                   node_num=[8, 15, 2, 15, 8],
                                   hidden_layers_types=["Tanh", "Tanh", "Tanh"],
                                   network_parameters=[0.02, 0.9,0, True, [0.001]* 4],
-                                  batch_size=50
+                                  batch_size=50,
+                                  data_files=['test_save_into_file.npy', 'test_save_into_file.npy']
                                   )
         model.train()
         model.save_into_file('test_save_into_file.pkl')
