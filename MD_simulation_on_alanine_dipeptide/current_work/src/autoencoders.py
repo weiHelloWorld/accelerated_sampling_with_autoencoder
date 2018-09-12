@@ -1326,7 +1326,7 @@ class autoencoder_torch(autoencoder):
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
         train_data = self.My_dataset(self.get_var_from_np(data_in).data,
                                      self.get_var_from_np(data_out).data)
-        optimizer = torch.optim.Adam(self._ae.parameters(), lr=0.001, weight_decay=0)
+        optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, val_history = [], []
 
