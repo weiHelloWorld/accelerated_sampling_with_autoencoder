@@ -131,6 +131,26 @@ class autoencoder(object):
         ae.save_into_file(filename)
         return
 
+    def helper_save_data(self, filename):
+        """helper function to save data externally if _data_files are defined"""
+        if hasattr(self, '_data_files') and not self._data_files is None:
+            folder_of_pkl = os.path.dirname(os.path.realpath(filename))
+            data_file_paths = [os.path.join(folder_of_pkl, item_file) for item_file in self._data_files]    # use relative paths to store data files to avoid issue when loading model from a different directory (e.g. from Jupyter notebook)
+            data_file_paths[0] = Helper_func.attempt_to_save_npy(data_file_paths[0], self._data_set)       # save to external files
+            data_file_paths[1] = Helper_func.attempt_to_save_npy(data_file_paths[1], self._output_data_set)
+            print data_file_paths
+            self._data_files = [os.path.basename(item_1) for item_1 in data_file_paths]   # restore relative paths
+            self._data_set = self._output_data_set = None
+        else:
+            data_file_paths = None
+        return data_file_paths
+
+    def helper_load_data(self, data_file_paths):
+        if hasattr(self, '_data_files') and not self._data_files is None and not data_file_paths is None:
+            self._data_set = np.load(data_file_paths[0])
+            self._output_data_set = np.load(data_file_paths[1])
+        return
+
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
             filename = self._filename_to_save_network
@@ -156,23 +176,14 @@ class autoencoder(object):
         self._encoder_net.save(hdf5_file_name_encoder)
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
         self._molecule_net = self._molecule_net_layers = self._encoder_net = self._decoder_net = None  # we save model in hdf5, not in pkl
-        if hasattr(self, '_data_files') and not self._data_files is None:
-            folder_of_pkl = os.path.dirname(os.path.realpath(filename))
-            data_file_paths = [os.path.join(folder_of_pkl, item_file) for item_file in self._data_files]    # use relative paths to store data files to avoid issue when loading model from a different directory (e.g. from Jupyter notebook)
-            data_file_paths[0] = Helper_func.attempt_to_save_npy(data_file_paths[0], self._data_set)       # save to external files
-            data_file_paths[1] = Helper_func.attempt_to_save_npy(data_file_paths[1], self._output_data_set)
-            print data_file_paths
-            self._data_files = [os.path.basename(item_1) for item_1 in data_file_paths]   # restore relative paths
-            self._data_set = self._output_data_set = None
+        data_file_paths = self.helper_save_data(filename=filename)
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
 
         # restore
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': get_mse_weighted()})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': get_mse_weighted()})
-        if hasattr(self, '_data_files') and not self._data_files is None:
-            self._data_set = np.load(data_file_paths[0])
-            self._output_data_set = np.load(data_file_paths[1])
+        self.helper_load_data(data_file_paths)
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 
