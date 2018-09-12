@@ -1241,6 +1241,22 @@ class AE_net(nn.Module):
                                  for _ in range(node_num_2[0])])
         return
 
+    @staticmethod
+    def weights_init(m):
+        if isinstance(m, nn.Linear):
+            # use default initializer of Keras for now
+            if 'kengyangyao' in temp_home_directory:
+                nn.init.xavier_uniform_(m.weight.data)
+                nn.init.constant_(m.bias.data, 0)
+            else:
+                nn.init.xavier_uniform(m.weight.data)
+                nn.init.constant(m.bias.data, 0)
+        return
+
+    def apply_weight_init(self):
+        self.apply(AE_net.weights_init)   # Applies a function recursively to every submodule
+        return
+
     def forward(self, x):
         temp = self._encoder_1(x)
         latent_z_split = [item_l(temp) for item_l in self._encoder_2]
@@ -1288,6 +1304,7 @@ class autoencoder_torch(autoencoder):
         self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
                                hi_variant=self._hi_variant)
+        self._ae.apply_weight_init()
         if self._cuda: self._ae = self._ae.cuda()
         return
 
