@@ -1,4 +1,5 @@
-import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse, matplotlib
+from __future__ import print_function, division
+import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse, matplotlib, glob
 matplotlib.use('agg')
 from scipy import io as sciio
 import numpy as np, pandas as pd, seaborn as sns
@@ -56,15 +57,8 @@ CONFIG_57 = [
     # get_index_list_with_selection_statement('../resources/alanine_dipeptide.pdb', 'not name H*'),
     get_index_list_with_selection_statement('../resources/1l2y.pdb', 'backbone and not name O'),
     # get_index_list_with_selection_statement('../resources/2src.pdb', 'backbone and not name O'),
-    # get_index_list_with_selection_statement('../resources/2src.pdb',
-    #                                         '(resid 144:170 or resid 44:58) and not name H*'),
-    [ 694,  704,  714,  719,  729,  734,  744,  760,  764,  771,  783,
-        793,  800,  810,  815,  825,  835,  842,  858,  869,  875,  891,
-        897,  913,  919,  926, 2311, 2321, 2328, 2333, 2349, 2353, 2360,
-       2367, 2379, 2389, 2404, 2413, 2420, 2432, 2451, 2461, 2466, 2473,
-       2478, 2485, 2492, 2502, 2507, 2523, 2528, 2542, 2552, 2567, 2576,
-       2586, 2593, 2600, 2610, 2626, 2632, 2648, 2651, 2661, 2666, 2685,
-       2701, 2707, 2714, 2731],
+    get_index_list_with_selection_statement('../resources/2src.pdb',
+                                            '(resid 144:170 or resid 44:58) and not name H*'),
     get_index_list_with_selection_statement('../resources/BetaHairpin.pdb', 'backbone and not name O'),
     get_index_list_with_selection_statement('../resources/C24.pdb', 'name C*')
 ]                                          # index list of atoms for training and biased simulations
@@ -83,7 +77,6 @@ CONFIG_80 = [[temp_CONFIG_80[item_xx], temp_CONFIG_80[item_yy]]
 CONFIG_17 = ['Tanh', 'Tanh', 'Tanh']  # types of hidden layers
 CONFIG_78 = "Linear"                    # output layer type
 CONFIG_79 = True                         # determine dimensionality of input/output of autoencoder automatically
-CONFIG_2 = 1     # training data interval
 if CONFIG_45 == 'keras':
     if CONFIG_76 == 'cossin':
         CONFIG_4 = get_mol_param([
@@ -91,18 +84,18 @@ if CONFIG_45 == 'keras':
         ])
     elif CONFIG_76 == 'Cartesian' or CONFIG_76 == 'combined':
         CONFIG_4 = get_mol_param([
-            [.5, 0.5, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
+            [.5, 0.5, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
+            [0.3, 0.9, 0, True, 0.0],
             ])   # [learning rates, momentum, learning rate decay, nesterov, regularization coeff]
     elif CONFIG_76 == 'pairwise_distance':
         CONFIG_4 = get_mol_param([
-            [0.3, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],
-            [1.5, 0.9, 0, True, [0.00, 0.0000, 0.00, 0.00]],  # TODO: tune this
-            [0.7, 0.8, 0, True, [0.00, 0.0000, 0.00, 0.00]]
+            [0.3, 0.9, 0, True, 0.0],
+            [1.5, 0.9, 0, True, 0.0],
+            [1.5, 0.9, 0, True, 0.0],
+            [0.7, 0.8, 0, True, 0.0]
         ])
     else: raise Exception('error')
 else:
@@ -147,22 +140,15 @@ CONFIG_3 = get_mol_param([       # the structure of ANN: number of nodes in each
     [0, 100, CONFIG_37, 100, 0],
 ])
 
+if CONFIG_3[-1] == 0: CONFIG_3[-1] = CONFIG_3[0]
+
 CONFIG_74 = False                  # whether we start each biased simulation with nearest configuration or a fixed configuration
 CONFIG_40 = 'explicit'                  # whether to include water molecules, option: explicit, implicit, water_already_included, no_water
 CONFIG_51 = 'NVT'                  # simulation ensemble type
 CONFIG_42 = False                             # whether to enable force constant adjustable mode
 CONFIG_44 = True                             # whether to use hierarchical autoencoder
 CONFIG_77 = 2                      # hierarchical autoencoder variant index
-CONFIG_46 = False                             # whether to enable verbose mode (print training status)
-CONFIG_47 = False                        # whether to set the output layer as circular layer
-if CONFIG_47:
-    raise Exception("Warning: this is a bad choice!  " + WARNING_INFO)
-
-CONFIG_13 = 3                   # num of network trainings we are going to run, and pick the one with least FVE from them
-CONFIG_43 = False    # whether we need to parallelize training part, not recommended for single-core computers
-if CONFIG_43:
-    raise Exception("Warning: parallelization of training is not well tested!  " + WARNING_INFO)
-
+CONFIG_13 = 3              # num of trainings to run, and pick best one
 CONFIG_31 = 10        # maximum number of failed simulations allowed in each iteration
 
 CONFIG_56 = get_mol_param([20, 8, 6, 6])    # number of biased simulations running in parallel
@@ -206,7 +192,7 @@ CONFIG_70 = 15              # biasfactor for well-tempered metadynamics
 CONFIG_21 = 300   # simulation temperature
 CONFIG_22 = 0.002   # simulation time step, in ps
 
-CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA', 'CUDA'])              # simulation platform
+CONFIG_23 = get_mol_param(['CPU', 'CUDA', 'CUDA', 'CUDA', 'CUDA'])              # simulation platform
 
 temp_home_directory = subprocess.check_output('echo $HOME', shell=True).strip()
 if temp_home_directory == "/home/kengyangyao":
@@ -219,7 +205,7 @@ elif temp_home_directory == "/u/sciteam/chen21":
     CONFIG_24 = 'cluster'
     CONFIG_25 = temp_home_directory + '/.openmm/lib/plugins'
 else:
-    print ('unknown user directory: %s' % temp_home_directory)
+    print(('unknown user directory: %s' % temp_home_directory))
 
 CONFIG_27 =  CONFIG_17[:2]  # layer_types for ANN_Force, it should be consistent with autoencoder
 CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)

@@ -13,10 +13,9 @@ class coordinates_data_files_list(object):
             self._list_of_coor_data_files += subprocess.check_output('''find %s -name "*coordinates.txt"''' % item, shell=True).strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
-        self._list_of_coor_data_files = filter(lambda x: os.stat(x).st_size > 0, self._list_of_coor_data_files)   # remove empty files
+        self._list_of_coor_data_files = [x for x in self._list_of_coor_data_files if os.stat(x).st_size > 0]   # remove empty files
         self._list_of_coor_data_files.sort()                # to be consistent
-        self._list_of_line_num_of_coor_data_file = map(lambda x: int(subprocess.check_output(['wc', '-l', x]).strip().split()[0]),
-                                                       self._list_of_coor_data_files)
+        self._list_of_line_num_of_coor_data_file = [int(subprocess.check_output(['wc', '-l', x]).strip().split()[0]) for x in self._list_of_coor_data_files]
 
         return
 
@@ -25,7 +24,7 @@ class coordinates_data_files_list(object):
         :param filter_conditional: a lambda conditional expression on file names
         :return: a coordinates_data_files_list object
         """
-        temp_coor_files = filter(filter_conditional, self._list_of_coor_data_files)
+        temp_coor_files = list(filter(filter_conditional, self._list_of_coor_data_files))
         return coordinates_data_files_list(temp_coor_files)
 
     def get_list_of_coor_data_files(self):
@@ -37,9 +36,7 @@ class coordinates_data_files_list(object):
         return result
 
     def get_list_of_corresponding_pdb_files(self):
-        list_of_corresponding_pdb_files = map(lambda x: x.strip().split('_coordinates.txt')[0] + '.pdb',
-                                              self.get_list_of_coor_data_files()
-                                              )
+        list_of_corresponding_pdb_files = [x.strip().split('_coordinates.txt')[0] + '.pdb' for x in self.get_list_of_coor_data_files()]
         for item in list_of_corresponding_pdb_files:
             try:
                 assert os.path.exists(item)
@@ -64,14 +61,14 @@ class coordinates_data_files_list(object):
         accum_sum = np.cumsum(np.array(self._list_of_line_num_of_coor_data_file))  # use accumulative sum to find corresponding pdb files
         for item in range(len(accum_sum)):
             if item == 0:
-                temp_index_related_to_this_pdb_file = filter(lambda x: x < accum_sum[item], list_of_coor_index)
+                temp_index_related_to_this_pdb_file = [x for x in list_of_coor_index if x < accum_sum[item]]
             else:
-                temp_index_related_to_this_pdb_file = filter(lambda x: accum_sum[item - 1] <= x < accum_sum[item], list_of_coor_index)
-                temp_index_related_to_this_pdb_file = map(lambda x: x - accum_sum[item - 1], temp_index_related_to_this_pdb_file)
+                temp_index_related_to_this_pdb_file = [x for x in list_of_coor_index if accum_sum[item - 1] <= x < accum_sum[item]]
+                temp_index_related_to_this_pdb_file = [x - accum_sum[item - 1] for x in temp_index_related_to_this_pdb_file]
             temp_index_related_to_this_pdb_file.sort()
 
             if len(temp_index_related_to_this_pdb_file) != 0:
-                if verbose: print(pdb_files[item])
+                if verbose: print((pdb_files[item]))
                 with open(pdb_files[item], 'r') as in_file:
                     content = in_file.read().split('MODEL')[1:]  # remove header
                     frames_to_use = [content[ii] for ii in temp_index_related_to_this_pdb_file]

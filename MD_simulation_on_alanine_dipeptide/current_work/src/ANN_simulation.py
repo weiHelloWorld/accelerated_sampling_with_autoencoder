@@ -20,14 +20,14 @@ class plotting(object):
         temp_fve = np.array(fve).flatten()
         temp_fve = temp_fve.reshape(CV_max - CV_min, temp_fve.shape[0] / (CV_max - CV_min))
         evaluation_values = np.mean(temp_fve, axis=-1)
-        optimal_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, range(CV_min, CV_max + 1))
+        optimal_num, x_data, y_data_left, y_data_right = Sutils.L_method(evaluation_values, list(range(CV_min, CV_max + 1)))
         x_data = [_ - CV_min for _ in x_data]
         ax.plot(x_data, y_data_left)
         ax.plot(x_data, y_data_right)
-        ax.scatter(range(CV_max - CV_min + 1), evaluation_values)
+        ax.scatter(list(range(CV_max - CV_min + 1)), evaluation_values)
         df = pd.DataFrame(temp_fve.T)
         sns.boxplot(df, ax=ax)
-        ax.set_xticklabels(range(CV_min, CV_max + 1))
+        ax.set_xticklabels(list(range(CV_min, CV_max + 1)))
         ax.set_ylim([evaluation_values.min() - 0.1, evaluation_values.max() + 0.1])
         ax.set_xlabel('num of CVs')
         ax.set_ylabel('FVE')
@@ -129,7 +129,7 @@ class plotting(object):
                     global temp_list_of_coor_index
                     if isinstance(event.artist, matplotlib.text.Text):
                         if event.artist.get_text() == 'save_frames':
-                            print temp_list_of_coor_index
+                            print(temp_list_of_coor_index)
                             related_coor_list_obj.write_pdb_frames_into_file_with_list_of_coor_index(temp_list_of_coor_index,
                                                                             folder_to_store_these_frames + '/temp_frames.pdb')  # TODO: better naming
 
@@ -141,7 +141,7 @@ class plotting(object):
                         temp_list_of_coor_index += [item * step_interval for item in ind_list]  # should include step_interval
 
                         for item in ind_list:
-                            print(item, x[item], y[item])
+                            print((item, x[item], y[item]))
                     return
 
             elif saving_snapshot_mode == 'single_point':
@@ -153,7 +153,7 @@ class plotting(object):
                         ind_list = list(event.ind)
                         print ('onclick:')
                         for item in ind_list:
-                            print(item, x[item], y[item])
+                            print((item, x[item], y[item]))
 
                         temp_ind_list = [item * step_interval for item in ind_list]  # should include step_interval
                         average_x = sum([x[item] for item in ind_list]) / len(ind_list)
@@ -363,7 +363,7 @@ class iteration(object):
         command = 'python ../src/train_network_and_save_for_iter.py %d --training_interval %d --num_of_trainings %d' %\
                   (self._index, training_interval, num_of_trainings)
         if machine_to_run_simulations == 'local':
-            print command
+            print(command)
             temp_output = subprocess.check_output(command.strip().split(' '))
         elif machine_to_run_simulations == 'cluster':
             command = 'OMP_NUM_THREADS=6  ' + command
@@ -375,7 +375,7 @@ class iteration(object):
         autoencoder_filename = temp_output.strip().split(
             'excited! this is the name of best network: ')[1].strip().split('\n')[0]    # locate filename in output
 
-        print temp_output
+        print(temp_output)
         self._network = autoencoder.load_from_pkl_file(autoencoder_filename)
         return
 
@@ -407,7 +407,7 @@ class simulation_with_ANN_main(object):
         self._num_of_iterations = num_of_iterations
         self._initial_iteration = initial_iteration
         self._training_interval = training_interval
-        print "running iterations for system: %s" % CONFIG_30
+        print("running iterations for system: %s" % CONFIG_30)
         return
 
     def run_one_iteration(self, one_iteration):
@@ -418,7 +418,7 @@ class simulation_with_ANN_main(object):
             one_iteration.train_network_and_save(training_interval = self._training_interval)   # train it if it is empty
 
         one_iteration.prepare_simulation()
-        print('running this iteration #index = %d' % one_iteration._index)
+        print(('running this iteration #index = %d' % one_iteration._index))
         one_iteration.run_simulation()
         return
 
@@ -466,7 +466,7 @@ class single_biased_simulation_data(object):
         assert(len(PCs[0]) == self._dimension_of_PCs)
         assert(len(PCs) == self._number_of_data)
         PCs_transpose = list(zip(*PCs))
-        center_of_data_cloud = map(lambda x: sum(x) / len(x), PCs_transpose)
+        center_of_data_cloud = [sum(x) / len(x) for x in PCs_transpose]
         return center_of_data_cloud
 
     def get_offset_between_potential_center_and_data_cloud_center(self, input_data_type):
