@@ -100,11 +100,7 @@ class autoencoder(object):
             raise Exception('obsolete, not going to do this')
         if not hasattr(a, '_index_CV'):
             a._index_CV = (len(a._node_num) - 1) / 2
-        if hasattr(a, '_data_files') and not a._data_files is None:
-            data_file_paths = [os.path.join(os.path.dirname(os.path.realpath(filename)), item_file) for item_file in
-                               a._data_files]
-            a._data_set = np.load(data_file_paths[0])
-            a._output_data_set = np.load(data_file_paths[1])
+        self.helper_load_data(filename)
         return a
 
     @staticmethod
@@ -145,8 +141,10 @@ class autoencoder(object):
             data_file_paths = None
         return data_file_paths
 
-    def helper_load_data(self, data_file_paths):
-        if hasattr(self, '_data_files') and not self._data_files is None and not data_file_paths is None:
+    def helper_load_data(self, filename):
+        if hasattr(self, '_data_files') and not self._data_files is None:
+            data_file_paths = [os.path.join(os.path.dirname(os.path.realpath(filename)), item_file)
+                              for item_file in self._data_files]
             self._data_set = np.load(data_file_paths[0])
             self._output_data_set = np.load(data_file_paths[1])
         return
@@ -183,7 +181,7 @@ class autoencoder(object):
         # restore
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': get_mse_weighted()})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': get_mse_weighted()})
-        self.helper_load_data(data_file_paths)
+        self.helper_load_data(filename)
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 
@@ -1410,13 +1408,15 @@ class autoencoder_torch(autoencoder):
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
         self._ae = torch.load(filename.replace('.pkl', '.pth'))
-        self.helper_load_data(data_file_paths)
+        self.helper_load_data(filename)
         return
 
     @staticmethod
     def load_from_pkl_file(filename):
         a = Sutils.load_object_from_pkl_file(filename)
         a._ae = torch.load(filename.replace('.pkl', '.pth'))
+        assert (isinstance(a, autoencoder_torch))
+        a.helper_load_data(filename)
         return a
 
     def get_output_data(self, input_data=None):
