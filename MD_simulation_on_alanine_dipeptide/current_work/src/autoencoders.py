@@ -1353,16 +1353,16 @@ class autoencoder_torch(autoencoder):
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
         train_data = self.My_dataset(self.get_var_from_np(data_in).data,
                                      self.get_var_from_np(data_out).data)
-        optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
+        optimizer = torch.optim.RMSprop(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, val_history = [], []
 
+        dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=False)
         for _ in range(self._epochs):
-            dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=True)
-            for train_in, train_out in dataset:
-                rec_x, latent_z_1 = self._ae(Variable(train_in[:, :temp_in_shape[1]]))
-                _, latent_z_2 = self._ae(Variable(train_in[:, temp_in_shape[1]:]))
-                rec_loss = nn.MSELoss()(rec_x, Variable(train_out))
+            for batch_in, batch_out in dataset:
+                rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :temp_in_shape[1]]))
+                _, latent_z_2 = self._ae(Variable(batch_in[:, temp_in_shape[1]:]))
+                rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
                 if self._include_autocorr:
                     latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
                     # print latent_z_1.shape

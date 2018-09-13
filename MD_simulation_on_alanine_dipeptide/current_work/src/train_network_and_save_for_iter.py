@@ -158,7 +158,7 @@ print(("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_
                                                                   np.min(data_set), np.max(data_set))))
 
 if not args.save_to_data_files is None:
-    args.save_to_data_files = args.split(',')
+    args.save_to_data_files = args.save_to_data_files.split(',')
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
