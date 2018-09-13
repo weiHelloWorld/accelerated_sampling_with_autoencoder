@@ -1226,7 +1226,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
 
 class AE_net(nn.Module):
-    def __init__(self, node_num_1, node_num_2, activations, hierarchical=1, hi_variant=2):
+    def __init__(self, node_num_1, node_num_2, activations, hierarchical=1, hi_variant=1):
         super(AE_net, self).__init__()
         self._activations = activations
         self._hierarchical = hierarchical
@@ -1250,6 +1250,16 @@ class AE_net(nn.Module):
                     nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
                     for item in range(len(temp_node_num_2) - 1)])
                                  for _ in range(node_num_2[0])])
+            elif hi_variant == 1:
+                decoder_list = []
+                for num_item in range(node_num_2[0]):
+                    temp_node_num_2 = node_num_2[:]
+                    temp_node_num_2[0] = num_item + 1
+                    decoder_list.append(
+                        nn.Sequential(*[nn.Sequential(
+                            nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                        for item in range(len(temp_node_num_2) - 1)]))
+                self._decoder = nn.ModuleList(decoder_list)
         return
 
     @staticmethod
@@ -1279,6 +1289,12 @@ class AE_net(nn.Module):
             decoded_list = [temp_decoded[0]]
             for item in temp_decoded[1:]:
                 decoded_list.append(torch.add(decoded_list[-1], item))
+            rec_x = torch.cat(decoded_list, dim=-1)
+        elif self._hi_variant == 1:
+            decoded_list = []
+            for num_item in range(len(latent_z_split)):
+                decoded_list.append(
+                    self._decoder[num_item](torch.cat(latent_z_split[:num_item + 1], dim=-1)))
             rec_x = torch.cat(decoded_list, dim=-1)
         return rec_x, latent_z
 
