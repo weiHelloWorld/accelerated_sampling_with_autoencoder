@@ -100,7 +100,7 @@ class autoencoder(object):
             raise Exception('obsolete, not going to do this')
         if not hasattr(a, '_index_CV'):
             a._index_CV = (len(a._node_num) - 1) / 2
-        self.helper_load_data(filename)
+        a.helper_load_data(filename)
         return a
 
     @staticmethod
