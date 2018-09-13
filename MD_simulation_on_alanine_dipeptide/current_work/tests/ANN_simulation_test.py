@@ -462,6 +462,24 @@ class test_autoencoder_torch(object):
         _ = autoencoder_torch.load_from_pkl_file('/tmp/temp_save.pkl')
         return
 
+    @staticmethod
+    def test_save_and_load_data():
+        data = np.random.rand(1000, 21)
+        a = autoencoder_torch(1447, data,
+                              output_data_set=data,
+                              hierarchical=True,
+                              batch_size=500,
+                              node_num=[21, 100, 2, 100, 21], epochs=10,
+                              data_files=['data.npy', 'data.npy'])
+        a.train(lag_time=0)
+        a.save_into_file('temp_save_pytorch/temp_save.pkl')
+        assert (os.path.isfile('temp_save_pytorch/data.npy'))
+        b = autoencoder_torch.load_from_pkl_file('temp_save_pytorch/temp_save.pkl')
+        assert_almost_equal(a._data_set, b._data_set)
+        assert_almost_equal(a._output_data_set, b._output_data_set)
+        return
+
+
 class test_biased_simulation(object):
     @staticmethod
     def helper_biased_simulation_alanine_dipeptide(potential_center):
