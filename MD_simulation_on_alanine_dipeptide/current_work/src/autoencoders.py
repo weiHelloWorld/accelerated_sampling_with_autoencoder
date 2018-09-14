@@ -1401,11 +1401,12 @@ class autoencoder_torch(autoencoder):
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
         except:
-            print("training history not plotted! save history into txt file instead")
-            history_txt = 'history_%02d.txt' % self._index
-            Helper_func.backup_rename_file_if_exists(history_txt)
-            np.savetxt(history_txt, np.array(train_history))
-            pass
+            try:
+                print("training history not plotted! save history into npy file instead")
+                history_npy = 'history_%02d.npy' % self._index
+                Helper_func.backup_rename_file_if_exists(history_npy)
+                np.save(history_npy, np.array(train_history))
+            except: pass
         return
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
