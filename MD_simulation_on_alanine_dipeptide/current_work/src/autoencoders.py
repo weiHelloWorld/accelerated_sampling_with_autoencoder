@@ -1394,26 +1394,7 @@ class autoencoder_torch(autoencoder):
             temp_train_history, temp_val_history = [], []
             print index_epoch
             for batch_in, batch_out in train_set:
-                rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :temp_in_shape[1]]))
-                rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
-                if self._include_autocorr:
-                    _, latent_z_2 = self._ae(Variable(batch_in[:, temp_in_shape[1]:]))
-                    scale_autocorr = False
-                    latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
-                    # print latent_z_1.shape
-                    latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
-                    autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                    autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
-                    # print autocorr_loss_num.shape, autocorr_loss_den.shape
-                    if scale_autocorr:    # scale autocorrelation loss to impose hierarchy
-                        autocorr_loss = - torch.sum(
-                            (autocorr_loss_num / autocorr_loss_den) * self.get_var_from_np(np.arange(
-                                self._node_num[self._index_CV], 0, -1)))
-                    else:
-                        autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-                    loss = rec_loss + autocorr_loss
-                else:
-                    loss = rec_loss
+                loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
                 plot_model_loss = False
                 if plot_model_loss:
                     from torchviz import make_dot, make_dot_from_trace
@@ -1442,6 +1423,29 @@ class autoencoder_torch(autoencoder):
                 np.save(history_npy, np.array(train_history))
             except: pass
         return
+
+    def get_loss(self, batch_in, batch_out, dim_input):
+        rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
+        rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
+        if self._include_autocorr:
+            _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
+            scale_autocorr = False
+            latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
+            # print latent_z_1.shape
+            latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
+            autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
+            autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+            # print autocorr_loss_num.shape, autocorr_loss_den.shape
+            if scale_autocorr:  # scale autocorrelation loss to impose hierarchy
+                autocorr_loss = - torch.sum(
+                    (autocorr_loss_num / autocorr_loss_den) * self.get_var_from_np(np.arange(
+                        self._node_num[self._index_CV], 0, -1)))
+            else:
+                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+            loss = rec_loss + autocorr_loss
+        else:
+            loss = rec_loss
+        return loss, rec_loss
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
