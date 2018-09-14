@@ -1356,12 +1356,13 @@ class autoencoder_torch(autoencoder):
         train_history, val_history = [], []
 
         dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=False)
-        for _ in range(self._epochs):
+        for index_epoch in range(self._epochs):
+            print index_epoch
             for batch_in, batch_out in dataset:
                 rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :temp_in_shape[1]]))
-                _, latent_z_2 = self._ae(Variable(batch_in[:, temp_in_shape[1]:]))
                 rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
                 if self._include_autocorr:
+                    _, latent_z_2 = self._ae(Variable(batch_in[:, temp_in_shape[1]:]))
                     scale_autocorr = False
                     latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
                     # print latent_z_1.shape
@@ -1371,8 +1372,8 @@ class autoencoder_torch(autoencoder):
                     # print autocorr_loss_num.shape, autocorr_loss_den.shape
                     if scale_autocorr:    # scale autocorrelation loss to impose hierarchy
                         autocorr_loss = - torch.sum(
-                            (autocorr_loss_num / autocorr_loss_den) * torch.arange(
-                                self._node_num[self._index_CV], 0, -1))
+                            (autocorr_loss_num / autocorr_loss_den) * self.get_var_from_np(np.arange(
+                                self._node_num[self._index_CV], 0, -1)))
                     else:
                         autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
                     loss = rec_loss + autocorr_loss
@@ -1387,7 +1388,7 @@ class autoencoder_torch(autoencoder):
                 loss.backward()
                 loss_list = np.array(
                     [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
-                print loss_list
+                # print loss_list
                 train_history.append(loss_list)
                 optimizer.step()
         try:
@@ -1397,7 +1398,12 @@ class autoencoder_torch(autoencoder):
             png_file = 'history_%02d.png' % self._index
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
-        except: print("training history not plotted!"); pass
+        except:
+            print("training history not plotted! save history into txt file instead")
+            history_txt = 'history_%02d.txt' % self._index
+            Helper_func.backup_rename_file_if_exists(history_txt)
+            np.savetxt(history_txt, np.array(train_history))
+            pass
         return
 
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
