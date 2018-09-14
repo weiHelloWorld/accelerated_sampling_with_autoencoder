@@ -10,10 +10,6 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 from keras import layers
 from keras import backend as K
-# import torch
-# from torch.autograd import Variable
-# import torch.nn as nn
-# import torch.nn.functional as F
 import random
 from compatible import *
 
@@ -1221,7 +1217,7 @@ mse_weighted = get_mse_weighted()      # requires a global mse_weighted(), for b
 import torch
 from torch import nn
 from torch.autograd import Variable
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
 
 class AE_net(nn.Module):
     def __init__(self, node_num_1, node_num_2, activations, hierarchical=None, hi_variant=None):
@@ -1297,6 +1293,30 @@ class AE_net(nn.Module):
         return rec_x, latent_z
 
 class autoencoder_torch(autoencoder):
+    class EarlyStoppingTorch(object):
+        """modified from https://gist.github.com/stefanonardo/693d96ceb2f531fa05db530f3e21517d"""
+        def __init__(self, patience=50):
+            self._patience = patience
+            self._num_bad_epochs = 0
+            self._best = None
+            self._is_better = lambda x, y: x < y
+
+        def step(self, metrics):
+            if self._best is None:
+                self._best = metrics
+                return False
+            if np.isnan(metrics):
+                return True
+            if self._is_better(metrics, self._best):
+                self._num_bad_epochs = 0
+                self._best = metrics
+            else:
+                self._num_bad_epochs += 1
+
+            if self._num_bad_epochs >= self._patience:
+                return True
+            return False
+
     class My_dataset(Dataset):
         def __init__(self, data_in, data_out):
             self._data_in = data_in
@@ -1333,6 +1353,19 @@ class autoencoder_torch(autoencoder):
         if self._cuda: self._ae = self._ae.cuda()
         return
 
+    def get_train_valid_split(self, dataset, valid_size=0.2):
+        assert (isinstance(dataset, self.My_dataset))
+        # modified from https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
+        indices = list(range(len(dataset)))
+        np.random.shuffle(indices)
+        split = int(np.floor(valid_size * len(indices)))
+        train_idx, valid_idx = indices[split:], indices[:split]
+        train_loader = DataLoader(dataset, batch_size=self._batch_size,
+                                  sampler=SubsetRandomSampler(train_idx), drop_last=False)
+        valid_loader = DataLoader(dataset, batch_size=self._batch_size,
+                                  sampler=SubsetRandomSampler(valid_idx), drop_last=False)
+        return train_loader, valid_loader
+
     def train(self, lag_time=10):
         data_in, data_out = self._data_set, self._output_data_set
         temp_in_shape = data_in.shape
@@ -1351,15 +1384,16 @@ class autoencoder_torch(autoencoder):
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
         train_data = self.My_dataset(self.get_var_from_np(data_in).data,
                                      self.get_var_from_np(data_out).data)
+        train_set, valid_set = self.get_train_valid_split(train_data)
+        print "train set size = %d, valid set size = %d" % (len(train_set), len(valid_set))
         optimizer = torch.optim.RMSprop(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, val_history = [], []
 
-        dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=False)
         for index_epoch in range(self._epochs):
             temp_train_history, temp_val_history = [], []
             print index_epoch
-            for batch_in, batch_out in dataset:
+            for batch_in, batch_out in train_set:
                 rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :temp_in_shape[1]]))
                 rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
                 if self._include_autocorr:
