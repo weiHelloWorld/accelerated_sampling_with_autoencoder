@@ -1357,6 +1357,7 @@ class autoencoder_torch(autoencoder):
 
         dataset = DataLoader(train_data, batch_size=self._batch_size, shuffle=True, drop_last=False)
         for index_epoch in range(self._epochs):
+            temp_train_history, temp_val_history = [], []
             print index_epoch
             for batch_in, batch_out in dataset:
                 rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :temp_in_shape[1]]))
@@ -1389,8 +1390,9 @@ class autoencoder_torch(autoencoder):
                 loss_list = np.array(
                     [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
                 # print loss_list
-                train_history.append(loss_list)
+                temp_train_history.append(loss_list)
                 optimizer.step()
+            train_history.append(np.array(temp_train_history).mean(axis=0))
         try:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history)
