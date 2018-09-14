@@ -1388,11 +1388,12 @@ class autoencoder_torch(autoencoder):
         print "train set size = %d, valid set size = %d" % (len(train_set), len(valid_set))
         optimizer = torch.optim.RMSprop(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
-        train_history, val_history = [], []
+        train_history, valid_history = [], []
 
         for index_epoch in range(self._epochs):
-            temp_train_history, temp_val_history = [], []
+            temp_train_history, temp_valid_history = [], []
             print index_epoch
+            # training
             for batch_in, batch_out in train_set:
                 loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
                 plot_model_loss = False
@@ -1408,9 +1409,18 @@ class autoencoder_torch(autoencoder):
                 temp_train_history.append(loss_list)
                 optimizer.step()
             train_history.append(np.array(temp_train_history).mean(axis=0))
+            # validation
+            with torch.no_grad():
+                for batch_in, batch_out in valid_set:
+                    loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
+                    loss_list = np.array(
+                        [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                    temp_valid_history.append(loss_list)
+                valid_history.append(np.array(temp_valid_history).mean(axis=0))
         try:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history)
+            axes[1].plot(valid_history)
             fig.suptitle(str(self._node_num) + str(self._network_parameters))
             png_file = 'history_%02d.png' % self._index
             Helper_func.backup_rename_file_if_exists(png_file)
@@ -1420,7 +1430,7 @@ class autoencoder_torch(autoencoder):
                 print("training history not plotted! save history into npy file instead")
                 history_npy = 'history_%02d.npy' % self._index
                 Helper_func.backup_rename_file_if_exists(history_npy)
-                np.save(history_npy, np.array(train_history))
+                np.save(history_npy, np.array([train_history, valid_history]))
             except: pass
         return
 
