@@ -1389,6 +1389,7 @@ class autoencoder_torch(autoencoder):
         optimizer = torch.optim.RMSprop(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []
+        my_early_stopping = self.EarlyStoppingTorch(patience=100)
 
         for index_epoch in range(self._epochs):
             temp_train_history, temp_valid_history = [], []
@@ -1410,13 +1411,21 @@ class autoencoder_torch(autoencoder):
                 optimizer.step()
             train_history.append(np.array(temp_train_history).mean(axis=0))
             # validation
-            with torch.no_grad():
-                for batch_in, batch_out in valid_set:
+
+            for batch_in, batch_out in valid_set:
+                if 'kengyangyao' in temp_home_directory:
+                    with torch.no_grad():
+                        loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
+                else:
                     loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
-                    loss_list = np.array(
-                        [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
-                    temp_valid_history.append(loss_list)
-                valid_history.append(np.array(temp_valid_history).mean(axis=0))
+                loss_list = np.array(
+                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                temp_valid_history.append(loss_list)
+            temp_valid_history = np.array(temp_valid_history).mean(axis=0)
+            valid_history.append(temp_valid_history)
+            if my_early_stopping.step(temp_valid_history[-1]):    # monitor loss
+                print "best in history is %f, current is %f" % (my_early_stopping._best, temp_valid_history[-1])
+                break             # early stopping
         try:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history)
