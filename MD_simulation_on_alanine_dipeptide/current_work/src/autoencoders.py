@@ -1217,7 +1217,7 @@ mse_weighted = get_mse_weighted()      # requires a global mse_weighted(), for b
 import torch
 from torch import nn
 from torch.autograd import Variable
-from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
+from torch.utils.data import DataLoader, Dataset
 
 class AE_net(nn.Module):
     def __init__(self, node_num_1, node_num_2, activations, hierarchical=None, hi_variant=None):
@@ -1354,6 +1354,10 @@ class autoencoder_torch(autoencoder):
         return
 
     def get_train_valid_split(self, dataset, valid_size=0.2):
+        if 'kengyangyao' in temp_home_directory:
+            from torch.utils.data import SubsetRandomSampler
+        else:
+            from torch.utils.data.sampler import SubsetRandomSampler
         assert (isinstance(dataset, self.My_dataset))
         # modified from https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
         indices = list(range(len(dataset)))
