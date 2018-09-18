@@ -1452,19 +1452,13 @@ class autoencoder_torch(autoencoder):
         rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
         if self._include_autocorr:
             _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
-            scale_autocorr = False
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
             latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
             autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
             autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
             # print autocorr_loss_num.shape, autocorr_loss_den.shape
-            if scale_autocorr:  # scale autocorrelation loss to impose hierarchy
-                autocorr_loss = - torch.sum(
-                    (autocorr_loss_num / autocorr_loss_den) * self.get_var_from_np(np.arange(
-                        self._node_num[self._index_CV], 0, -1)))
-            else:
-                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+            autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             loss = rec_loss + autocorr_loss
         else:
             loss = rec_loss
