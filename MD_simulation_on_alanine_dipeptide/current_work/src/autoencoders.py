@@ -936,6 +936,7 @@ class autoencoder_Keras(autoencoder):
     def layerwise_pretrain(data, dim_in, dim_out):
         """ref: https://www.kaggle.com/baogorek/autoencoder-with-greedy-layer-wise-pretraining/notebook"""
         # TODO: 1. use better training parameters. 2. use consistant activation functions, 3. consider how to do this for hierarchical case
+        # TODO: 4. make activation function consistent with neural network
         data_in = Input(shape=(dim_in,))
         encoded = Dense(dim_out, activation='tanh')(data_in)
         data_out = Dense(dim_in, activation='tanh')(encoded)
@@ -1459,6 +1460,14 @@ class autoencoder_torch(autoencoder):
             autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
             # print autocorr_loss_num.shape, autocorr_loss_den.shape
             autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+            # add pearson correlation loss
+            include_pearson = False
+            if include_pearson:   # include pearson correlation for first two CVs as loss function
+                vx = latent_z_1[:, 0]
+                vy = latent_z_1[:, 1]
+                pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
+                print pearson_corr.cpu().data.numpy()
+                autocorr_loss = autocorr_loss + pearson_corr
             loss = rec_loss + autocorr_loss
         else:
             loss = rec_loss
