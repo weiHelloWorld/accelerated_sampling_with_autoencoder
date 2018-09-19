@@ -389,7 +389,8 @@ class test_autoencoder_Keras(object):
                                   node_num=[8, 15, 2, 15, 8],
                                   hidden_layers_types=["Tanh", "Tanh", "Tanh"],
                                   network_parameters=[0.02, 0.9,0, True, [0.001]* 4],
-                                  batch_size=50
+                                  batch_size=50,
+                                  data_files=['test_save_into_file.npy', 'test_save_into_file.npy']
                                   )
         model.train()
         model.save_into_file('test_save_into_file.pkl')
@@ -437,6 +438,45 @@ class test_autoencoder_Keras(object):
         plumed_string = AE.get_plumed_script_for_biased_simulation_with_INDUS_cg_input_and_ANN(
             water_index_string, atom_indices, -5, r_high, scaling_factor_v).strip()
         self.check_two_plumed_strings_containing_floats(plumed_string, expected_plumed)
+        return
+
+class test_autoencoder_torch(object):
+    @staticmethod
+    def test_general_train_save_and_load():
+        data = np.random.rand(1000, 21)
+        a = autoencoder_torch(1447, data,
+                              output_data_set=data,
+                              hierarchical=True, hi_variant=2,
+                              batch_size=500,
+                              node_num=[21, 100, 2, 100, 21], epochs=10)
+        a.train(lag_time=10)
+        a.save_into_file('/tmp/temp_save.pkl')
+        torch.save(a._ae, '/tmp/temp.df')
+        model_1 = torch.load('/tmp/temp.df')
+        torch.save(a._ae.state_dict(), '/tmp/temp_2.df')
+        model_2 = AE_net([21, 100, 2], [2, 100, 21], None, hi_variant=2, hierarchical=True).cuda()
+        model_2.load_state_dict(torch.load('/tmp/temp_2.df'))
+        data_in = torch.rand(1000, 21).cuda()
+        assert_almost_equal(model_1(data_in)[0].cpu().data.numpy(), a._ae(data_in)[0].cpu().data.numpy())
+        assert_almost_equal(model_2(data_in)[0].cpu().data.numpy(), a._ae(data_in)[0].cpu().data.numpy())
+        _ = autoencoder_torch.load_from_pkl_file('/tmp/temp_save.pkl')
+        return
+
+    @staticmethod
+    def test_save_and_load_data():
+        data = np.random.rand(1000, 21)
+        a = autoencoder_torch(1447, data,
+                              output_data_set=data,
+                              hierarchical=True,
+                              batch_size=500,
+                              node_num=[21, 100, 2, 100, 21], epochs=10,
+                              data_files=['data.npy', 'data.npy'])
+        a.train(lag_time=0)
+        a.save_into_file('temp_save_pytorch/temp_save.pkl')
+        assert (os.path.isfile('temp_save_pytorch/data.npy'))
+        b = autoencoder_torch.load_from_pkl_file('temp_save_pytorch/temp_save.pkl')
+        assert_almost_equal(a._data_set, b._data_set)
+        assert_almost_equal(a._output_data_set, b._output_data_set)
         return
 
 

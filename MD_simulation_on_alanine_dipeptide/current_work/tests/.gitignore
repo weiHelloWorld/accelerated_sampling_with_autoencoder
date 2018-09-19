@@ -8,4 +8,5 @@ dependency/**
 *.pdb
 *.hdf5
 *.chk
+temp_model.dot
 

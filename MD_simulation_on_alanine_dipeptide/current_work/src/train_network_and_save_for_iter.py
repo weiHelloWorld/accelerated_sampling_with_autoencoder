@@ -19,6 +19,8 @@ parser.add_argument('--node_num', type=str, default=None, help="node number")
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
 parser.add_argument('--lag_time', type=int, default=0, help='lag time for time lagged autoencoder')
+parser.add_argument('--lagged_rec_loss', type=int, default=True, help='whether to use lagged or standard reconstruction loss (pytorch only)')
+parser.add_argument('--include_autocorr', type=int, default=True, help='whether to include autocorrelation loss (pytorch only)')
 parser.add_argument('--save_to_data_files', type=str, default=None, help="save training data to external files if it is not None, example: 'temp_in.npy,temp_out.npy' ")
 args = parser.parse_args()
 
@@ -156,7 +158,7 @@ print(("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_
                                                                   np.min(data_set), np.max(data_set))))
 
 if not args.save_to_data_files is None:
-    args.save_to_data_files = args.split(',')
+    args.save_to_data_files = args.save_to_data_files.split(',')
 
 if CONFIG_45 == 'keras':
     temp_network_list = [autoencoder_Keras(index=args.index,
@@ -165,6 +167,15 @@ if CONFIG_45 == 'keras':
                                          data_files=args.save_to_data_files,
                                          **additional_argument_list
                                          ) for _ in range(args.num_of_trainings)]
+elif CONFIG_45 == 'pytorch':
+    additional_argument_list['lagged_rec_loss'] = args.lagged_rec_loss
+    additional_argument_list['include_autocorr'] = args.include_autocorr
+    temp_network_list = [autoencoder_torch(index=args.index,
+                                           data_set_for_training=data_set,
+                                           output_data_set=output_data_set,
+                                           data_files=args.save_to_data_files,
+                                           **additional_argument_list
+                                           ) for _ in range(args.num_of_trainings)]
 else:
     raise Exception ('this training backend not implemented')
 

@@ -10,10 +10,6 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 from keras import layers
 from keras import backend as K
-# import torch
-# from torch.autograd import Variable
-# import torch.nn as nn
-# import torch.nn.functional as F
 import random
 from compatible import *
 
@@ -100,11 +96,7 @@ class autoencoder(object):
             raise Exception('obsolete, not going to do this')
         if not hasattr(a, '_index_CV'):
             a._index_CV = (len(a._node_num) - 1) / 2
-        if hasattr(a, '_data_files') and not a._data_files is None:
-            data_file_paths = [os.path.join(os.path.dirname(os.path.realpath(filename)), item_file) for item_file in
-                               a._data_files]
-            a._data_set = np.load(data_file_paths[0])
-            a._output_data_set = np.load(data_file_paths[1])
+        a.helper_load_data(filename)
         return a
 
     @staticmethod
@@ -131,6 +123,28 @@ class autoencoder(object):
         ae.save_into_file(filename)
         return
 
+    def helper_save_data(self, filename):
+        """helper function to save data externally if _data_files are defined"""
+        if hasattr(self, '_data_files') and not self._data_files is None:
+            folder_of_pkl = os.path.dirname(os.path.realpath(filename))
+            data_file_paths = [os.path.join(folder_of_pkl, item_file) for item_file in self._data_files]    # use relative paths to store data files to avoid issue when loading model from a different directory (e.g. from Jupyter notebook)
+            data_file_paths[0] = Helper_func.attempt_to_save_npy(data_file_paths[0], self._data_set)       # save to external files
+            data_file_paths[1] = Helper_func.attempt_to_save_npy(data_file_paths[1], self._output_data_set)
+            print data_file_paths
+            self._data_files = [os.path.basename(item_1) for item_1 in data_file_paths]   # restore relative paths
+            self._data_set = self._output_data_set = None
+        else:
+            data_file_paths = None
+        return data_file_paths
+
+    def helper_load_data(self, filename):
+        if hasattr(self, '_data_files') and not self._data_files is None:
+            data_file_paths = [os.path.join(os.path.dirname(os.path.realpath(filename)), item_file)
+                              for item_file in self._data_files]
+            self._data_set = np.load(data_file_paths[0])
+            self._output_data_set = np.load(data_file_paths[1])
+        return
+
     def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
         if filename is None:
             filename = self._filename_to_save_network
@@ -141,7 +155,7 @@ class autoencoder(object):
                                                                                         number_of_data_points_to_be_saved,
                                                                                         self._data_set.shape[0])))
             self._data_set = self._data_set[:number_of_data_points_to_be_saved]
-            if not self._output_data_set is None:        # for backward compatibility
+            if not (self._output_data_set is None or self._output_data_set == np.array(None)):        # for backward compatibility
                 self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]
 
         hdf5_file_name = filename.replace('.pkl', '.hdf5')
@@ -151,28 +165,19 @@ class autoencoder(object):
             Helper_func.backup_rename_file_if_exists(item_filename)
         folder_to_store_files = os.path.dirname(filename)
         if folder_to_store_files != '' and (not os.path.exists(folder_to_store_files)):
-            subprocess.check_output(['mkdir', '-p', folder_to_store_files])
+            os.makedirs(folder_to_store_files)
         self._molecule_net.save(hdf5_file_name)
         self._encoder_net.save(hdf5_file_name_encoder)
         if not self._decoder_net is None: self._decoder_net.save(hdf5_file_name_decoder)
         self._molecule_net = self._molecule_net_layers = self._encoder_net = self._decoder_net = None  # we save model in hdf5, not in pkl
-        if hasattr(self, '_data_files') and not self._data_files is None:
-            folder_of_pkl = os.path.dirname(os.path.realpath(filename))
-            data_file_paths = [os.path.join(folder_of_pkl, item_file) for item_file in self._data_files]    # use relative paths to store data files to avoid issue when loading model from a different directory (e.g. from Jupyter notebook)
-            data_file_paths[0] = Helper_func.attempt_to_save_npy(data_file_paths[0], self._data_set)       # save to external files
-            data_file_paths[1] = Helper_func.attempt_to_save_npy(data_file_paths[1], self._output_data_set)
-            print data_file_paths
-            self._data_files = [os.path.basename(item_1) for item_1 in data_file_paths]   # restore relative paths
-            self._data_set = self._output_data_set = None
+        data_file_paths = self.helper_save_data(filename=filename)
         with open(filename, 'wb') as my_file:
             pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
 
         # restore
         self._molecule_net = load_model(hdf5_file_name, custom_objects={'mse_weighted': get_mse_weighted()})
         self._encoder_net = load_model(hdf5_file_name_encoder, custom_objects={'mse_weighted': get_mse_weighted()})
-        if hasattr(self, '_data_files') and not self._data_files is None:
-            self._data_set = np.load(data_file_paths[0])
-            self._output_data_set = np.load(data_file_paths[1])
+        self.helper_load_data(filename)
         # self._decoder_net = load_model(hdf5_file_name_decoder, custom_objects={'mse_weighted': mse_weighted})
         return
 
@@ -975,6 +980,7 @@ class autoencoder_Keras(autoencoder):
             output_data_set = data
         if lag_time > 0:      # for training time-lagged AE
             data, output_data_set = data[:-lag_time], output_data_set[lag_time:]
+            assert np.all(data[lag_time:] == output_data_set[:-lag_time])
 
         num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
             node_num[self._index_CV]
@@ -1206,3 +1212,301 @@ def get_mse_weighted(weight_for_MSE=None):   # take weight as input, return loss
 
 mse_weighted = get_mse_weighted()      # requires a global mse_weighted(), for backward compatibility
 
+
+###################################################
+import torch
+from torch import nn
+from torch.autograd import Variable
+from torch.utils.data import DataLoader, Dataset
+
+class AE_net(nn.Module):
+    def __init__(self, node_num_1, node_num_2, activations, hierarchical=None, hi_variant=None):
+        super(AE_net, self).__init__()
+        self._activations = activations
+        self._hierarchical = hierarchical
+        self._hi_variant = hi_variant
+        encoder_list = [nn.Sequential(*[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()])
+                        for item in range(len(node_num_1) - 2)]
+        self._encoder_1 = nn.Sequential(*encoder_list)
+        if not hierarchical:
+            # use ModuleList instead of plain list for saving parameters
+            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())])
+            decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
+                            for item in range(len(node_num_2) - 1)]
+            self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
+        else:
+            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
+                               for _ in range(node_num_1[-1])])
+            if hi_variant == 2:
+                temp_node_num_2 = node_num_2[:]
+                temp_node_num_2[0] = 1
+                self._decoder = nn.ModuleList([nn.Sequential(*[nn.Sequential(
+                    nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                    for item in range(len(temp_node_num_2) - 1)])
+                                 for _ in range(node_num_2[0])])
+            elif hi_variant == 1:
+                decoder_list = []
+                for num_item in range(node_num_2[0]):
+                    temp_node_num_2 = node_num_2[:]
+                    temp_node_num_2[0] = num_item + 1
+                    decoder_list.append(
+                        nn.Sequential(*[nn.Sequential(
+                            nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                        for item in range(len(temp_node_num_2) - 1)]))
+                self._decoder = nn.ModuleList(decoder_list)
+        return
+
+    @staticmethod
+    def weights_init(m):
+        if isinstance(m, nn.Linear):
+            # use default initializer of Keras for now
+            if 'kengyangyao' in temp_home_directory:
+                nn.init.xavier_uniform_(m.weight.data)
+                nn.init.constant_(m.bias.data, 0)
+            else:
+                nn.init.xavier_uniform(m.weight.data)
+                nn.init.constant(m.bias.data, 0)
+        return
+
+    def apply_weight_init(self):
+        self.apply(AE_net.weights_init)   # Applies a function recursively to every submodule
+        return
+
+    def forward(self, x):
+        temp = self._encoder_1(x)
+        latent_z_split = [item_l(temp) for item_l in self._encoder_2]
+        latent_z = torch.cat(latent_z_split, dim=-1)
+        if not self._hierarchical:
+            rec_x = self._decoder(latent_z)
+        elif self._hi_variant == 2:
+            temp_decoded = [self._decoder[item](latent_z_split[item]) for item in range(len(self._decoder))]
+            decoded_list = [temp_decoded[0]]
+            for item in temp_decoded[1:]:
+                decoded_list.append(torch.add(decoded_list[-1], item))
+            rec_x = torch.cat(decoded_list, dim=-1)
+        elif self._hi_variant == 1:
+            decoded_list = []
+            for num_item in range(len(latent_z_split)):
+                decoded_list.append(
+                    self._decoder[num_item](torch.cat(latent_z_split[:num_item + 1], dim=-1)))
+            rec_x = torch.cat(decoded_list, dim=-1)
+        return rec_x, latent_z
+
+class autoencoder_torch(autoencoder):
+    class EarlyStoppingTorch(object):
+        """modified from https://gist.github.com/stefanonardo/693d96ceb2f531fa05db530f3e21517d"""
+        def __init__(self, patience=50):
+            self._patience = patience
+            self._num_bad_epochs = 0
+            self._best = None
+            self._is_better = lambda x, y: x < y
+
+        def step(self, metrics):
+            if self._best is None:
+                self._best = metrics
+                return False
+            if np.isnan(metrics):
+                return True
+            if self._is_better(metrics, self._best):
+                self._num_bad_epochs = 0
+                self._best = metrics
+            else:
+                self._num_bad_epochs += 1
+
+            if self._num_bad_epochs >= self._patience:
+                return True
+            return False
+
+    class My_dataset(Dataset):
+        def __init__(self, data_in, data_out):
+            self._data_in = data_in
+            self._data_out = data_out
+
+        def __len__(self):
+            return len(self._data_in)
+
+        def __getitem__(self, index):
+            return self._data_in[index], self._data_out[index]
+
+    def get_var_from_np(self, np_array, cuda=None, requires_grad=False):
+        if cuda is None:
+            cuda = self._cuda
+        temp = Variable(torch.from_numpy(np_array.astype(np.float32)), requires_grad=requires_grad)
+        if cuda: temp = temp.cuda()
+        return temp
+
+    def _init_extra(self,
+                    network_parameters = CONFIG_4, batch_size = 500, cuda=True,
+                    include_autocorr = True,    # include autocorrelation loss
+                    lagged_rec_loss = True      # use lagged, instead of standard reconstruction loss
+                    ):
+        self._network_parameters = network_parameters
+        self._batch_size = batch_size
+        self._cuda = cuda
+        self._include_autocorr = include_autocorr
+        self._lagged_rec_loss = lagged_rec_loss
+        act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
+        self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
+                               activations=act_funcs, hierarchical=self._hierarchical,
+                               hi_variant=self._hi_variant)
+        self._ae.apply_weight_init()
+        if self._cuda: self._ae = self._ae.cuda()
+        return
+
+    def get_train_valid_split(self, dataset, valid_size=0.2):
+        if 'kengyangyao' in temp_home_directory:
+            from torch.utils.data import SubsetRandomSampler
+        else:
+            from torch.utils.data.sampler import SubsetRandomSampler
+        assert (isinstance(dataset, self.My_dataset))
+        # modified from https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
+        indices = list(range(len(dataset)))
+        np.random.shuffle(indices)
+        split = int(np.floor(valid_size * len(indices)))
+        train_idx, valid_idx = indices[split:], indices[:split]
+        train_loader = DataLoader(dataset, batch_size=self._batch_size,
+                                  sampler=SubsetRandomSampler(train_idx), drop_last=False)
+        valid_loader = DataLoader(dataset, batch_size=self._batch_size,
+                                  sampler=SubsetRandomSampler(valid_idx), drop_last=False)
+        return train_loader, valid_loader
+
+    def train(self, lag_time=10):
+        data_in, data_out = self._data_set, self._output_data_set
+        temp_in_shape = data_in.shape
+        if lag_time > 0:
+            data_in = np.concatenate([data_in[:-lag_time], data_in[lag_time:]], axis=-1)
+        else:
+            data_in = np.concatenate([data_in, data_in], axis=-1)
+        if self._lagged_rec_loss:
+            data_out = data_out[lag_time:]
+        else:      # otherwise use standard reconstruction loss
+            data_out = data_out[:-lag_time] if lag_time > 0 else data_out
+        assert (data_in.shape[0] == temp_in_shape[0] - lag_time), (data_in.shape[0], temp_in_shape[0] - lag_time)
+        assert (data_in.shape[1] == 2 * temp_in_shape[1]), (data_in.shape[1], 2 * temp_in_shape[1])
+        if self._hierarchical:
+            num_CVs = self._node_num[self._index_CV]
+            data_out = np.concatenate([data_out] * num_CVs, axis=-1)
+        train_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                     self.get_var_from_np(data_out).data)
+        train_set, valid_set = self.get_train_valid_split(train_data)
+        print "train set size = %d, valid set size = %d" % (len(train_set), len(valid_set))
+        optimizer = torch.optim.RMSprop(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
+        self._ae.train()    # set to training mode
+        train_history, valid_history = [], []
+        my_early_stopping = self.EarlyStoppingTorch(patience=100)
+
+        for index_epoch in range(self._epochs):
+            temp_train_history, temp_valid_history = [], []
+            print index_epoch
+            # training
+            for batch_in, batch_out in train_set:
+                loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
+                plot_model_loss = False
+                if plot_model_loss:
+                    from torchviz import make_dot, make_dot_from_trace
+                    model_plot = make_dot(loss)
+                    model_plot.save('temp_model.dot')  # save model plot for visualization
+                optimizer.zero_grad()
+                loss.backward()
+                loss_list = np.array(
+                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                # print loss_list
+                temp_train_history.append(loss_list)
+                optimizer.step()
+            train_history.append(np.array(temp_train_history).mean(axis=0))
+            # validation
+
+            for batch_in, batch_out in valid_set:
+                if 'kengyangyao' in temp_home_directory:
+                    with torch.no_grad():
+                        loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
+                else:
+                    loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
+                loss_list = np.array(
+                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                temp_valid_history.append(loss_list)
+            temp_valid_history = np.array(temp_valid_history).mean(axis=0)
+            valid_history.append(temp_valid_history)
+            if my_early_stopping.step(temp_valid_history[-1]):    # monitor loss
+                print "best in history is %f, current is %f" % (my_early_stopping._best, temp_valid_history[-1])
+                break             # early stopping
+        try:
+            fig, axes = plt.subplots(1, 2)
+            axes[0].plot(train_history)
+            axes[1].plot(valid_history)
+            fig.suptitle(str(self._node_num) + str(self._network_parameters))
+            png_file = 'history_%02d.png' % self._index
+            Helper_func.backup_rename_file_if_exists(png_file)
+            fig.savefig(png_file)
+        except:
+            try:
+                print("training history not plotted! save history into npy file instead")
+                history_npy = 'history_%02d.npy' % self._index
+                Helper_func.backup_rename_file_if_exists(history_npy)
+                np.save(history_npy, np.array([train_history, valid_history]))
+            except: pass
+        return
+
+    def get_loss(self, batch_in, batch_out, dim_input):
+        rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
+        rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
+        if self._include_autocorr:
+            _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
+            latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
+            # print latent_z_1.shape
+            latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
+            autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
+            autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+            # print autocorr_loss_num.shape, autocorr_loss_den.shape
+            autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+            loss = rec_loss + autocorr_loss
+        else:
+            loss = rec_loss
+        return loss, rec_loss
+
+    def save_into_file(self, filename=CONFIG_6, fraction_of_data_to_be_saved = 1.0):
+        if filename is None:
+            filename = self._filename_to_save_network
+        folder_to_store_files = os.path.dirname(filename)
+        if folder_to_store_files != '' and (not os.path.exists(folder_to_store_files)):
+            os.makedirs(folder_to_store_files)
+        # save both model and model parameters
+        torch.save(self._ae, filename.replace('.pkl', '.pth'))
+        torch.save(self._ae.state_dict(), filename.replace('.pkl', '_params.pth'))
+        self._ae = None    # do not save model in pkl file
+        data_file_paths = self.helper_save_data(filename)
+        with open(filename, 'wb') as my_file:
+            pickle.dump(self, my_file, pickle.HIGHEST_PROTOCOL)
+        self._ae = torch.load(filename.replace('.pkl', '.pth'))
+        self.helper_load_data(filename)
+        return
+
+    @staticmethod
+    def load_from_pkl_file(filename):
+        a = Sutils.load_object_from_pkl_file(filename)
+        a._ae = torch.load(filename.replace('.pkl', '.pth'))
+        assert (isinstance(a, autoencoder_torch))
+        a.helper_load_data(filename)
+        return a
+
+    def get_output_data(self, input_data=None):
+        if input_data is None: input_data = self._data_set
+        self._ae.eval()
+        if temp_home_directory == '/home/kengyangyao':    # temp code for dealing with blue waters issues
+            with torch.no_grad():
+                result = self._ae(self.get_var_from_np(input_data))[0]
+        else:
+            result = self._ae(self.get_var_from_np(input_data))[0]
+        if self._cuda: result = result.cpu()
+        return result.data.numpy()
+
+    def get_PCs(self, input_data=None):
+        if input_data is None: input_data = self._data_set
+        self._ae.eval()
+        if temp_home_directory == '/home/kengyangyao':  # temp code for dealing with blue waters issues
+            with torch.no_grad():
+                result = self._ae(self.get_var_from_np(input_data))[1]
+        else:
+            result = self._ae(self.get_var_from_np(input_data))[1]
+        if self._cuda: result = result.cpu()
+        return result.data.numpy()

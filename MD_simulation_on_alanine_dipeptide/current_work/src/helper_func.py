@@ -239,3 +239,14 @@ class Helper_func(object):
         """
         return [np.where(np.linalg.norm(point_list - item, axis=1) < threshold_r)[0]
                 for item in ref_list]
+
+    @staticmethod
+    def tica_inverse_transform(tica, data_list):
+        from msmbuilder.decomposition import tICA
+        assert (isinstance(tica, tICA))
+        result_list = []
+        for data in data_list:
+            result = np.dot(tica.covariance_.T, np.dot(tica.components_.T, data.T)).T + tica.means_
+            assert_almost_equal(tica.transform([result])[0], data)
+            result_list.append(result)
+        return result_list
