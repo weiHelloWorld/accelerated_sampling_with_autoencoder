@@ -181,7 +181,7 @@ else:
 
 for item in temp_network_list: item.train(lag_time=args.lag_time)
 
-temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
+temp_FVE_list = [item.get_fraction_of_variance_explained(lag_time=args.lag_time) for item in temp_network_list]
 max_FVE = np.max(temp_FVE_list)
 print('temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE))
 best_network = temp_network_list[temp_FVE_list.index(max_FVE)]

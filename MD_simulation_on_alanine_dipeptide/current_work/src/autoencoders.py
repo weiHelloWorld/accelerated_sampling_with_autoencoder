@@ -411,7 +411,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         pass
 
     def get_fraction_of_variance_explained(self, hierarchical_FVE=False,
-                                           output_index_range=None, featurewise=False):
+                                           output_index_range=None, featurewise=False, lag_time=0):
         """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
         actual_output_data = self.get_output_data()
@@ -419,6 +419,9 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             expected_output_data = self._output_data_set
         else:
             expected_output_data = input_data
+        if lag_time != 0:
+            expected_output_data = expected_output_data[lag_time:]
+            actual_output_data = actual_output_data[:-lag_time]
 
         if self._hierarchical:
             num_PCs = self._node_num[self._index_CV] / 2 if self._hidden_layers_type[self._index_CV - 1] == "Circular" \
