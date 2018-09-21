@@ -1224,28 +1224,34 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
 
 class AE_net(nn.Module):
-    def __init__(self, node_num_1, node_num_2, activations, hierarchical=None, hi_variant=None):
+    def __init__(self, node_num_1, node_num_2, activations=None, hierarchical=None, hi_variant=None):
         super(AE_net, self).__init__()
         self._activations = activations
+        if self._activations is None:
+            self._activations = [['tanh'] * (len(node_num_1) + len(node_num_2) - 3)]
+        encoder_act = self._activations[:(len(node_num_1) - 1)]
+        decoder_act = self._activations[(len(node_num_1) - 1):]   # note final layer is linear
+        assert (len(decoder_act) == len(node_num_2) - 1)
         self._hierarchical = hierarchical
         self._hi_variant = hi_variant
-        encoder_list = [nn.Sequential(*[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()])
+        encoder_list = [self.get_layer(node_num_1[item], node_num_1[item + 1], activation=encoder_act[item])
                         for item in range(len(node_num_1) - 2)]
         self._encoder_1 = nn.Sequential(*encoder_list)
         if not hierarchical:
             # use ModuleList instead of plain list for saving parameters
-            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())])
-            decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
+            self._encoder_2 = nn.ModuleList([self.get_layer(node_num_1[-2], node_num_1[-1],
+                                                            activation=encoder_act[-1])])
+            decoder_list = [self.get_layer(node_num_2[item], node_num_2[item + 1], activation=decoder_act[item])
                             for item in range(len(node_num_2) - 1)]
-            self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
+            self._decoder = nn.Sequential(*decoder_list)
         else:
-            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
+            self._encoder_2 = nn.ModuleList([self.get_layer(node_num_1[-2], 1, activation=encoder_act[-1])
                                for _ in range(node_num_1[-1])])
             if hi_variant == 2:
                 temp_node_num_2 = node_num_2[:]
                 temp_node_num_2[0] = 1
-                self._decoder = nn.ModuleList([nn.Sequential(*[nn.Sequential(
-                    nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                self._decoder = nn.ModuleList([nn.Sequential(*[
+                    self.get_layer(temp_node_num_2[item], temp_node_num_2[item + 1], activation=decoder_act[item])
                     for item in range(len(temp_node_num_2) - 1)])
                                  for _ in range(node_num_2[0])])
             elif hi_variant == 1:
@@ -1254,11 +1260,18 @@ class AE_net(nn.Module):
                     temp_node_num_2 = node_num_2[:]
                     temp_node_num_2[0] = num_item + 1
                     decoder_list.append(
-                        nn.Sequential(*[nn.Sequential(
-                            nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                        nn.Sequential(*[self.get_layer(
+                            temp_node_num_2[item], temp_node_num_2[item + 1], activatoin=decoder_act[item])
                         for item in range(len(temp_node_num_2) - 1)]))
                 self._decoder = nn.ModuleList(decoder_list)
         return
+
+    @staticmethod
+    def get_layer(in_node, out_node, activation):
+        if activation == 'linear':
+            return nn.Sequential(nn.Linear(in_node, out_node))
+        elif activation == 'tanh':
+            return nn.Sequential(nn.Linear(in_node, out_node), nn.Tanh())
 
     @staticmethod
     def weights_init(m):
