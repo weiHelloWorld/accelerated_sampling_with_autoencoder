@@ -1228,10 +1228,11 @@ class AE_net(nn.Module):
         super(AE_net, self).__init__()
         self._activations = activations
         if self._activations is None:
-            self._activations = [['tanh'] * (len(node_num_1) + len(node_num_2) - 3)]
+            self._activations = [['tanh'] * (len(node_num_1) + len(node_num_2) - 3)]    # why -3, since last layer is linear
         encoder_act = self._activations[:(len(node_num_1) - 1)]
         decoder_act = self._activations[(len(node_num_1) - 1):]   # note final layer is linear
-        assert (len(decoder_act) == len(node_num_2) - 1)
+        # print encoder_act, decoder_act
+        assert (len(decoder_act) == len(node_num_2) - 1), (len(decoder_act), len(node_num_2) - 1)
         self._hierarchical = hierarchical
         self._hi_variant = hi_variant
         encoder_list = [self.get_layer(node_num_1[item], node_num_1[item + 1], activation=encoder_act[item])
