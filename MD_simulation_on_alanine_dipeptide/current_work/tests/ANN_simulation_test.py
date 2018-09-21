@@ -465,6 +465,20 @@ class test_autoencoder_torch(object):
         return
 
     @staticmethod
+    def test_time_lagged_AE_stored_data_saving():
+        data = np.random.rand(1000, 21)
+        a = autoencoder_torch(1447, data,
+                              output_data_set=data,
+                              hierarchical=True, hi_variant=2,
+                              batch_size=500,
+                              node_num=[21, 100, 2, 100, 21],
+                              hidden_layers_types=['tanh', 'tanh', 'tanh'], epochs=10)
+        a.train(lag_time=10)
+        assert_almost_equal(a._data_set, data[:-10])
+        assert_almost_equal(a._output_data_set, data[10:])
+        return
+
+    @staticmethod
     def test_save_and_load_data():
         data = np.random.rand(1000, 21)
         a = autoencoder_torch(1447, data,

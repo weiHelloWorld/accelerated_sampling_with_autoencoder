@@ -970,7 +970,7 @@ class autoencoder_Keras(autoencoder):
         temp_nodes = layer._outbound_nodes
         return [item.outbound_layer for item in temp_nodes]
 
-    def train(self, hierarchical=None, hierarchical_variant = None, lag_time=0):
+    def train(self, hierarchical=None, hierarchical_variant = None):
         """lag_time is included for training time-lagged autoencoder"""
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if hierarchical is None: hierarchical = self._hierarchical
@@ -982,9 +982,6 @@ class autoencoder_Keras(autoencoder):
             output_data_set = self._output_data_set
         else:
             output_data_set = data
-        if lag_time > 0:      # for training time-lagged AE
-            data, output_data_set = data[:-lag_time], output_data_set[lag_time:]
-            assert np.all(data[lag_time:] == output_data_set[:-lag_time])
 
         num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
             node_num[self._index_CV]
@@ -1388,17 +1385,20 @@ class autoencoder_torch(autoencoder):
                                   sampler=SubsetRandomSampler(valid_idx), drop_last=False)
         return train_loader, valid_loader
 
-    def train(self, lag_time=10):
+    def train(self, lag_time=0):
         data_in, data_out = self._data_set, self._output_data_set
         temp_in_shape = data_in.shape
         if lag_time > 0:
             data_in = np.concatenate([data_in[:-lag_time], data_in[lag_time:]], axis=-1)
+            if self._lagged_rec_loss:
+                data_out = data_out[lag_time:]
+                self._data_set = self._data_set[:-lag_time]    # directly modify stored data, for convenience of computing FVE
+                self._output_data_set = self._output_data_set[lag_time:]
+            else:  # otherwise use standard reconstruction loss
+                data_out = data_out[:-lag_time]
         else:
             data_in = np.concatenate([data_in, data_in], axis=-1)
-        if self._lagged_rec_loss:
-            data_out = data_out[lag_time:]
-        else:      # otherwise use standard reconstruction loss
-            data_out = data_out[:-lag_time] if lag_time > 0 else data_out
+
         assert (data_in.shape[0] == temp_in_shape[0] - lag_time), (data_in.shape[0], temp_in_shape[0] - lag_time)
         assert (data_in.shape[1] == 2 * temp_in_shape[1]), (data_in.shape[1], 2 * temp_in_shape[1])
         if self._hierarchical:
