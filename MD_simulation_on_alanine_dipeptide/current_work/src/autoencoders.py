@@ -412,6 +412,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 
     def get_fraction_of_variance_explained(self, hierarchical_FVE=False,
                                            output_index_range=None, featurewise=False, lag_time=0):
+        # TODO: lag_time is obsolete
         """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
         actual_output_data = self.get_output_data()
@@ -1351,7 +1352,7 @@ class autoencoder_torch(autoencoder):
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 500, cuda=True,
+                    network_parameters = CONFIG_4, batch_size = 100, cuda=True,
                     include_autocorr = True,    # include autocorrelation loss
                     lagged_rec_loss = True      # use lagged, instead of standard reconstruction loss
                     ):

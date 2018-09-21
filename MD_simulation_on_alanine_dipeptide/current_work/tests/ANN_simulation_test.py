@@ -26,11 +26,6 @@ class test_Sutils(object):
         return
 
     @staticmethod
-    def test__generate_coordinates_from_pdb_files():
-        # TODO
-        return
-
-    @staticmethod
     def test_write_some_frames_into_a_new_file():
         input_pdb = '../tests/dependency/temp_output_0.pdb'
         output_pdb = "../tests/dependency/temp_output_0_interval_3.pdb"
@@ -193,26 +188,6 @@ class test_Alanine_dipeptide(object):
 
 
 class test_Trp_cage(object):
-    @staticmethod
-    def test_get_many_cossin_from_coordiantes_in_list_of_files():
-        # TODO
-        return
-
-    @staticmethod
-    def test_get_many_dihedrals_from_coordinates_in_file():
-        # TODO
-        return
-
-    @staticmethod
-    def test_generate_coordinates_from_pdb_files():
-        # TODO
-        return
-
-    @staticmethod
-    def test_get_pairwise_distance_matrices_of_alpha_carbon():
-        # TODO
-        return
-
     @staticmethod
     def test_get_non_repeated_pairwise_distance_as_list_of_alpha_carbon():
         pdb_file_list = ['../tests/dependency/temp_Trp_cage_data/1l2y.pdb']
@@ -399,7 +374,8 @@ class test_autoencoder_Keras(object):
         _ = autoencoder.load_from_pkl_file('test_save_into_file.pkl')
         return
 
-    def check_two_plumed_strings_containing_floats(self, string_1, string_2):
+    @staticmethod
+    def check_two_plumed_strings_containing_floats(string_1, string_2):
         """due to precision issue, string literals may not be exactly the same for two plumed strings, so we
                 need to explicitly compare the float values"""
         def is_float(s):
