@@ -1260,7 +1260,7 @@ class AE_net(nn.Module):
                     temp_node_num_2[0] = num_item + 1
                     decoder_list.append(
                         nn.Sequential(*[self.get_layer(
-                            temp_node_num_2[item], temp_node_num_2[item + 1], activatoin=decoder_act[item])
+                            temp_node_num_2[item], temp_node_num_2[item + 1], activation=decoder_act[item])
                         for item in range(len(temp_node_num_2) - 1)]))
                 self._decoder = nn.ModuleList(decoder_list)
         return
@@ -1271,6 +1271,8 @@ class AE_net(nn.Module):
             return nn.Sequential(nn.Linear(in_node, out_node))
         elif activation == 'tanh':
             return nn.Sequential(nn.Linear(in_node, out_node), nn.Tanh())
+        elif activation == 'sigmoid':
+            return nn.Sequential(nn.Linear(in_node, out_node), nn.Sigmoid())
 
     @staticmethod
     def weights_init(m):
@@ -1387,6 +1389,8 @@ class autoencoder_torch(autoencoder):
         return train_loader, valid_loader
 
     def train(self, lag_time=0):
+        if self._output_data_set is None:
+            self._output_data_set = self._data_set
         data_in, data_out = self._data_set, self._output_data_set
         temp_in_shape = data_in.shape
         if lag_time > 0:
@@ -1409,7 +1413,7 @@ class autoencoder_torch(autoencoder):
                                      self.get_var_from_np(data_out).data)
         train_set, valid_set = self.get_train_valid_split(train_data)
         print "train set size = %d, valid set size = %d" % (len(train_set), len(valid_set))
-        optimizer = torch.optim.RMSprop(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
+        optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []
         my_early_stopping = self.EarlyStoppingTorch(patience=100)

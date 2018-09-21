@@ -297,27 +297,31 @@ class test_autoencoder_Keras(object):
         data, dihedrals = self._data, self._dihedrals
         hidden_layers_list = [["Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh"],
                               ["Sigmoid", "Sigmoid", "Sigmoid", "Sigmoid", "Tanh", "Sigmoid", "Tanh"]]
+        model_type_list = [autoencoder_Keras, autoencoder_torch]
         reg_list = [0.001, 0]
         for item_activation in range(2):
-            for is_hi, hier_var in [(0, 0), (1,0), (1,1), (1,2)]:
-                model = autoencoder_Keras(1447, data,
-                                          data_files=['/tmp/train_in.npy', '/tmp/train_out.npy'],
-                                          node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
-                                          hidden_layers_types=hidden_layers_list[item_activation],
-                                          network_parameters = [0.02, 0.9,0, True, [reg_list[item_activation]]* 8],
-                                          batch_size=100, hierarchical=is_hi, hi_variant=hier_var
-                                          )
-                _, history = model.train()
-                PCs = model.get_PCs()
-                [x, y] = list(zip(*PCs))
-                psi = [item[2] for item in dihedrals]
-                fig, ax = plt.subplots()
-                ax.scatter(x, y, c=psi, cmap='gist_rainbow')
-                ax.set_title("FVE = %f" % model.get_fraction_of_variance_explained())
-                file_name = 'try_keras_noncircular_hierarchical_%d_%d_act_%d.pkl' % (is_hi, hier_var, item_activation)
-                model.save_into_file(file_name)
-                fig.savefig(file_name.replace('.pkl', '.png'))
-        return history
+            for is_hi, hier_var in [(0, 0), (1,1), (1,2)]:    # do not test variant 0 for now
+                for type_index, model_type in enumerate(model_type_list):
+                    model = model_type(1447, data,
+                                       data_files=['/tmp/train_in.npy', '/tmp/train_out.npy'],
+                                       node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
+                                       hidden_layers_types=hidden_layers_list[item_activation],
+                                       network_parameters = [0.02, 0.9,0, True, [reg_list[item_activation]]* 8],
+                                       batch_size=100, hierarchical=is_hi, hi_variant=hier_var,
+                                       epochs=50
+                                      )
+                    model.train()
+                    PCs = model.get_PCs()
+                    [x, y] = list(zip(*PCs))
+                    psi = [item[2] for item in dihedrals]
+                    fig, ax = plt.subplots()
+                    ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+                    ax.set_title("FVE = %f" % model.get_fraction_of_variance_explained())
+                    file_name = 'try_model_type_%d_hierarchical_%d_%d_act_%d.pkl' % (
+                        type_index, is_hi, hier_var, item_activation)
+                    model.save_into_file(file_name)
+                    fig.savefig(file_name.replace('.pkl', '.png'))
+        return
 
     def test_train_with_different_mse_weights(self):
         data, dihedrals = self._data, self._dihedrals
