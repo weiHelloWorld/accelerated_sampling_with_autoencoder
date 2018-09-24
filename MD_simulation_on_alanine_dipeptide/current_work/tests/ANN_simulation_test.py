@@ -235,7 +235,7 @@ class test_cluster_management(object):
             subprocess.check_output(['mkdir', folder_to_store_sge_files])
 
             temp = cluster_management()
-            commands = temp.create_sge_files_from_a_file_containing_commands(input_file, folder_to_store_sge_files)
+            commands = temp.create_sge_files_from_a_file_containing_commands(input_file, 1, folder_to_store_sge_files)
             commands = [x[:-1].strip() for x in commands]
             print(commands)
             for out_file in subprocess.check_output(['ls', folder_to_store_sge_files]).strip().split('\n'):
