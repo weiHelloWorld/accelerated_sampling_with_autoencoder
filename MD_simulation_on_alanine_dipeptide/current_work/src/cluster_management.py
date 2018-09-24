@@ -68,6 +68,8 @@ source /u/sciteam/chen21/.zshrc
 cd $PBS_O_WORKDIR
 export PMI_NO_FORK=1
 export PMI_NO_PREINITIALIZE=1
+module unload bwpy
+module load bwpy/2.0.0-pre1
 # source /u/sciteam/chen21/.bashrc
 %s
 echo "This job is DONE!"
