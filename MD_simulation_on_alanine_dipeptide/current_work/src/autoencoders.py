@@ -35,12 +35,13 @@ class autoencoder(object):
                  node_num=CONFIG_3,  # the structure of ANN
                  index_CV=None,   # index of CV layer
                  epochs=CONFIG_5,
+                 batch_size=100,
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
                  hi_variant=CONFIG_77,
                  *args, **kwargs  # for extra init functions for subclasses
                  ):
-
+        self._batch_size = batch_size
         self._index = index
         self._data_set = data_set_for_training
         self._output_data_set = output_data_set
@@ -901,7 +902,6 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 class autoencoder_Keras(autoencoder):
     def _init_extra(self,
                     network_parameters = CONFIG_4,
-                    batch_size = 100,
                     enable_early_stopping=True,
                     mse_weights=None
                     ):
@@ -909,7 +909,6 @@ class autoencoder_Keras(autoencoder):
         if not isinstance(self._network_parameters[4], list):
             self._network_parameters[4] = [self._network_parameters[4]] * (len(self._node_num) - 1)    # simplify regularization for deeper networks
         assert isinstance(self._network_parameters[4], list)
-        self._batch_size = batch_size
         self._enable_early_stopping = enable_early_stopping
         if not (mse_weights is None) and self._hierarchical and self._node_num[self._index_CV] > 1:
             self._mse_weights = np.array(mse_weights.tolist() * self._node_num[self._index_CV])
@@ -1354,12 +1353,11 @@ class autoencoder_torch(autoencoder):
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 100, cuda=True,
+                    network_parameters = CONFIG_4, cuda=True,
                     include_autocorr = True,    # include autocorrelation loss
                     rec_loss_type = 0      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
                     ):
         self._network_parameters = network_parameters
-        self._batch_size = batch_size
         self._cuda = cuda
         self._include_autocorr = include_autocorr
         self._rec_loss_type = rec_loss_type
@@ -1412,7 +1410,8 @@ class autoencoder_torch(autoencoder):
         train_data = self.My_dataset(self.get_var_from_np(data_in).data,
                                      self.get_var_from_np(data_out).data)
         train_set, valid_set = self.get_train_valid_split(train_data)
-        print "train set size = %d, valid set size = %d" % (len(train_set), len(valid_set))
+        print "data size = %d, train set size = %d, valid set size = %d, batch size = %d" % (
+            len(train_data), len(train_set), len(valid_set), self._batch_size)
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []

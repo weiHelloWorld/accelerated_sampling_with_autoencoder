@@ -16,6 +16,7 @@ parser.add_argument('--data_folder', type=str, default=None, help="folder contai
 parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
 parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data, if in_data is not None while out_data is None, then out_data is set to be in_data")
 parser.add_argument('--node_num', type=str, default=None, help="node number")
+parser.add_argument('--batch_size', type=int, default=None, help='batch size')
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
 parser.add_argument('--lag_time', type=int, default=0, help='lag time for time lagged autoencoder')
@@ -104,6 +105,8 @@ if not args.lr_m is None:
     temp_lr = float(args.lr_m.strip().split(',')[0])
     temp_momentum = float(args.lr_m.strip().split(',')[1])
     additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, CONFIG_4[4]]
+if not args.batch_size is None:
+    additional_argument_list['batch_size'] = args.batch_size
 
 if args.data_folder is None:
     args.data_folder = '../target/' + CONFIG_30
