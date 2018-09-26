@@ -1356,13 +1356,13 @@ class autoencoder_torch(autoencoder):
     def _init_extra(self,
                     network_parameters = CONFIG_4, batch_size = 100, cuda=True,
                     include_autocorr = True,    # include autocorrelation loss
-                    lagged_rec_loss = True      # use lagged, instead of standard reconstruction loss
+                    rec_loss_type = 0      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
                     ):
         self._network_parameters = network_parameters
         self._batch_size = batch_size
         self._cuda = cuda
         self._include_autocorr = include_autocorr
-        self._lagged_rec_loss = lagged_rec_loss
+        self._rec_loss_type = rec_loss_type
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
@@ -1395,7 +1395,7 @@ class autoencoder_torch(autoencoder):
         temp_in_shape = data_in.shape
         if lag_time > 0:
             data_in = np.concatenate([data_in[:-lag_time], data_in[lag_time:]], axis=-1)
-            if self._lagged_rec_loss:
+            if self._rec_loss_type == 1:
                 data_out = data_out[lag_time:]
                 self._data_set = self._data_set[:-lag_time]    # directly modify stored data, for convenience of computing FVE
                 self._output_data_set = self._output_data_set[lag_time:]
@@ -1472,7 +1472,10 @@ class autoencoder_torch(autoencoder):
 
     def get_loss(self, batch_in, batch_out, dim_input):
         rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
-        rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
+        if self._rec_loss_type == 2:
+            rec_loss = 0
+        else:
+            rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
         if self._include_autocorr:
             _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
