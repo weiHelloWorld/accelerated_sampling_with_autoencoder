@@ -1431,7 +1431,7 @@ class autoencoder_torch(autoencoder):
                 optimizer.zero_grad()
                 loss.backward()
                 loss_list = np.array(
-                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                    [loss.cpu().data.numpy()])
                 # print loss_list
                 temp_train_history.append(loss_list)
                 optimizer.step()
@@ -1445,7 +1445,7 @@ class autoencoder_torch(autoencoder):
                 else:
                     loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
                 loss_list = np.array(
-                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                    [loss.cpu().data.numpy()])
                 temp_valid_history.append(loss_list)
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
             valid_history.append(temp_valid_history)
