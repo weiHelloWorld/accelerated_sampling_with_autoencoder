@@ -1355,17 +1355,21 @@ class autoencoder_torch(autoencoder):
     def _init_extra(self,
                     network_parameters = CONFIG_4, cuda=True,
                     include_autocorr = True,    # include autocorrelation loss
-                    rec_loss_type = 0      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
+                    rec_loss_type = 0,      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
+                    start_from=None         # initialize with this model
                     ):
         self._network_parameters = network_parameters
         self._cuda = cuda
         self._include_autocorr = include_autocorr
         self._rec_loss_type = rec_loss_type
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
-        self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
-                               activations=act_funcs, hierarchical=self._hierarchical,
-                               hi_variant=self._hi_variant)
-        self._ae.apply_weight_init()
+        if start_from is None:
+            self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
+                                   activations=act_funcs, hierarchical=self._hierarchical,
+                                   hi_variant=self._hi_variant)
+            self._ae.apply_weight_init()
+        else:
+            self._ae = torch.load(start_from)
         if self._cuda: self._ae = self._ae.cuda()
         return
 
