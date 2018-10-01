@@ -1,4 +1,4 @@
-import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib, glob
+import copy, pickle, re, os, time, subprocess, datetime, itertools, hashlib, glob, numpy as np
 
 class cluster_management(object):
     def __init__(self):
@@ -11,11 +11,18 @@ class cluster_management(object):
         return server, user
 
     @staticmethod
-    def get_sge_file_content(command_in_sge_file, gpu, max_time, node=-1,
-                             use_aprun=True, ppn=2):
-        command_in_sge_file = command_in_sge_file.strip()
-        if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not work in the cluster
-            command_in_sge_file = command_in_sge_file[:-1]
+    def get_sge_file_content(command_list, gpu, max_time, node=-1,
+                             num_nodes=None,    # blue waters only
+                             use_aprun=True,   # blue waters only
+                             ppn=2):
+        assert (isinstance(command_list, list))
+        temp_commands = []
+        for item in command_list:
+            item = item.strip()
+            if item[-1] != '&':
+                item += ' &'         # to run multiple jobs in a script
+            temp_commands.append(item)
+        assert (len(temp_commands) == len(command_list))
         server_name, _ = cluster_management.get_server_and_user()
         if 'alf' in server_name:
             gpu_option_string = '#$ -l gpu=1' if gpu else ''
@@ -32,9 +39,10 @@ class cluster_management(object):
 %s
 %s
 %s
+wait       # to wait for all jobs to finish
 echo "This job is DONE!"
 exit 0
-''' % (max_time, gpu_option_string, node_string, command_in_sge_file)
+''' % (max_time, gpu_option_string, node_string, '\n'.join(temp_commands))
         elif "golubh" in server_name:  # campus cluster
             content_for_sge_file = '''#!/bin/bash
 #PBS -l walltime=%s
@@ -48,17 +56,19 @@ exit 0
 cd $PBS_O_WORKDIR         # go to current directory
 source /home/weichen9/.bashrc
 %s
+wait       # to wait for all jobs to finish
 echo "This job is DONE!"
 exit 0
-''' % (max_time, ppn, command_in_sge_file)
+''' % (max_time, ppn, '\n'.join(temp_commands))
         elif "h2ologin" in server_name or 'nid' in server_name:  # Blue Waters
+            if num_nodes is None:
+                num_nodes = len(command_list)
             node_type = ':xk' if gpu else ''
-            if use_aprun and (not command_in_sge_file.startswith('aprun')):
-                command_in_sge_file = 'aprun -n1 ' + command_in_sge_file
-            command_in_sge_file = command_in_sge_file.replace('OMP_NUM_THREADS=6 ', '').replace('--device 1', '')
+            if use_aprun:
+                temp_commands = ['aprun -n1 ' + item for item in temp_commands]
             content_for_sge_file = '''#!/usr/bin/zsh
 #PBS -l walltime=%s
-#PBS -l nodes=1:ppn=%d%s
+#PBS -l nodes=%d:ppn=%d%s
 #PBS -m ae   
 #PBS -M wei.herbert.chen@gmail.com    
 #PBS -A batp
@@ -68,11 +78,15 @@ source /u/sciteam/chen21/.zshrc
 cd $PBS_O_WORKDIR
 export PMI_NO_FORK=1
 export PMI_NO_PREINITIALIZE=1
+module unload bwpy
+module load bwpy/2.0.0-pre1
+source /u/sciteam/chen21/.myPy/bin/activate
 # source /u/sciteam/chen21/.bashrc
 %s
+wait       # to wait for all jobs to finish
 echo "This job is DONE!"
 exit 0
-''' % (max_time, ppn, node_type, command_in_sge_file)
+''' % (max_time, num_nodes, ppn, node_type, '\n'.join(temp_commands))
         else:
             raise Exception('server error: %s does not exist' % server_name)
         return content_for_sge_file
@@ -93,35 +107,43 @@ exit 0
         return sge_filename
 
     @staticmethod
-    def create_sge_files_from_a_file_containing_commands(command_file, folder_to_store_sge_files='../sge_files/', run_on_gpu = False):
+    def create_sge_files_from_a_file_containing_commands(
+            command_file, num_jobs_per_file=1, folder_to_store_sge_files='../sge_files/', run_on_gpu = False):
         with open(command_file, 'r') as commmand_file:
             commands_to_run = commmand_file.readlines()
             commands_to_run = [x.strip() for x in commands_to_run]
             commands_to_run = [x for x in commands_to_run if x != ""]
-            cluster_management.create_sge_files_for_commands(commands_to_run, folder_to_store_sge_files, run_on_gpu)
+            cluster_management.create_sge_files_for_commands(
+                commands_to_run, num_jobs_per_file=num_jobs_per_file,
+                folder_to_store_sge_files=folder_to_store_sge_files,
+                run_on_gpu=run_on_gpu
+            )
 
         return commands_to_run
 
     @staticmethod
-    def create_sge_files_for_commands(list_of_commands_to_run, folder_to_store_sge_files = '../sge_files/',
+    def create_sge_files_for_commands(list_of_commands_to_run,
+                                      num_jobs_per_file=1,   # may have more than 1 jobs in each file, for efficiency of scheduling
+                                      folder_to_store_sge_files = '../sge_files/',
                                       run_on_gpu = False, ppn=2):
+        if folder_to_store_sge_files[-1] != '/':
+            folder_to_store_sge_files += '/'
+        if not os.path.exists(folder_to_store_sge_files):
+            subprocess.check_output(['mkdir', folder_to_store_sge_files])
         sge_file_list = []
-        for item in list_of_commands_to_run:
-            if folder_to_store_sge_files[-1] != '/':
-                folder_to_store_sge_files += '/'
-
-            if not os.path.exists(folder_to_store_sge_files):
-                subprocess.check_output(['mkdir', folder_to_store_sge_files])
-
-            sge_filename = cluster_management.generate_sge_filename_for_a_command(item)
+        num_files = int(np.ceil(float(len(list_of_commands_to_run)) / float(num_jobs_per_file)))
+        for index in range(num_files):
+            item_command_list = list_of_commands_to_run[index * num_jobs_per_file: (index + 1) * num_jobs_per_file]
+            sge_filename = cluster_management.generate_sge_filename_for_a_command(item_command_list[0])  # use first command to generate file name
             sge_filename = folder_to_store_sge_files + sge_filename
             sge_file_list.append(sge_filename)
 
             content_for_sge_files = cluster_management.get_sge_file_content(
-                item, gpu=run_on_gpu, max_time='24:00:00', ppn=ppn)
+                item_command_list, gpu=run_on_gpu, max_time='24:00:00', ppn=ppn)
             with open(sge_filename, 'w') as f_out:
                 f_out.write(content_for_sge_files)
                 f_out.write("\n")
+        assert (len(sge_file_list) == num_files)
         return sge_file_list
 
     @staticmethod

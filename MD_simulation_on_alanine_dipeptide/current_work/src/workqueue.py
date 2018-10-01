@@ -64,7 +64,7 @@ def main():
     return
 
 
-def run_programs(command_list, start_index, end_index, shell=False):
+def run_programs(command_list, start_index, end_index, shell=True):
     """
     run programs with index [start_index, end_index - 1]
     """

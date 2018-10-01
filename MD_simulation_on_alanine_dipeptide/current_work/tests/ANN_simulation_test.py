@@ -26,11 +26,6 @@ class test_Sutils(object):
         return
 
     @staticmethod
-    def test__generate_coordinates_from_pdb_files():
-        # TODO
-        return
-
-    @staticmethod
     def test_write_some_frames_into_a_new_file():
         input_pdb = '../tests/dependency/temp_output_0.pdb'
         output_pdb = "../tests/dependency/temp_output_0_interval_3.pdb"
@@ -194,26 +189,6 @@ class test_Alanine_dipeptide(object):
 
 class test_Trp_cage(object):
     @staticmethod
-    def test_get_many_cossin_from_coordiantes_in_list_of_files():
-        # TODO
-        return
-
-    @staticmethod
-    def test_get_many_dihedrals_from_coordinates_in_file():
-        # TODO
-        return
-
-    @staticmethod
-    def test_generate_coordinates_from_pdb_files():
-        # TODO
-        return
-
-    @staticmethod
-    def test_get_pairwise_distance_matrices_of_alpha_carbon():
-        # TODO
-        return
-
-    @staticmethod
     def test_get_non_repeated_pairwise_distance_as_list_of_alpha_carbon():
         pdb_file_list = ['../tests/dependency/temp_Trp_cage_data/1l2y.pdb']
         a = Trp_cage.get_pairwise_distance_matrices_of_selected_atoms(pdb_file_list)
@@ -260,7 +235,7 @@ class test_cluster_management(object):
             subprocess.check_output(['mkdir', folder_to_store_sge_files])
 
             temp = cluster_management()
-            commands = temp.create_sge_files_from_a_file_containing_commands(input_file, folder_to_store_sge_files)
+            commands = temp.create_sge_files_from_a_file_containing_commands(input_file, 1, folder_to_store_sge_files)
             commands = [x[:-1].strip() for x in commands]
             print(commands)
             for out_file in subprocess.check_output(['ls', folder_to_store_sge_files]).strip().split('\n'):
@@ -322,27 +297,31 @@ class test_autoencoder_Keras(object):
         data, dihedrals = self._data, self._dihedrals
         hidden_layers_list = [["Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh", "Tanh"],
                               ["Sigmoid", "Sigmoid", "Sigmoid", "Sigmoid", "Tanh", "Sigmoid", "Tanh"]]
+        model_type_list = [autoencoder_Keras, autoencoder_torch]
         reg_list = [0.001, 0]
         for item_activation in range(2):
-            for is_hi, hier_var in [(0, 0), (1,0), (1,1), (1,2)]:
-                model = autoencoder_Keras(1447, data,
-                                          data_files=['/tmp/train_in.npy', '/tmp/train_out.npy'],
-                                          node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
-                                          hidden_layers_types=hidden_layers_list[item_activation],
-                                          network_parameters = [0.02, 0.9,0, True, [reg_list[item_activation]]* 8],
-                                          batch_size=100, hierarchical=is_hi, hi_variant=hier_var
-                                          )
-                _, history = model.train()
-                PCs = model.get_PCs()
-                [x, y] = list(zip(*PCs))
-                psi = [item[2] for item in dihedrals]
-                fig, ax = plt.subplots()
-                ax.scatter(x, y, c=psi, cmap='gist_rainbow')
-                ax.set_title("FVE = %f" % model.get_fraction_of_variance_explained())
-                file_name = 'try_keras_noncircular_hierarchical_%d_%d_act_%d.pkl' % (is_hi, hier_var, item_activation)
-                model.save_into_file(file_name)
-                fig.savefig(file_name.replace('.pkl', '.png'))
-        return history
+            for is_hi, hier_var in [(0, 0), (1,1), (1,2)]:    # do not test variant 0 for now
+                for type_index, model_type in enumerate(model_type_list):
+                    model = model_type(1447, data,
+                                       data_files=['/tmp/train_in.npy', '/tmp/train_out.npy'],
+                                       node_num=[8, 8, 15, 8, 2, 15, 8, 8, 8],
+                                       hidden_layers_types=hidden_layers_list[item_activation],
+                                       network_parameters = [0.02, 0.9,0, True, [reg_list[item_activation]]* 8],
+                                       batch_size=100, hierarchical=is_hi, hi_variant=hier_var,
+                                       epochs=50
+                                      )
+                    model.train()
+                    PCs = model.get_PCs()
+                    [x, y] = list(zip(*PCs))
+                    psi = [item[2] for item in dihedrals]
+                    fig, ax = plt.subplots()
+                    ax.scatter(x, y, c=psi, cmap='gist_rainbow')
+                    ax.set_title("FVE = %f" % model.get_fraction_of_variance_explained())
+                    file_name = 'try_model_type_%d_hierarchical_%d_%d_act_%d.pkl' % (
+                        type_index, is_hi, hier_var, item_activation)
+                    model.save_into_file(file_name)
+                    fig.savefig(file_name.replace('.pkl', '.png'))
+        return
 
     def test_train_with_different_mse_weights(self):
         data, dihedrals = self._data, self._dihedrals
@@ -399,7 +378,8 @@ class test_autoencoder_Keras(object):
         _ = autoencoder.load_from_pkl_file('test_save_into_file.pkl')
         return
 
-    def check_two_plumed_strings_containing_floats(self, string_1, string_2):
+    @staticmethod
+    def check_two_plumed_strings_containing_floats(string_1, string_2):
         """due to precision issue, string literals may not be exactly the same for two plumed strings, so we
                 need to explicitly compare the float values"""
         def is_float(s):
@@ -448,18 +428,34 @@ class test_autoencoder_torch(object):
                               output_data_set=data,
                               hierarchical=True, hi_variant=2,
                               batch_size=500,
-                              node_num=[21, 100, 2, 100, 21], epochs=10)
+                              node_num=[21, 100, 2, 100, 21],
+                              hidden_layers_types=['tanh', 'tanh', 'tanh'], epochs=10)
         a.train(lag_time=10)
         a.save_into_file('/tmp/temp_save.pkl')
         torch.save(a._ae, '/tmp/temp.df')
         model_1 = torch.load('/tmp/temp.df')
         torch.save(a._ae.state_dict(), '/tmp/temp_2.df')
-        model_2 = AE_net([21, 100, 2], [2, 100, 21], None, hi_variant=2, hierarchical=True).cuda()
+        model_2 = AE_net([21, 100, 2], [2, 100, 21], activations=a._hidden_layers_type + ['linear'],
+                         hi_variant=2, hierarchical=True).cuda()
         model_2.load_state_dict(torch.load('/tmp/temp_2.df'))
         data_in = torch.rand(1000, 21).cuda()
         assert_almost_equal(model_1(data_in)[0].cpu().data.numpy(), a._ae(data_in)[0].cpu().data.numpy())
         assert_almost_equal(model_2(data_in)[0].cpu().data.numpy(), a._ae(data_in)[0].cpu().data.numpy())
         _ = autoencoder_torch.load_from_pkl_file('/tmp/temp_save.pkl')
+        return
+
+    @staticmethod
+    def test_time_lagged_AE_stored_data_saving():
+        data = np.random.rand(1000, 21)
+        a = autoencoder_torch(1447, data,
+                              output_data_set=data,
+                              hierarchical=True, hi_variant=2,
+                              batch_size=500,
+                              node_num=[21, 100, 2, 100, 21],
+                              hidden_layers_types=['tanh', 'tanh', 'tanh'], epochs=10)
+        a.train(lag_time=10)
+        assert_almost_equal(a._data_set, data[:-10])
+        assert_almost_equal(a._output_data_set, data[10:])
         return
 
     @staticmethod

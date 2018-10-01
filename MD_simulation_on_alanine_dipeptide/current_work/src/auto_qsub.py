@@ -23,7 +23,7 @@ if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not wor
 server_name = subprocess.check_output(['uname', '-n']).strip()
 
 content_for_sge_file = cluster_management.get_sge_file_content(
-    command_in_sge_file, args.gpu, max_time=args.max_time, node=args.node,
+    [command_in_sge_file], args.gpu, max_time=args.max_time, node=args.node,
     use_aprun=args.use_aprun, ppn=args.ppn)
 
 folder_to_store_sge_files = '../sge_files/'

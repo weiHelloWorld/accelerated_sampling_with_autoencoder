@@ -16,10 +16,11 @@ parser.add_argument('--data_folder', type=str, default=None, help="folder contai
 parser.add_argument('--in_data', type=str, default=None, help="npy file containing pre-computed input data")
 parser.add_argument('--out_data', type=str, default=None, help="npy file containing pre-computed output data, if in_data is not None while out_data is None, then out_data is set to be in_data")
 parser.add_argument('--node_num', type=str, default=None, help="node number")
+parser.add_argument('--batch_size', type=int, default=None, help='batch size')
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
 parser.add_argument('--lag_time', type=int, default=0, help='lag time for time lagged autoencoder')
-parser.add_argument('--lagged_rec_loss', type=int, default=True, help='whether to use lagged or standard reconstruction loss (pytorch only)')
+parser.add_argument('--rec_loss_type', type=int, default=True, help='0: standard rec loss, 1: lagged rec loss, 2: no rec loss (pytorch only)')
 parser.add_argument('--include_autocorr', type=int, default=True, help='whether to include autocorrelation loss (pytorch only)')
 parser.add_argument('--save_to_data_files', type=str, default=None, help="save training data to external files if it is not None, example: 'temp_in.npy,temp_out.npy' ")
 args = parser.parse_args()
@@ -104,6 +105,8 @@ if not args.lr_m is None:
     temp_lr = float(args.lr_m.strip().split(',')[0])
     temp_momentum = float(args.lr_m.strip().split(',')[1])
     additional_argument_list['network_parameters'] = [temp_lr, temp_momentum, 0, True, CONFIG_4[4]]
+if not args.batch_size is None:
+    additional_argument_list['batch_size'] = args.batch_size
 
 if args.data_folder is None:
     args.data_folder = '../target/' + CONFIG_30
@@ -168,7 +171,7 @@ if CONFIG_45 == 'keras':
                                          **additional_argument_list
                                          ) for _ in range(args.num_of_trainings)]
 elif CONFIG_45 == 'pytorch':
-    additional_argument_list['lagged_rec_loss'] = args.lagged_rec_loss
+    additional_argument_list['rec_loss_type'] = args.rec_loss_type
     additional_argument_list['include_autocorr'] = args.include_autocorr
     temp_network_list = [autoencoder_torch(index=args.index,
                                            data_set_for_training=data_set,

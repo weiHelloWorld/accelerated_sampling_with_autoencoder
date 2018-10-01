@@ -35,12 +35,13 @@ class autoencoder(object):
                  node_num=CONFIG_3,  # the structure of ANN
                  index_CV=None,   # index of CV layer
                  epochs=CONFIG_5,
+                 batch_size=100,
                  filename_to_save_network=CONFIG_6,
                  hierarchical=CONFIG_44,
                  hi_variant=CONFIG_77,
                  *args, **kwargs  # for extra init functions for subclasses
                  ):
-
+        self._batch_size = batch_size
         self._index = index
         self._data_set = data_set_for_training
         self._output_data_set = output_data_set
@@ -411,7 +412,8 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         pass
 
     def get_fraction_of_variance_explained(self, hierarchical_FVE=False,
-                                           output_index_range=None, featurewise=False):
+                                           output_index_range=None, featurewise=False, lag_time=0):
+        # TODO: lag_time is obsolete
         """ here num_of_PCs is the same with that in get_training_error() """
         input_data = np.array(self._data_set)
         actual_output_data = self.get_output_data()
@@ -419,6 +421,9 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             expected_output_data = self._output_data_set
         else:
             expected_output_data = input_data
+        if lag_time != 0:
+            expected_output_data = expected_output_data[lag_time:]
+            actual_output_data = actual_output_data[:-lag_time]
 
         if self._hierarchical:
             num_PCs = self._node_num[self._index_CV] / 2 if self._hidden_layers_type[self._index_CV - 1] == "Circular" \
@@ -897,7 +902,6 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 class autoencoder_Keras(autoencoder):
     def _init_extra(self,
                     network_parameters = CONFIG_4,
-                    batch_size = 100,
                     enable_early_stopping=True,
                     mse_weights=None
                     ):
@@ -905,7 +909,6 @@ class autoencoder_Keras(autoencoder):
         if not isinstance(self._network_parameters[4], list):
             self._network_parameters[4] = [self._network_parameters[4]] * (len(self._node_num) - 1)    # simplify regularization for deeper networks
         assert isinstance(self._network_parameters[4], list)
-        self._batch_size = batch_size
         self._enable_early_stopping = enable_early_stopping
         if not (mse_weights is None) and self._hierarchical and self._node_num[self._index_CV] > 1:
             self._mse_weights = np.array(mse_weights.tolist() * self._node_num[self._index_CV])
@@ -936,6 +939,7 @@ class autoencoder_Keras(autoencoder):
     def layerwise_pretrain(data, dim_in, dim_out):
         """ref: https://www.kaggle.com/baogorek/autoencoder-with-greedy-layer-wise-pretraining/notebook"""
         # TODO: 1. use better training parameters. 2. use consistant activation functions, 3. consider how to do this for hierarchical case
+        # TODO: 4. make activation function consistent with neural network
         data_in = Input(shape=(dim_in,))
         encoded = Dense(dim_out, activation='tanh')(data_in)
         data_out = Dense(dim_in, activation='tanh')(encoded)
@@ -966,7 +970,7 @@ class autoencoder_Keras(autoencoder):
         temp_nodes = layer._outbound_nodes
         return [item.outbound_layer for item in temp_nodes]
 
-    def train(self, hierarchical=None, hierarchical_variant = None, lag_time=0):
+    def train(self, hierarchical=None, hierarchical_variant = None):
         """lag_time is included for training time-lagged autoencoder"""
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if hierarchical is None: hierarchical = self._hierarchical
@@ -978,9 +982,6 @@ class autoencoder_Keras(autoencoder):
             output_data_set = self._output_data_set
         else:
             output_data_set = data
-        if lag_time > 0:      # for training time-lagged AE
-            data, output_data_set = data[:-lag_time], output_data_set[lag_time:]
-            assert np.all(data[lag_time:] == output_data_set[:-lag_time])
 
         num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
             node_num[self._index_CV]
@@ -1220,28 +1221,35 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
 
 class AE_net(nn.Module):
-    def __init__(self, node_num_1, node_num_2, activations, hierarchical=None, hi_variant=None):
+    def __init__(self, node_num_1, node_num_2, activations=None, hierarchical=None, hi_variant=None):
         super(AE_net, self).__init__()
         self._activations = activations
+        if self._activations is None:
+            self._activations = [['tanh'] * (len(node_num_1) + len(node_num_2) - 3)]    # why -3, since last layer is linear
+        encoder_act = self._activations[:(len(node_num_1) - 1)]
+        decoder_act = self._activations[(len(node_num_1) - 1):]   # note final layer is linear
+        # print encoder_act, decoder_act
+        assert (len(decoder_act) == len(node_num_2) - 1), (len(decoder_act), len(node_num_2) - 1)
         self._hierarchical = hierarchical
         self._hi_variant = hi_variant
-        encoder_list = [nn.Sequential(*[nn.Linear(node_num_1[item], node_num_1[item + 1]), nn.Tanh()])
+        encoder_list = [self.get_layer(node_num_1[item], node_num_1[item + 1], activation=encoder_act[item])
                         for item in range(len(node_num_1) - 2)]
         self._encoder_1 = nn.Sequential(*encoder_list)
         if not hierarchical:
             # use ModuleList instead of plain list for saving parameters
-            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], node_num_1[-1]), nn.Tanh())])
-            decoder_list = [[nn.Linear(node_num_2[item], node_num_2[item + 1]), nn.Tanh()]
+            self._encoder_2 = nn.ModuleList([self.get_layer(node_num_1[-2], node_num_1[-1],
+                                                            activation=encoder_act[-1])])
+            decoder_list = [self.get_layer(node_num_2[item], node_num_2[item + 1], activation=decoder_act[item])
                             for item in range(len(node_num_2) - 1)]
-            self._decoder = nn.Sequential(*[nn.Sequential(*item) for item in decoder_list])
+            self._decoder = nn.Sequential(*decoder_list)
         else:
-            self._encoder_2 = nn.ModuleList([nn.Sequential(nn.Linear(node_num_1[-2], 1), nn.Tanh())
+            self._encoder_2 = nn.ModuleList([self.get_layer(node_num_1[-2], 1, activation=encoder_act[-1])
                                for _ in range(node_num_1[-1])])
             if hi_variant == 2:
                 temp_node_num_2 = node_num_2[:]
                 temp_node_num_2[0] = 1
-                self._decoder = nn.ModuleList([nn.Sequential(*[nn.Sequential(
-                    nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                self._decoder = nn.ModuleList([nn.Sequential(*[
+                    self.get_layer(temp_node_num_2[item], temp_node_num_2[item + 1], activation=decoder_act[item])
                     for item in range(len(temp_node_num_2) - 1)])
                                  for _ in range(node_num_2[0])])
             elif hi_variant == 1:
@@ -1250,11 +1258,20 @@ class AE_net(nn.Module):
                     temp_node_num_2 = node_num_2[:]
                     temp_node_num_2[0] = num_item + 1
                     decoder_list.append(
-                        nn.Sequential(*[nn.Sequential(
-                            nn.Linear(temp_node_num_2[item], temp_node_num_2[item + 1]), nn.Tanh())
+                        nn.Sequential(*[self.get_layer(
+                            temp_node_num_2[item], temp_node_num_2[item + 1], activation=decoder_act[item])
                         for item in range(len(temp_node_num_2) - 1)]))
                 self._decoder = nn.ModuleList(decoder_list)
         return
+
+    @staticmethod
+    def get_layer(in_node, out_node, activation):
+        if activation == 'linear':
+            return nn.Sequential(nn.Linear(in_node, out_node))
+        elif activation == 'tanh':
+            return nn.Sequential(nn.Linear(in_node, out_node), nn.Tanh())
+        elif activation == 'sigmoid':
+            return nn.Sequential(nn.Linear(in_node, out_node), nn.Sigmoid())
 
     @staticmethod
     def weights_init(m):
@@ -1336,15 +1353,14 @@ class autoencoder_torch(autoencoder):
         return temp
 
     def _init_extra(self,
-                    network_parameters = CONFIG_4, batch_size = 500, cuda=True,
+                    network_parameters = CONFIG_4, cuda=True,
                     include_autocorr = True,    # include autocorrelation loss
-                    lagged_rec_loss = True      # use lagged, instead of standard reconstruction loss
+                    rec_loss_type = 0      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
                     ):
         self._network_parameters = network_parameters
-        self._batch_size = batch_size
         self._cuda = cuda
         self._include_autocorr = include_autocorr
-        self._lagged_rec_loss = lagged_rec_loss
+        self._rec_loss_type = rec_loss_type
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
                                activations=act_funcs, hierarchical=self._hierarchical,
@@ -1370,17 +1386,22 @@ class autoencoder_torch(autoencoder):
                                   sampler=SubsetRandomSampler(valid_idx), drop_last=False)
         return train_loader, valid_loader
 
-    def train(self, lag_time=10):
+    def train(self, lag_time=0):
+        if self._output_data_set is None:
+            self._output_data_set = self._data_set
         data_in, data_out = self._data_set, self._output_data_set
         temp_in_shape = data_in.shape
         if lag_time > 0:
             data_in = np.concatenate([data_in[:-lag_time], data_in[lag_time:]], axis=-1)
+            if self._rec_loss_type == 1:
+                data_out = data_out[lag_time:]
+                self._data_set = self._data_set[:-lag_time]    # directly modify stored data, for convenience of computing FVE
+                self._output_data_set = self._output_data_set[lag_time:]
+            else:  # otherwise use standard reconstruction loss
+                data_out = data_out[:-lag_time]
         else:
             data_in = np.concatenate([data_in, data_in], axis=-1)
-        if self._lagged_rec_loss:
-            data_out = data_out[lag_time:]
-        else:      # otherwise use standard reconstruction loss
-            data_out = data_out[:-lag_time] if lag_time > 0 else data_out
+
         assert (data_in.shape[0] == temp_in_shape[0] - lag_time), (data_in.shape[0], temp_in_shape[0] - lag_time)
         assert (data_in.shape[1] == 2 * temp_in_shape[1]), (data_in.shape[1], 2 * temp_in_shape[1])
         if self._hierarchical:
@@ -1389,8 +1410,9 @@ class autoencoder_torch(autoencoder):
         train_data = self.My_dataset(self.get_var_from_np(data_in).data,
                                      self.get_var_from_np(data_out).data)
         train_set, valid_set = self.get_train_valid_split(train_data)
-        print "train set size = %d, valid set size = %d" % (len(train_set), len(valid_set))
-        optimizer = torch.optim.RMSprop(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
+        print "data size = %d, train set size = %d, valid set size = %d, batch size = %d" % (
+            len(train_data), len(train_set), len(valid_set), self._batch_size)
+        optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []
         my_early_stopping = self.EarlyStoppingTorch(patience=100)
@@ -1409,7 +1431,7 @@ class autoencoder_torch(autoencoder):
                 optimizer.zero_grad()
                 loss.backward()
                 loss_list = np.array(
-                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                    [loss.cpu().data.numpy()])
                 # print loss_list
                 temp_train_history.append(loss_list)
                 optimizer.step()
@@ -1423,7 +1445,7 @@ class autoencoder_torch(autoencoder):
                 else:
                     loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
                 loss_list = np.array(
-                    [rec_loss.cpu().data.numpy(), loss.cpu().data.numpy()])
+                    [loss.cpu().data.numpy()])
                 temp_valid_history.append(loss_list)
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
             valid_history.append(temp_valid_history)
@@ -1449,7 +1471,10 @@ class autoencoder_torch(autoencoder):
 
     def get_loss(self, batch_in, batch_out, dim_input):
         rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
-        rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
+        if self._rec_loss_type == 2:
+            rec_loss = 0
+        else:
+            rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
         if self._include_autocorr:
             _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
@@ -1459,6 +1484,14 @@ class autoencoder_torch(autoencoder):
             autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
             # print autocorr_loss_num.shape, autocorr_loss_den.shape
             autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+            # add pearson correlation loss
+            include_pearson = False
+            if include_pearson:   # include pearson correlation for first two CVs as loss function
+                vx = latent_z_1[:, 0]
+                vy = latent_z_1[:, 1]
+                pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
+                print pearson_corr.cpu().data.numpy()
+                autocorr_loss = autocorr_loss + pearson_corr
             loss = rec_loss + autocorr_loss
         else:
             loss = rec_loss
