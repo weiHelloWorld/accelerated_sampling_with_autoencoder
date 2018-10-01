@@ -1277,12 +1277,8 @@ class AE_net(nn.Module):
     def weights_init(m):
         if isinstance(m, nn.Linear):
             # use default initializer of Keras for now
-            if 'kengyangyao' in temp_home_directory:
-                nn.init.xavier_uniform_(m.weight.data)
-                nn.init.constant_(m.bias.data, 0)
-            else:
-                nn.init.xavier_uniform(m.weight.data)
-                nn.init.constant(m.bias.data, 0)
+            nn.init.xavier_uniform_(m.weight.data)
+            nn.init.constant_(m.bias.data, 0)
         return
 
     def apply_weight_init(self):
@@ -1374,10 +1370,7 @@ class autoencoder_torch(autoencoder):
         return
 
     def get_train_valid_split(self, dataset, valid_size=0.2):
-        if 'kengyangyao' in temp_home_directory:
-            from torch.utils.data import SubsetRandomSampler
-        else:
-            from torch.utils.data.sampler import SubsetRandomSampler
+        from torch.utils.data import SubsetRandomSampler
         assert (isinstance(dataset, self.My_dataset))
         # modified from https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
         indices = list(range(len(dataset)))
@@ -1443,10 +1436,7 @@ class autoencoder_torch(autoencoder):
             # validation
 
             for batch_in, batch_out in valid_set:
-                if 'kengyangyao' in temp_home_directory:
-                    with torch.no_grad():
-                        loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
-                else:
+                with torch.no_grad():
                     loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
                 loss_list = np.array(
                     [loss.cpu().data.numpy()])
@@ -1529,10 +1519,7 @@ class autoencoder_torch(autoencoder):
     def get_output_data(self, input_data=None):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
-        if temp_home_directory == '/home/kengyangyao':    # temp code for dealing with blue waters issues
-            with torch.no_grad():
-                result = self._ae(self.get_var_from_np(input_data))[0]
-        else:
+        with torch.no_grad():
             result = self._ae(self.get_var_from_np(input_data))[0]
         if self._cuda: result = result.cpu()
         return result.data.numpy()
@@ -1540,10 +1527,7 @@ class autoencoder_torch(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
-        if temp_home_directory == '/home/kengyangyao':  # temp code for dealing with blue waters issues
-            with torch.no_grad():
-                result = self._ae(self.get_var_from_np(input_data))[1]
-        else:
+        with torch.no_grad():
             result = self._ae(self.get_var_from_np(input_data))[1]
         if self._cuda: result = result.cpu()
         return result.data.numpy()
