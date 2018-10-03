@@ -1353,6 +1353,7 @@ class autoencoder_torch(autoencoder):
                     include_autocorr = True,    # include autocorrelation loss
                     rec_loss_type = 0,      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
                     autocorr_weight = 1,       # weight of autocorrelation loss in the loss function
+                    pearson_weight = None,      # weight for pearson correlation loss for imposing orthogonality, None means no pearson loss
                     start_from=None         # initialize with this model
                     ):
         self._network_parameters = network_parameters
@@ -1360,6 +1361,7 @@ class autoencoder_torch(autoencoder):
         self._include_autocorr = include_autocorr
         self._rec_loss_type = rec_loss_type
         self._autocorr_weight = autocorr_weight
+        self._pearson_weight = pearson_weight
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if start_from is None:
             self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
@@ -1481,13 +1483,12 @@ class autoencoder_torch(autoencoder):
             # print autocorr_loss_num.shape, autocorr_loss_den.shape
             autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             # add pearson correlation loss
-            include_pearson = False
-            if include_pearson:   # include pearson correlation for first two CVs as loss function
+            if not self._pearson_weight is None:   # include pearson correlation for first two CVs as loss function
                 vx = latent_z_1[:, 0]
                 vy = latent_z_1[:, 1]
                 pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
                 print pearson_corr.cpu().data.numpy()
-                autocorr_loss = autocorr_loss + pearson_corr
+                autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
             loss = rec_loss + self._autocorr_weight * autocorr_loss
         else:
             if self._autocorr_weight != 1.0:

@@ -24,6 +24,7 @@ parser.add_argument('--lag_time', type=int, default=0, help='lag time for time l
 parser.add_argument('--rec_loss_type', type=int, default=True, help='0: standard rec loss, 1: lagged rec loss, 2: no rec loss (pytorch only)')
 parser.add_argument('--include_autocorr', type=int, default=True, help='whether to include autocorrelation loss (pytorch only)')
 parser.add_argument('--autocorr_weight', type=float, default=1.0, help='weight of autocorrelation loss in the loss function (pytorch only)')
+parser.add_argument('--pearson_weight', type=float, default=None, help='weight of pearson loss (pytorch only)')
 parser.add_argument('--sf', type=str, default=None, help='model to start with (pytorch only)')
 args = parser.parse_args()
 
@@ -177,6 +178,7 @@ elif CONFIG_45 == 'pytorch':
     additional_argument_list['include_autocorr'] = args.include_autocorr
     additional_argument_list['start_from'] = args.sf
     additional_argument_list['autocorr_weight'] = args.autocorr_weight
+    additional_argument_list['pearson_weight'] = args.pearson_weight
     temp_network_list = [autoencoder_torch(index=args.index,
                                            data_set_for_training=data_set,
                                            output_data_set=output_data_set,
