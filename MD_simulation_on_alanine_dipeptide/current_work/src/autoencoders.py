@@ -1455,7 +1455,7 @@ class autoencoder_torch(autoencoder):
             axes[0].plot(train_history)
             axes[1].plot(valid_history)
             fig.suptitle(str(self._node_num) + str(self._network_parameters))
-            png_file = 'history_%02d.png' % self._index
+            png_file = 'history_%s.png' % os.path.basename(self._filename_to_save_network)
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
         except:
