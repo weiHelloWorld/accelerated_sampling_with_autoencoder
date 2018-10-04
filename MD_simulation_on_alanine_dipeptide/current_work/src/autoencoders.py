@@ -1351,6 +1351,7 @@ class autoencoder_torch(autoencoder):
     def _init_extra(self,
                     network_parameters = CONFIG_4, cuda=True,
                     rec_loss_type = 0,      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
+                    rec_weight = 1,         # weight of reconstruction loss
                     autocorr_weight = 1,       # weight of autocorrelation loss in the loss function
                     pearson_weight = None,      # weight for pearson correlation loss for imposing orthogonality, None means no pearson loss
                     start_from=None         # initialize with this model
@@ -1358,6 +1359,7 @@ class autoencoder_torch(autoencoder):
         self._network_parameters = network_parameters
         self._cuda = cuda
         self._rec_loss_type = rec_loss_type
+        self._rec_weight = rec_weight
         self._autocorr_weight = autocorr_weight
         self._pearson_weight = pearson_weight
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
@@ -1409,8 +1411,10 @@ class autoencoder_torch(autoencoder):
         train_data = self.My_dataset(self.get_var_from_np(data_in).data,
                                      self.get_var_from_np(data_out).data)
         train_set, valid_set = self.get_train_valid_split(train_data)
-        print "data size = %d, train set size = %d, valid set size = %d, batch size = %d" % (
-            len(train_data), len(train_set), len(valid_set), self._batch_size)
+        print """
+data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_weight = %f, autocorr_weight = %f
+""" % (
+            len(train_data), len(train_set), len(valid_set), self._batch_size, self._rec_weight, self._autocorr_weight)
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []
@@ -1487,10 +1491,12 @@ class autoencoder_torch(autoencoder):
                 pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
                 print pearson_corr.cpu().data.numpy()
                 autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
-            loss = rec_loss + self._autocorr_weight * autocorr_loss
+            loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss
         else:
             if self._autocorr_weight != 1.0:
                 print ('warning: autocorrelation loss weight has no effect for model with reconstruction loss only')
+            if self._rec_weight != 1.0:
+                print ('warning: reconstruction loss weight has no effect for model with reconstruction loss only')
             loss = rec_loss
         return loss, rec_loss
 
