@@ -1350,7 +1350,6 @@ class autoencoder_torch(autoencoder):
 
     def _init_extra(self,
                     network_parameters = CONFIG_4, cuda=True,
-                    include_autocorr = True,    # include autocorrelation loss
                     rec_loss_type = 0,      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
                     autocorr_weight = 1,       # weight of autocorrelation loss in the loss function
                     pearson_weight = None,      # weight for pearson correlation loss for imposing orthogonality, None means no pearson loss
@@ -1358,7 +1357,6 @@ class autoencoder_torch(autoencoder):
                     ):
         self._network_parameters = network_parameters
         self._cuda = cuda
-        self._include_autocorr = include_autocorr
         self._rec_loss_type = rec_loss_type
         self._autocorr_weight = autocorr_weight
         self._pearson_weight = pearson_weight
@@ -1473,7 +1471,7 @@ class autoencoder_torch(autoencoder):
             rec_loss = 0
         else:
             rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
-        if self._include_autocorr:
+        if self._autocorr_weight > 0:
             _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
