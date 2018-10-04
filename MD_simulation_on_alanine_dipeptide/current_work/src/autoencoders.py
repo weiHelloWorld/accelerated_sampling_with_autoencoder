@@ -1481,7 +1481,7 @@ class autoencoder_torch(autoencoder):
             # print autocorr_loss_num.shape, autocorr_loss_den.shape
             autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             # add pearson correlation loss
-            if not self._pearson_weight is None:   # include pearson correlation for first two CVs as loss function
+            if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
                 vx = latent_z_1[:, 0]
                 vy = latent_z_1[:, 1]
                 pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
