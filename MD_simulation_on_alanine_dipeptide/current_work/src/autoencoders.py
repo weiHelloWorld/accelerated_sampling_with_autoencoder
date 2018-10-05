@@ -1498,10 +1498,11 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 vx = latent_z_1[:, 0]
                 vy = latent_z_1[:, 1]
                 pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
-                for item_new_CV in [vx, vy]:
-                    for item_old_CV in previous_CVs.T:
-                        pearson_corr += torch.sum(item_new_CV ** item_old_CV) ** 2 / (
-                            torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
+                if not previous_CVs is None:
+                    for item_new_CV in [vx, vy]:
+                        for item_old_CV in previous_CVs.T:
+                            pearson_corr += torch.sum(item_new_CV ** item_old_CV) ** 2 / (
+                                torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
                 print pearson_corr.cpu().data.numpy()
                 autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss
