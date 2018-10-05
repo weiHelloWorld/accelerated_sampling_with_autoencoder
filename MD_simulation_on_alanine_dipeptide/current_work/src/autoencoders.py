@@ -1331,15 +1331,15 @@ class autoencoder_torch(autoencoder):
             return False
 
     class My_dataset(Dataset):
-        def __init__(self, data_in, data_out):
-            self._data_in = data_in
-            self._data_out = data_out
+        def __init__(self, *data):
+            # accept variable number of arrays to construct dataset
+            self._data = data
 
         def __len__(self):
-            return len(self._data_in)
+            return len(self._data[0])
 
         def __getitem__(self, index):
-            return self._data_in[index], self._data_out[index]
+            return [item[index] for item in self._data]
 
     def get_var_from_np(self, np_array, cuda=None, requires_grad=False):
         if cuda is None:
@@ -1354,6 +1354,7 @@ class autoencoder_torch(autoencoder):
                     rec_weight = 1,         # weight of reconstruction loss
                     autocorr_weight = 1,       # weight of autocorrelation loss in the loss function
                     pearson_weight = None,      # weight for pearson correlation loss for imposing orthogonality, None means no pearson loss
+                    previous_CVs = None,       # previous CVs for sequential learning, requiring new CVs be orthogonal to them
                     start_from=None         # initialize with this model
                     ):
         self._network_parameters = network_parameters
@@ -1362,6 +1363,7 @@ class autoencoder_torch(autoencoder):
         self._rec_weight = rec_weight
         self._autocorr_weight = autocorr_weight
         self._pearson_weight = pearson_weight
+        self._previous_CVs = previous_CVs
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if start_from is None:
             self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
