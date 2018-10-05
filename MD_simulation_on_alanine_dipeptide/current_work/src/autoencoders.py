@@ -1410,8 +1410,13 @@ class autoencoder_torch(autoencoder):
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
-        all_data = self.My_dataset(self.get_var_from_np(data_in).data,
-                                   self.get_var_from_np(data_out).data, self._previous_CVs)
+        if self._previous_CVs is None:
+            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                       self.get_var_from_np(data_out).data)
+        else:
+            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                       self.get_var_from_np(data_out).data,
+                                       self.get_var_from_np(self._previous_CVs).data)
         train_set, valid_set = self.get_train_valid_split(all_data)
         print """
 data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_weight = %f, autocorr_weight = %f
@@ -1500,8 +1505,8 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
                 if not previous_CVs is None:
                     for item_new_CV in [vx, vy]:
-                        for item_old_CV in previous_CVs.T:
-                            pearson_corr += torch.sum(item_new_CV ** item_old_CV) ** 2 / (
+                        for item_old_CV in torch.transpose(previous_CVs, 0, 1):
+                            pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
                                 torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
                 print pearson_corr.cpu().data.numpy()
                 autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr

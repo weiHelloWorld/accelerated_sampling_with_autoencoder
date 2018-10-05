@@ -180,7 +180,8 @@ elif CONFIG_45 == 'pytorch':
     additional_argument_list['rec_weight'] = args.rec_weight
     additional_argument_list['autocorr_weight'] = args.autocorr_weight
     additional_argument_list['pearson_weight'] = args.pearson_weight
-    additional_argument_list['previous_CVs'] = np.load(args.previous_CVs)
+    if not args.previous_CVs is None:
+        additional_argument_list['previous_CVs'] = np.load(args.previous_CVs)
     temp_network_list = [autoencoder_torch(index=args.index,
                                            data_set_for_training=data_set,
                                            output_data_set=output_data_set,
