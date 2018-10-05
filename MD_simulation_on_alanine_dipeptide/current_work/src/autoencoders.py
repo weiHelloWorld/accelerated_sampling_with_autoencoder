@@ -1339,7 +1339,7 @@ class autoencoder_torch(autoencoder):
             return len(self._data[0])
 
         def __getitem__(self, index):
-            return [item[index] for item in self._data]
+            return [item[index] for item in self._data if not item is None]
 
     def get_var_from_np(self, np_array, cuda=None, requires_grad=False):
         if cuda is None:
@@ -1363,7 +1363,7 @@ class autoencoder_torch(autoencoder):
         self._rec_weight = rec_weight
         self._autocorr_weight = autocorr_weight
         self._pearson_weight = pearson_weight
-        self._previous_CVs = previous_CVs
+        self._previous_CVs = previous_CVs - previous_CVs.mean(axis=0) if not previous_CVs is None else None
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if start_from is None:
             self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
@@ -1410,13 +1410,13 @@ class autoencoder_torch(autoencoder):
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
-        train_data = self.My_dataset(self.get_var_from_np(data_in).data,
-                                     self.get_var_from_np(data_out).data)
-        train_set, valid_set = self.get_train_valid_split(train_data)
+        all_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                   self.get_var_from_np(data_out).data, self._previous_CVs)
+        train_set, valid_set = self.get_train_valid_split(all_data)
         print """
 data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_weight = %f, autocorr_weight = %f
 """ % (
-            len(train_data), len(train_set), len(valid_set), self._batch_size, self._rec_weight, self._autocorr_weight)
+            len(all_data), len(train_set), len(valid_set), self._batch_size, self._rec_weight, self._autocorr_weight)
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []
@@ -1426,8 +1426,12 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             temp_train_history, temp_valid_history = [], []
             print index_epoch
             # training
-            for batch_in, batch_out in train_set:
-                loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
+            for item_batch in train_set:
+                if len(item_batch) == 2:   # without previous CVs
+                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
+                elif len(item_batch) == 3:
+                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
+                                                   previous_CVs=item_batch[2])
                 plot_model_loss = False
                 if plot_model_loss:
                     from torchviz import make_dot, make_dot_from_trace
@@ -1435,19 +1439,21 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     model_plot.save('temp_model.dot')  # save model plot for visualization
                 optimizer.zero_grad()
                 loss.backward()
-                loss_list = np.array(
-                    [loss.cpu().data.numpy()])
+                loss_list = np.array([loss.cpu().data.numpy()])
                 # print loss_list
                 temp_train_history.append(loss_list)
                 optimizer.step()
             train_history.append(np.array(temp_train_history).mean(axis=0))
-            # validation
 
-            for batch_in, batch_out in valid_set:
+            # validation
+            for item_batch in valid_set:
                 with torch.no_grad():
-                    loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
-                loss_list = np.array(
-                    [loss.cpu().data.numpy()])
+                    if len(item_batch) == 2:
+                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
+                    elif len(item_batch) == 3:
+                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
+                                                       previous_CVs=item_batch[2])
+                loss_list = np.array([loss.cpu().data.numpy()])
                 temp_valid_history.append(loss_list)
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
             valid_history.append(temp_valid_history)
@@ -1471,7 +1477,8 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             except: pass
         return
 
-    def get_loss(self, batch_in, batch_out, dim_input):
+    def get_loss(self, batch_in, batch_out, dim_input, previous_CVs=None):
+        """previous_CVs are for Pearson loss only"""
         rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
         if self._rec_loss_type == 2:
             rec_loss = 0
@@ -1491,6 +1498,10 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 vx = latent_z_1[:, 0]
                 vy = latent_z_1[:, 1]
                 pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
+                for item_new_CV in [vx, vy]:
+                    for item_old_CV in previous_CVs.T:
+                        pearson_corr += torch.sum(item_new_CV ** item_old_CV) ** 2 / (
+                            torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
                 print pearson_corr.cpu().data.numpy()
                 autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss
