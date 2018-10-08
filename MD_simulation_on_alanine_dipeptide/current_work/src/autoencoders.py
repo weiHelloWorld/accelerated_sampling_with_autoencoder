@@ -1500,11 +1500,14 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             # add pearson correlation loss
             if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
-                vx = latent_z_1[:, 0]
-                vy = latent_z_1[:, 1]
-                pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
-                if not previous_CVs is None:
-                    for item_new_CV in [vx, vy]:
+                new_CVs = [latent_z_1[:, index] for index in range(2)]
+                pearson_corr = 0
+                for xx in range(len(new_CVs) - 1):    # pairwise Pearson loss
+                    for yy in range(xx + 1, len(new_CVs)):
+                        pearson_corr += torch.sum(new_CVs[xx] * new_CVs[yy]) ** 2 / (
+                                torch.sum(new_CVs[xx] ** 2) * torch.sum(new_CVs[yy] ** 2))
+                if not previous_CVs is None:        # Pearson loss with respect to previous CVs
+                    for item_new_CV in new_CVs:
                         for item_old_CV in torch.transpose(previous_CVs, 0, 1):
                             pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
                                 torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
