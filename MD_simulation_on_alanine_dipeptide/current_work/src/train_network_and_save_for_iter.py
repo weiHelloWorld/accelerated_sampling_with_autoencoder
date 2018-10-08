@@ -193,12 +193,17 @@ else:
 
 for item in temp_network_list: item.train(lag_time=args.lag_time)
 
-temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
-max_FVE = np.max(temp_FVE_list)
-print('temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE))
-best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
+if len(temp_network_list) == 1:
+    best_network = temp_network_list[0]
+    if np.all(np.isnan(best_network.get_PCs())):
+        best_network = None
+else:
+    temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
+    max_FVE = np.max(temp_FVE_list)
+    print('temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE))
+    best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
+    assert (isinstance(best_network, autoencoder))
+    assert (best_network.get_fraction_of_variance_explained() == max_FVE)
 
-assert (isinstance(best_network, autoencoder))
-assert (best_network.get_fraction_of_variance_explained() == max_FVE)
 best_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
 print("excited! this is the name of best network: %s" % best_network._filename_to_save_network)  # this line is used to locate file name of neural network

@@ -1508,7 +1508,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                         for item_old_CV in torch.transpose(previous_CVs, 0, 1):
                             pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
                                 torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
-                print pearson_corr.cpu().data.numpy()
+                # print pearson_corr.cpu().data.numpy()
                 autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss
         else:
