@@ -1277,12 +1277,8 @@ class AE_net(nn.Module):
     def weights_init(m):
         if isinstance(m, nn.Linear):
             # use default initializer of Keras for now
-            if 'kengyangyao' in temp_home_directory:
-                nn.init.xavier_uniform_(m.weight.data)
-                nn.init.constant_(m.bias.data, 0)
-            else:
-                nn.init.xavier_uniform(m.weight.data)
-                nn.init.constant(m.bias.data, 0)
+            nn.init.xavier_uniform_(m.weight.data)
+            nn.init.constant_(m.bias.data, 0)
         return
 
     def apply_weight_init(self):
@@ -1335,15 +1331,15 @@ class autoencoder_torch(autoencoder):
             return False
 
     class My_dataset(Dataset):
-        def __init__(self, data_in, data_out):
-            self._data_in = data_in
-            self._data_out = data_out
+        def __init__(self, *data):
+            # accept variable number of arrays to construct dataset
+            self._data = data
 
         def __len__(self):
-            return len(self._data_in)
+            return len(self._data[0])
 
         def __getitem__(self, index):
-            return self._data_in[index], self._data_out[index]
+            return [item[index] for item in self._data if not item is None]
 
     def get_var_from_np(self, np_array, cuda=None, requires_grad=False):
         if cuda is None:
@@ -1354,26 +1350,33 @@ class autoencoder_torch(autoencoder):
 
     def _init_extra(self,
                     network_parameters = CONFIG_4, cuda=True,
-                    include_autocorr = True,    # include autocorrelation loss
-                    rec_loss_type = 0      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
+                    rec_loss_type = 0,      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
+                    rec_weight = 1,         # weight of reconstruction loss
+                    autocorr_weight = 1,       # weight of autocorrelation loss in the loss function
+                    pearson_weight = None,      # weight for pearson correlation loss for imposing orthogonality, None means no pearson loss
+                    previous_CVs = None,       # previous CVs for sequential learning, requiring new CVs be orthogonal to them
+                    start_from=None         # initialize with this model
                     ):
         self._network_parameters = network_parameters
         self._cuda = cuda
-        self._include_autocorr = include_autocorr
         self._rec_loss_type = rec_loss_type
+        self._rec_weight = rec_weight
+        self._autocorr_weight = autocorr_weight
+        self._pearson_weight = pearson_weight
+        self._previous_CVs = previous_CVs - previous_CVs.mean(axis=0) if not previous_CVs is None else None
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
-        self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
-                               activations=act_funcs, hierarchical=self._hierarchical,
-                               hi_variant=self._hi_variant)
-        self._ae.apply_weight_init()
+        if start_from is None:
+            self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
+                                   activations=act_funcs, hierarchical=self._hierarchical,
+                                   hi_variant=self._hi_variant)
+            self._ae.apply_weight_init()
+        else:
+            self._ae = torch.load(start_from)
         if self._cuda: self._ae = self._ae.cuda()
         return
 
     def get_train_valid_split(self, dataset, valid_size=0.2):
-        if 'kengyangyao' in temp_home_directory:
-            from torch.utils.data import SubsetRandomSampler
-        else:
-            from torch.utils.data.sampler import SubsetRandomSampler
+        from torch.utils.data import SubsetRandomSampler
         assert (isinstance(dataset, self.My_dataset))
         # modified from https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
         indices = list(range(len(dataset)))
@@ -1407,11 +1410,18 @@ class autoencoder_torch(autoencoder):
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
-        train_data = self.My_dataset(self.get_var_from_np(data_in).data,
-                                     self.get_var_from_np(data_out).data)
-        train_set, valid_set = self.get_train_valid_split(train_data)
-        print "data size = %d, train set size = %d, valid set size = %d, batch size = %d" % (
-            len(train_data), len(train_set), len(valid_set), self._batch_size)
+        if self._previous_CVs is None:
+            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                       self.get_var_from_np(data_out).data)
+        else:
+            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                       self.get_var_from_np(data_out).data,
+                                       self.get_var_from_np(self._previous_CVs).data)
+        train_set, valid_set = self.get_train_valid_split(all_data)
+        print """
+data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_weight = %f, autocorr_weight = %f
+""" % (
+            len(all_data), len(train_set), len(valid_set), self._batch_size, self._rec_weight, self._autocorr_weight)
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []
@@ -1421,8 +1431,12 @@ class autoencoder_torch(autoencoder):
             temp_train_history, temp_valid_history = [], []
             print index_epoch
             # training
-            for batch_in, batch_out in train_set:
-                loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
+            for item_batch in train_set:
+                if len(item_batch) == 2:   # without previous CVs
+                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
+                elif len(item_batch) == 3:
+                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
+                                                   previous_CVs=item_batch[2])
                 plot_model_loss = False
                 if plot_model_loss:
                     from torchviz import make_dot, make_dot_from_trace
@@ -1430,22 +1444,21 @@ class autoencoder_torch(autoencoder):
                     model_plot.save('temp_model.dot')  # save model plot for visualization
                 optimizer.zero_grad()
                 loss.backward()
-                loss_list = np.array(
-                    [loss.cpu().data.numpy()])
+                loss_list = np.array([loss.cpu().data.numpy()])
                 # print loss_list
                 temp_train_history.append(loss_list)
                 optimizer.step()
             train_history.append(np.array(temp_train_history).mean(axis=0))
-            # validation
 
-            for batch_in, batch_out in valid_set:
-                if 'kengyangyao' in temp_home_directory:
-                    with torch.no_grad():
-                        loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
-                else:
-                    loss, rec_loss = self.get_loss(batch_in, batch_out, temp_in_shape[1])
-                loss_list = np.array(
-                    [loss.cpu().data.numpy()])
+            # validation
+            for item_batch in valid_set:
+                with torch.no_grad():
+                    if len(item_batch) == 2:
+                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
+                    elif len(item_batch) == 3:
+                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
+                                                       previous_CVs=item_batch[2])
+                loss_list = np.array([loss.cpu().data.numpy()])
                 temp_valid_history.append(loss_list)
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
             valid_history.append(temp_valid_history)
@@ -1457,7 +1470,7 @@ class autoencoder_torch(autoencoder):
             axes[0].plot(train_history)
             axes[1].plot(valid_history)
             fig.suptitle(str(self._node_num) + str(self._network_parameters))
-            png_file = 'history_%02d.png' % self._index
+            png_file = 'history_%s.png' % os.path.basename(self._filename_to_save_network)
             Helper_func.backup_rename_file_if_exists(png_file)
             fig.savefig(png_file)
         except:
@@ -1469,13 +1482,14 @@ class autoencoder_torch(autoencoder):
             except: pass
         return
 
-    def get_loss(self, batch_in, batch_out, dim_input):
+    def get_loss(self, batch_in, batch_out, dim_input, previous_CVs=None):
+        """previous_CVs are for Pearson loss only"""
         rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
         if self._rec_loss_type == 2:
             rec_loss = 0
         else:
             rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
-        if self._include_autocorr:
+        if self._autocorr_weight > 0:
             _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
@@ -1485,15 +1499,23 @@ class autoencoder_torch(autoencoder):
             # print autocorr_loss_num.shape, autocorr_loss_den.shape
             autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             # add pearson correlation loss
-            include_pearson = False
-            if include_pearson:   # include pearson correlation for first two CVs as loss function
+            if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
                 vx = latent_z_1[:, 0]
                 vy = latent_z_1[:, 1]
                 pearson_corr = torch.sum(vx * vy) ** 2 / (torch.sum(vx ** 2) * torch.sum(vy ** 2))
-                print pearson_corr.cpu().data.numpy()
-                autocorr_loss = autocorr_loss + pearson_corr
-            loss = rec_loss + autocorr_loss
+                if not previous_CVs is None:
+                    for item_new_CV in [vx, vy]:
+                        for item_old_CV in torch.transpose(previous_CVs, 0, 1):
+                            pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
+                                torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
+                # print pearson_corr.cpu().data.numpy()
+                autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
+            loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss
         else:
+            if self._autocorr_weight != 1.0:
+                print ('warning: autocorrelation loss weight has no effect for model with reconstruction loss only')
+            if self._rec_weight != 1.0:
+                print ('warning: reconstruction loss weight has no effect for model with reconstruction loss only')
             loss = rec_loss
         return loss, rec_loss
 
@@ -1525,10 +1547,7 @@ class autoencoder_torch(autoencoder):
     def get_output_data(self, input_data=None):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
-        if temp_home_directory == '/home/kengyangyao':    # temp code for dealing with blue waters issues
-            with torch.no_grad():
-                result = self._ae(self.get_var_from_np(input_data))[0]
-        else:
+        with torch.no_grad():
             result = self._ae(self.get_var_from_np(input_data))[0]
         if self._cuda: result = result.cpu()
         return result.data.numpy()
@@ -1536,10 +1555,7 @@ class autoencoder_torch(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
-        if temp_home_directory == '/home/kengyangyao':  # temp code for dealing with blue waters issues
-            with torch.no_grad():
-                result = self._ae(self.get_var_from_np(input_data))[1]
-        else:
+        with torch.no_grad():
             result = self._ae(self.get_var_from_np(input_data))[1]
         if self._cuda: result = result.cpu()
         return result.data.numpy()

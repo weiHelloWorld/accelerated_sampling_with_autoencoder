@@ -19,10 +19,14 @@ parser.add_argument('--node_num', type=str, default=None, help="node number")
 parser.add_argument('--batch_size', type=int, default=None, help='batch size')
 parser.add_argument('--auto_dim', type=int, default=CONFIG_79, help="automatically determine input/output dim based on data")
 parser.add_argument('--auto_scale', type=int, default=False, help="automatically scale inputs and outputs")
+parser.add_argument('--save_to_data_files', type=str, default=None, help="save training data to external files if it is not None, example: 'temp_in.npy,temp_out.npy' ")
 parser.add_argument('--lag_time', type=int, default=0, help='lag time for time lagged autoencoder')
 parser.add_argument('--rec_loss_type', type=int, default=True, help='0: standard rec loss, 1: lagged rec loss, 2: no rec loss (pytorch only)')
-parser.add_argument('--include_autocorr', type=int, default=True, help='whether to include autocorrelation loss (pytorch only)')
-parser.add_argument('--save_to_data_files', type=str, default=None, help="save training data to external files if it is not None, example: 'temp_in.npy,temp_out.npy' ")
+parser.add_argument('--rec_weight', type=float, default=1.0, help='weight of reconstruction loss (pytorch only)')
+parser.add_argument('--autocorr_weight', type=float, default=1.0, help='weight of autocorrelation loss in the loss function (pytorch only)')
+parser.add_argument('--pearson_weight', type=float, default=None, help='weight of pearson loss (pytorch only)')
+parser.add_argument('--previous_CVs', type=str, default=None, help='npy file containing previous CVs to compute pearson loss (pytorch only)')
+parser.add_argument('--sf', type=str, default=None, help='model to start with (pytorch only)')
 args = parser.parse_args()
 
 def get_data_from_folder(temp_folder, input_type, output_type):
@@ -172,7 +176,12 @@ if CONFIG_45 == 'keras':
                                          ) for _ in range(args.num_of_trainings)]
 elif CONFIG_45 == 'pytorch':
     additional_argument_list['rec_loss_type'] = args.rec_loss_type
-    additional_argument_list['include_autocorr'] = args.include_autocorr
+    additional_argument_list['start_from'] = args.sf
+    additional_argument_list['rec_weight'] = args.rec_weight
+    additional_argument_list['autocorr_weight'] = args.autocorr_weight
+    additional_argument_list['pearson_weight'] = args.pearson_weight
+    if not args.previous_CVs is None:
+        additional_argument_list['previous_CVs'] = np.load(args.previous_CVs)
     temp_network_list = [autoencoder_torch(index=args.index,
                                            data_set_for_training=data_set,
                                            output_data_set=output_data_set,
@@ -184,12 +193,17 @@ else:
 
 for item in temp_network_list: item.train(lag_time=args.lag_time)
 
-temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
-max_FVE = np.max(temp_FVE_list)
-print('temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE))
-best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
+if len(temp_network_list) == 1:
+    best_network = temp_network_list[0]
+    if np.all(np.isnan(best_network.get_PCs())):
+        best_network = None
+else:
+    temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
+    max_FVE = np.max(temp_FVE_list)
+    print('temp_FVE_list = %s, max_FVE = %f' % (str(temp_FVE_list), max_FVE))
+    best_network = temp_network_list[temp_FVE_list.index(max_FVE)]
+    assert (isinstance(best_network, autoencoder))
+    assert (best_network.get_fraction_of_variance_explained() == max_FVE)
 
-assert (isinstance(best_network, autoencoder))
-assert (best_network.get_fraction_of_variance_explained() == max_FVE)
 best_network.save_into_file(fraction_of_data_to_be_saved=fraction_of_data_to_be_saved)
 print("excited! this is the name of best network: %s" % best_network._filename_to_save_network)  # this line is used to locate file name of neural network
