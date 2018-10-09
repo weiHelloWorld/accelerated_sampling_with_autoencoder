@@ -1494,25 +1494,41 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
             latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
-            autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-            autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
-            # print autocorr_loss_num.shape, autocorr_loss_den.shape
-            autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-            # add pearson correlation loss
-            if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
-                new_CVs = [latent_z_1[:, index] for index in range(2)]
-                pearson_corr = 0
-                for xx in range(len(new_CVs) - 1):    # pairwise Pearson loss
-                    for yy in range(xx + 1, len(new_CVs)):
-                        pearson_corr += torch.sum(new_CVs[xx] * new_CVs[yy]) ** 2 / (
-                                torch.sum(new_CVs[xx] ** 2) * torch.sum(new_CVs[yy] ** 2))
-                if not previous_CVs is None:        # Pearson loss with respect to previous CVs
-                    for item_new_CV in new_CVs:
-                        for item_old_CV in torch.transpose(previous_CVs, 0, 1):
-                            pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
-                                torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
-                # print pearson_corr.cpu().data.numpy()
-                autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
+            constraint_type = 'natural'
+            if constraint_type == 'regularization':
+                autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
+                autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+                # print autocorr_loss_num.shape, autocorr_loss_den.shape
+                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+                # add pearson correlation loss
+                if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
+                    new_CVs = [latent_z_1[:, index] for index in range(2)]
+                    pearson_corr = 0
+                    for xx in range(len(new_CVs) - 1):    # pairwise Pearson loss
+                        for yy in range(xx + 1, len(new_CVs)):
+                            pearson_corr += torch.sum(new_CVs[xx] * new_CVs[yy]) ** 2 / (
+                                    torch.sum(new_CVs[xx] ** 2) * torch.sum(new_CVs[yy] ** 2))
+                    if not previous_CVs is None:        # Pearson loss with respect to previous CVs
+                        for item_new_CV in new_CVs:
+                            for item_old_CV in torch.transpose(previous_CVs, 0, 1):
+                                pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
+                                    torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
+                    # print pearson_corr.cpu().data.numpy()
+                    autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
+            elif constraint_type == 'natural':
+                if previous_CVs is None: raise Exception('not implemented')
+                for item_old_CV in torch.transpose(previous_CVs, 0, 1):
+                    scaling_factor = torch.mean(item_old_CV * item_old_CV)
+                    item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
+                    latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV) / scaling_factor
+                    latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV) / scaling_factor
+                    # print torch.mean(latent_z_1, dim=0).cpu().data.numpy(), torch.max(latent_z_1, dim=0)[0].cpu().data.numpy()
+                    assert (latent_z_1.shape[1] == 2)
+                    autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
+                    autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+                    temp_ratio = autocorr_loss_num / autocorr_loss_den
+                    print temp_ratio.cpu().data.numpy()
+                    autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss
         else:
             if self._autocorr_weight != 1.0:
