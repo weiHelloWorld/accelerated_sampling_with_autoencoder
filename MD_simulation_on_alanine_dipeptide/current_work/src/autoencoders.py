@@ -1491,10 +1491,14 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             rec_loss = nn.MSELoss()(rec_x, Variable(batch_out))
         if self._autocorr_weight > 0:
             _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
+            include_mean_penalty = False
+            if include_mean_penalty:
+                mean_penalty = 0.01 * torch.sum(torch.mean(latent_z_1, dim=0) ** 2)
+            else: mean_penalty = 0
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
             latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
-            constraint_type = 'natural'
+            constraint_type = 'regularization'
             if constraint_type == 'regularization':
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
                 autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
@@ -1529,7 +1533,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     temp_ratio = autocorr_loss_num / autocorr_loss_den
                     print temp_ratio.cpu().data.numpy()
                     autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-            loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss
+            loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty
         else:
             if self._autocorr_weight != 1.0:
                 print ('warning: autocorrelation loss weight has no effect for model with reconstruction loss only')
