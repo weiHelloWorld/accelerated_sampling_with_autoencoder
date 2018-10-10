@@ -1492,13 +1492,13 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
         if self._autocorr_weight > 0:
             _, latent_z_2 = self._ae(Variable(batch_in[:, dim_input:]))
             include_mean_penalty = False
-            if include_mean_penalty:
+            if include_mean_penalty:     # TODO: fix this, merge mean_penalty and component_penalty in the future
                 mean_penalty = 0.01 * torch.sum(torch.mean(latent_z_1, dim=0) ** 2)
             else: mean_penalty = 0
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
             latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
-            constraint_type = 'regularization'
+            constraint_type = 'natural'
             if constraint_type == 'regularization':
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
                 autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
@@ -1524,16 +1524,18 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 for item_old_CV in torch.transpose(previous_CVs, 0, 1):
                     scaling_factor = torch.mean(item_old_CV * item_old_CV)
                     item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
+                    component_penalty = 1 * torch.sum(torch.mean(latent_z_1 * item_old_CV, dim=0) ** 2)
+                    print (torch.mean(latent_z_1 * item_old_CV, dim=0) ** 2).cpu().data.numpy(), torch.mean(item_old_CV).cpu().data.numpy(), torch.std(item_old_CV).cpu().data.numpy()
                     latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV) / scaling_factor
                     latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV) / scaling_factor
                     # print torch.mean(latent_z_1, dim=0).cpu().data.numpy(), torch.max(latent_z_1, dim=0)[0].cpu().data.numpy()
                     assert (latent_z_1.shape[1] == 2)
-                    autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                    autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
-                    temp_ratio = autocorr_loss_num / autocorr_loss_den
-                    print temp_ratio.cpu().data.numpy()
-                    autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-            loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty
+                autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
+                autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+                # temp_ratio = autocorr_loss_num / autocorr_loss_den
+                # print temp_ratio.cpu().data.numpy()
+                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+            loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
             if self._autocorr_weight != 1.0:
                 print ('warning: autocorrelation loss weight has no effect for model with reconstruction loss only')
