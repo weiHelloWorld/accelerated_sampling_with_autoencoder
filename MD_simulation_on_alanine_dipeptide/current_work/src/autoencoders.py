@@ -1504,7 +1504,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             constraint_type = 'natural'
             if constraint_type == 'regularization':
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+                autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
                 # print autocorr_loss_num.shape, autocorr_loss_den.shape
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
                 # add pearson correlation loss
@@ -1529,18 +1529,20 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
                     component_penalty = 0.01 * torch.sum((torch.mean(latent_z_1 * item_old_CV, dim=0)
                                                         / torch.std(latent_z_1, dim=0)) ** 2)
-                    print np.std(self.get_np(latent_z_1), axis=0), np.std(self.get_np(item_old_CV))
-                    print self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0) ** 2), \
-                        self.get_np(torch.mean(item_old_CV)), self.get_np(torch.std(item_old_CV))
+                    print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
+                        str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
+                        str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
                     latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV) / scaling_factor
                     latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV) / scaling_factor
                     # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
                     assert (latent_z_1.shape[1] == 2)
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
+                autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
                 # temp_ratio = autocorr_loss_num / autocorr_loss_den
                 # print self.get_np(temp_ratio)
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+                print "c", self.get_np(autocorr_loss_num), self.get_np(autocorr_loss_den), self.get_np(
+                    autocorr_loss_num / autocorr_loss_den)
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
             if self._autocorr_weight != 1.0:
