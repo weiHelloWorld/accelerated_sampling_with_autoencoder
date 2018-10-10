@@ -1532,8 +1532,11 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
                         str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
                         str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
-                    latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV) / scaling_factor
-                    latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV) / scaling_factor
+                    latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV, dim=0) / scaling_factor
+                    latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV, dim=0) / scaling_factor
+                    print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
+                        str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
+                        str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
                     # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
                     assert (latent_z_1.shape[1] == 2)
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
