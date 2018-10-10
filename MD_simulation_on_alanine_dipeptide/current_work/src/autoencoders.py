@@ -1348,6 +1348,9 @@ class autoencoder_torch(autoencoder):
         if cuda: temp = temp.cuda()
         return temp
 
+    def get_np(self, tensor):
+        return tensor.cpu().data.numpy()
+
     def _init_extra(self,
                     network_parameters = CONFIG_4, cuda=True,
                     rec_loss_type = 0,      # 0: standard rec loss, 1: lagged rec loss, 2: no rec loss
@@ -1444,7 +1447,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     model_plot.save('temp_model.dot')  # save model plot for visualization
                 optimizer.zero_grad()
                 loss.backward()
-                loss_list = np.array([loss.cpu().data.numpy()])
+                loss_list = np.array([self.get_np(loss)])
                 # print loss_list
                 temp_train_history.append(loss_list)
                 optimizer.step()
@@ -1458,7 +1461,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     elif len(item_batch) == 3:
                         loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
                                                        previous_CVs=item_batch[2])
-                loss_list = np.array([loss.cpu().data.numpy()])
+                loss_list = np.array([self.get_np(loss)])
                 temp_valid_history.append(loss_list)
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
             valid_history.append(temp_valid_history)
@@ -1517,23 +1520,26 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                             for item_old_CV in torch.transpose(previous_CVs, 0, 1):
                                 pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
                                     torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
-                    # print pearson_corr.cpu().data.numpy()
+                    # print self.get_np(pearson_corr)
                     autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
             elif constraint_type == 'natural':
                 if previous_CVs is None: raise Exception('not implemented')
                 for item_old_CV in torch.transpose(previous_CVs, 0, 1):
                     scaling_factor = torch.mean(item_old_CV * item_old_CV)
                     item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
-                    component_penalty = 1 * torch.sum(torch.mean(latent_z_1 * item_old_CV, dim=0) ** 2)
-                    print (torch.mean(latent_z_1 * item_old_CV, dim=0) ** 2).cpu().data.numpy(), torch.mean(item_old_CV).cpu().data.numpy(), torch.std(item_old_CV).cpu().data.numpy()
+                    component_penalty = 0.01 * torch.sum((torch.mean(latent_z_1 * item_old_CV, dim=0)
+                                                        / torch.std(latent_z_1, dim=0)) ** 2)
+                    print np.std(self.get_np(latent_z_1), axis=0), np.std(self.get_np(item_old_CV))
+                    print self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0) ** 2), \
+                        self.get_np(torch.mean(item_old_CV)), self.get_np(torch.std(item_old_CV))
                     latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV) / scaling_factor
                     latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV) / scaling_factor
-                    # print torch.mean(latent_z_1, dim=0).cpu().data.numpy(), torch.max(latent_z_1, dim=0)[0].cpu().data.numpy()
+                    # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
                     assert (latent_z_1.shape[1] == 2)
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
                 autocorr_loss_den = torch.norm(latent_z_1, dim=0) * torch.norm(latent_z_2, dim=0)
                 # temp_ratio = autocorr_loss_num / autocorr_loss_den
-                # print temp_ratio.cpu().data.numpy()
+                # print self.get_np(temp_ratio)
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
