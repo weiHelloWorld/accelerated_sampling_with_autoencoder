@@ -1509,7 +1509,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
                 # add pearson correlation loss
                 if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
-                    new_CVs = [latent_z_1[:, index] for index in range(2)]
+                    new_CVs = [latent_z_1[:, index] for index in range(latent_z_1.shape[1])]
                     pearson_corr = 0
                     for xx in range(len(new_CVs) - 1):    # pairwise Pearson loss
                         for yy in range(xx + 1, len(new_CVs)):
@@ -1523,29 +1523,30 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     # print self.get_np(pearson_corr)
                     autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
             elif constraint_type == 'natural':
-                if previous_CVs is None: raise Exception('not implemented')
-                for item_old_CV in torch.transpose(previous_CVs, 0, 1):
-                    scaling_factor = torch.mean(item_old_CV * item_old_CV)
-                    item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
-                    component_penalty = 0.01 * torch.sum((torch.mean(latent_z_1 * item_old_CV, dim=0)
-                                                        / torch.std(latent_z_1, dim=0)) ** 2)
-                    print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
-                        str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
-                        str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
-                    latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV, dim=0) / scaling_factor
-                    latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV, dim=0) / scaling_factor
-                    print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
-                        str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
-                        str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
-                    # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
-                    assert (latent_z_1.shape[1] == 2)
+                if not previous_CVs is None:
+                    for item_old_CV in torch.transpose(previous_CVs, 0, 1):
+                        scaling_factor = torch.mean(item_old_CV * item_old_CV)
+                        item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
+                        component_penalty = 0.0 * torch.sum((torch.mean(latent_z_1 * item_old_CV, dim=0)
+                                                            / torch.std(latent_z_1, dim=0)) ** 2)
+                        # print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
+                        #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
+                        #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
+                        latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV, dim=0) / scaling_factor
+                        latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV, dim=0) / scaling_factor
+                        # print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
+                        #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
+                        #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
+                        # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
+                        assert (latent_z_1.shape[1] == 2)
+                else: component_penalty = 0
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
                 autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
                 # temp_ratio = autocorr_loss_num / autocorr_loss_den
                 # print self.get_np(temp_ratio)
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-                print "c", self.get_np(autocorr_loss_num), self.get_np(autocorr_loss_den), self.get_np(
-                    autocorr_loss_num / autocorr_loss_den)
+                # print "c", self.get_np(autocorr_loss_num), self.get_np(autocorr_loss_den), self.get_np(
+                #     autocorr_loss_num / autocorr_loss_den)
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
             if self._autocorr_weight != 1.0:
