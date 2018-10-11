@@ -1538,7 +1538,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                         #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
                         #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
                         # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
-                        assert (latent_z_1.shape[1] == 2)
+                        # assert (latent_z_1.shape[1] == 2)
                 else: component_penalty = 0
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
                 autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
@@ -1589,10 +1589,10 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
         if self._cuda: result = result.cpu()
         return result.data.numpy()
 
-    def get_PCs(self, input_data=None):
+    def get_PCs(self, input_data=None, cuda=False):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
+        if not cuda and self._cuda: self._ae = self._ae.cpu()
         with torch.no_grad():
-            result = self._ae(self.get_var_from_np(input_data))[1]
-        if self._cuda: result = result.cpu()
+            result = self._ae(self.get_var_from_np(input_data, cuda=cuda))[1]
         return result.data.numpy()
