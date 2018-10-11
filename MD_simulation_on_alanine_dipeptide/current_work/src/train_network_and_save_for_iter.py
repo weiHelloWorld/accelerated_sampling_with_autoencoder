@@ -195,8 +195,8 @@ for item in temp_network_list: item.train(lag_time=args.lag_time)
 
 if len(temp_network_list) == 1:
     best_network = temp_network_list[0]
-    if np.all(np.isnan(best_network.get_PCs())):
-        best_network = None
+    # if np.all(np.isnan(best_network.get_PCs())):
+    #     best_network = None
 else:
     temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
     max_FVE = np.max(temp_FVE_list)
