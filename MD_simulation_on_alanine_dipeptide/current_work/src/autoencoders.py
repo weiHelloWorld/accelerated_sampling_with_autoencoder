@@ -1530,12 +1530,12 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                         item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
                         component_penalty += 0.0 * torch.sum((torch.mean(latent_z_1 * item_old_CV, dim=0)
                                                             / torch.std(latent_z_1, dim=0)) ** 2)
-                        # print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
+                        # print "std_z = %s, std_old_CV = %f, coeff_psi = %s, component_penalty = %f" % (
                         #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
                         #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
                         latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV, dim=0) / scaling_factor
                         latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV, dim=0) / scaling_factor
-                        # print "std_z = %s, std_old_CV = %f, coeff_psi_1 = %s, component_penalty = %f" % (
+                        # print "std_z = %s, std_old_CV = %f, coeff_psi = %s, component_penalty = %f" % (
                         #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
                         #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
                         # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
