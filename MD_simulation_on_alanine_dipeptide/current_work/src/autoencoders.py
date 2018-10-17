@@ -1501,7 +1501,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
             latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
-            constraint_type = 'natural_simultaneous'
+            constraint_type = 'natural'
             if constraint_type == 'regularization':
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
                 autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
