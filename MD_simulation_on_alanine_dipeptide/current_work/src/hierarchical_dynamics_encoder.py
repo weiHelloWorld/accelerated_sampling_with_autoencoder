@@ -30,28 +30,25 @@ class HDE(object):
         machine_independent_run.run_commands(machine_to_run_simulations='local',
                                              commands=commands, cuda=True, max_num_failed_jobs=1)
         model_pkls = glob.glob("%s/*.pkl" % folder_for_model)
-        best_model, max_autocorr = None, 0
+        best_CV, max_autocorr = None, 0
         for item in model_pkls:
             model = autoencoder_torch.load_from_pkl_file(item)
-            CVs = model.get_PCs()
-            autocorr_current = Helper_func.get_autocorr(CVs.flatten(), self._lag_time)
-            if not np.isnan(autocorr_current) and autocorr_current > max_autocorr:
-                max_autocorr = autocorr_current
-                best_model = item
-                print best_model
-        if save_CV_for_best_model:
-            model = autoencoder_torch.load_from_pkl_file(best_model)
-            temp_CV = model.get_PCs().flatten()
+            CVs = model.get_PCs().flatten()
             if not previous_CVs is None:
                 for item_previous in previous_CVs.strip().split(','):   # remove contribution of previous CVs (gram-schmidt)
                     item_previous_CV = np.load(item_previous).flatten()
-                    temp_CV -= (np.mean(item_previous_CV * temp_CV) * item_previous_CV / np.mean(
+                    CVs -= (np.mean(item_previous_CV * CVs) * item_previous_CV / np.mean(
                         item_previous_CV * item_previous_CV)).flatten()
-                    assert (np.mean(temp_CV * item_previous_CV) < 1.0e-5), np.mean(temp_CV * item_previous_CV)
-            temp_CV -= temp_CV.mean()
-            temp_CV /= np.std(temp_CV)
-            np.save('CV%02d' % iter_index, temp_CV.reshape(temp_CV.shape[0], 1))
-        return commands, best_model
+                    assert (np.mean(CVs * item_previous_CV) < 1.0e-5), np.mean(CVs * item_previous_CV)
+            autocorr_current = Helper_func.get_autocorr(CVs.flatten(), self._lag_time)
+            if not np.isnan(autocorr_current) and autocorr_current > max_autocorr:
+                max_autocorr = autocorr_current
+                best_CV = CVs
+        if save_CV_for_best_model:
+            best_CV -= best_CV.mean()
+            best_CV /= np.std(best_CV)
+            np.save('CV%02d' % iter_index, best_CV.reshape(best_CV.shape[0], 1))
+        return commands, best_CV
 
     def run_many_iters(self):
         for item in range(1, self._n_iter + 1):
