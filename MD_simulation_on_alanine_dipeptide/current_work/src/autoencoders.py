@@ -1611,18 +1611,18 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
         a.helper_load_data(filename)
         return a
 
-    def get_output_data(self, input_data=None):
-        if input_data is None: input_data = self._data_set
-        self._ae.eval()
-        with torch.no_grad():
-            result = self._ae(self.get_var_from_np(input_data))[0]
-        if self._cuda: result = result.cpu()
-        return result.data.numpy()
-
-    def get_PCs(self, input_data=None, cuda=False):
+    def get_output_and_PCs(self, input_data=None, cuda=False):
         if input_data is None: input_data = self._data_set
         self._ae.eval()
         if not cuda and self._cuda: self._ae = self._ae.cpu()
         with torch.no_grad():
-            result = self._ae(self.get_var_from_np(input_data, cuda=cuda))[1]
-        return result.data.numpy()
+            result = self._ae(self.get_var_from_np(input_data, cuda=cuda))
+        result = [item.cpu().data.numpy() for item in result]
+        return result
+
+    def get_output_data(self, input_data=None, cuda=False):
+        return self.get_output_and_PCs(input_data, cuda)[0]
+
+    def get_PCs(self, input_data=None, cuda=False):
+        return self.get_output_and_PCs(input_data, cuda)[1]
+    
