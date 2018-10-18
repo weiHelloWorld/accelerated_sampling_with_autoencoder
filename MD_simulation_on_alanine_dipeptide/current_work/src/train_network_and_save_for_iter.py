@@ -25,7 +25,7 @@ parser.add_argument('--rec_loss_type', type=int, default=True, help='0: standard
 parser.add_argument('--rec_weight', type=float, default=1.0, help='weight of reconstruction loss (pytorch only)')
 parser.add_argument('--autocorr_weight', type=float, default=1.0, help='weight of autocorrelation loss in the loss function (pytorch only)')
 parser.add_argument('--pearson_weight', type=float, default=None, help='weight of pearson loss (pytorch only)')
-parser.add_argument('--previous_CVs', type=str, default=None, help='npy file containing previous CVs to compute pearson loss (pytorch only)')
+parser.add_argument('--previous_CVs', type=str, default=None, help='npy file list containing previous CVs to compute pearson loss (pytorch only)')
 parser.add_argument('--sf', type=str, default=None, help='model to start with (pytorch only)')
 args = parser.parse_args()
 
@@ -181,7 +181,9 @@ elif CONFIG_45 == 'pytorch':
     additional_argument_list['autocorr_weight'] = args.autocorr_weight
     additional_argument_list['pearson_weight'] = args.pearson_weight
     if not args.previous_CVs is None:
-        additional_argument_list['previous_CVs'] = np.load(args.previous_CVs)
+        previous_CVs_list = args.previous_CVs.strip().split(',')
+        additional_argument_list['previous_CVs'] = np.concatenate([
+            np.load(item) for item in previous_CVs_list], axis=-1)
     temp_network_list = [autoencoder_torch(index=args.index,
                                            data_set_for_training=data_set,
                                            output_data_set=output_data_set,
@@ -195,8 +197,8 @@ for item in temp_network_list: item.train(lag_time=args.lag_time)
 
 if len(temp_network_list) == 1:
     best_network = temp_network_list[0]
-    if np.all(np.isnan(best_network.get_PCs())):
-        best_network = None
+    # if np.all(np.isnan(best_network.get_PCs())):
+    #     best_network = None
 else:
     temp_FVE_list = [item.get_fraction_of_variance_explained() for item in temp_network_list]
     max_FVE = np.max(temp_FVE_list)
