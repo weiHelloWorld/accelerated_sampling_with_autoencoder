@@ -41,7 +41,14 @@ class HDE(object):
                 print best_model
         if save_CV_for_best_model:
             model = autoencoder_torch.load_from_pkl_file(best_model)
-            np.save('CV%02d' % iter_index, model.get_PCs())
+            temp_CV = model.get_PCs().flatten()
+            if not previous_CVs is None:
+                for item_previous in previous_CVs.strip().split(','):   # remove contribution of previous CVs (gram-schmidt)
+                    item_previous_CV = np.load(item_previous).flatten()
+                    temp_CV -= (np.mean(item_previous_CV * temp_CV) * item_previous_CV / np.mean(
+                        item_previous_CV * item_previous_CV)).flatten()
+                    assert (np.mean(temp_CV * item_previous_CV) < 1.0e-5), np.mean(temp_CV * item_previous_CV)
+            np.save('CV%02d' % iter_index, temp_CV.reshape(temp_CV.shape[0], 1))
         return commands, best_model
 
     def run_many_iters(self):
@@ -55,7 +62,6 @@ class HDE(object):
         return
 
 if __name__ == "__main__":
-    hde = HDE('pairwise_dis.npy', 3, 1000, ['1e-3', '5e-4'], 500, 100, 3)
+    hde = HDE('pairwise_dis.npy', 3, 1000, ['5e-4', '1e-4'], 500, 100, 3)
     # hde.run_one_iter(1)
     hde.run_many_iters()
-    
