@@ -48,6 +48,8 @@ class HDE(object):
                     temp_CV -= (np.mean(item_previous_CV * temp_CV) * item_previous_CV / np.mean(
                         item_previous_CV * item_previous_CV)).flatten()
                     assert (np.mean(temp_CV * item_previous_CV) < 1.0e-5), np.mean(temp_CV * item_previous_CV)
+            temp_CV -= temp_CV.mean()
+            temp_CV /= np.std(temp_CV)
             np.save('CV%02d' % iter_index, temp_CV.reshape(temp_CV.shape[0], 1))
         return commands, best_model
 
