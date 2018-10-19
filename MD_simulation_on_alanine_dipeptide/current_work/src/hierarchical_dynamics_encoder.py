@@ -34,16 +34,19 @@ class HDE(object):
         for item in model_pkls:
             model = autoencoder_torch.load_from_pkl_file(item)
             CVs = model.get_PCs().flatten()
-            if not previous_CVs is None:
-                for item_previous in previous_CVs.strip().split(','):   # remove contribution of previous CVs (gram-schmidt)
-                    item_previous_CV = np.load(item_previous).flatten()
-                    CVs -= (np.mean(item_previous_CV * CVs) * item_previous_CV / np.mean(
-                        item_previous_CV * item_previous_CV)).flatten()
-                    assert (np.mean(CVs * item_previous_CV) < 1.0e-5), np.mean(CVs * item_previous_CV)
-            autocorr_current = Helper_func.get_autocorr(CVs.flatten(), self._lag_time)
-            if not np.isnan(autocorr_current) and autocorr_current > max_autocorr:
-                max_autocorr = autocorr_current
-                best_CV = CVs
+            if not np.any(np.isnan(CVs)):
+                if not previous_CVs is None:
+                    for item_previous in previous_CVs.strip().split(','):   # remove contribution of previous CVs (gram-schmidt)
+                        item_previous_CV = np.load(item_previous).flatten()
+                        CVs -= (np.mean(item_previous_CV * CVs) * item_previous_CV / np.mean(
+                            item_previous_CV * item_previous_CV)).flatten()
+                        assert (np.mean(CVs * item_previous_CV) / (
+                                np.std(CVs) * np.std(item_previous_CV)) < 1.0e-5), np.mean(CVs * item_previous_CV) / (
+                                np.std(CVs) * np.std(item_previous_CV))
+                autocorr_current = Helper_func.get_autocorr(CVs.flatten(), self._lag_time)
+                if not np.isnan(autocorr_current) and autocorr_current > max_autocorr:
+                    max_autocorr = autocorr_current
+                    best_CV = CVs
         if save_CV_for_best_model:
             best_CV -= best_CV.mean()
             best_CV /= np.std(best_CV)
@@ -61,6 +64,6 @@ class HDE(object):
         return
 
 if __name__ == "__main__":
-    hde = HDE('pairwise_dis.npy', 3, 1000, ['5e-4', '1e-4'], 500, 100, 3)
+    hde = HDE('pairwise_dis.npy', 3, 100, ['5e-4', '1e-4'], 500, 100, 3)
     # hde.run_one_iter(1)
     hde.run_many_iters()
