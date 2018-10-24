@@ -19,6 +19,7 @@ class Kernel_tica(object):
         self._gamma = gamma
         self._nystroem = Nystroem(gamma=gamma, n_components=n_components_nystroem)
         self._tica = tICA(n_components=n_components, lag_time=lag_time, shrinkage=shrinkage)
+        self._shrinkage = shrinkage
         return
 
     def fit(self, sequence):
@@ -38,3 +39,10 @@ class Kernel_tica(object):
     def fit_transform(self, sequence):
         self.fit(sequence)
         return self.transform(sequence)
+
+    def score(self, sequence):
+        model = self.__class__(n_components = self._n_components, lag_time=self._lag_time, gamma=self._gamma,
+                               n_components_nystroem=self._n_components_nystroem, landmarks=self._landmarks,
+                               shrinkage=self._shrinkage)
+        model.fit(sequence)
+        return np.sum(model._tica.eigenvalues_)
