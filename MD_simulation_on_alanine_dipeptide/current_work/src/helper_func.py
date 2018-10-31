@@ -250,3 +250,7 @@ class Helper_func(object):
             assert_almost_equal(tica.transform([result])[0], data)
             result_list.append(result)
         return result_list
+
+    @staticmethod
+    def get_autocorr(x_list, lag_time):
+        return np.corrcoef(np.array([x_list[0:len(x_list) - lag_time], x_list[lag_time:len(x_list)]]))[0, 1]

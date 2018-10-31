@@ -106,7 +106,7 @@ class autoencoder(object):
         ae = autoencoder.load_from_pkl_file(model_pkl)
         assert (isinstance(ae, autoencoder))
         ae._data_files = data_files
-        print "data_files = %s" % str(ae._data_files)
+        print("data_files = %s" % str(ae._data_files))
         ae.save_into_file(model_pkl)
         return
     
@@ -131,7 +131,7 @@ class autoencoder(object):
             data_file_paths = [os.path.join(folder_of_pkl, item_file) for item_file in self._data_files]    # use relative paths to store data files to avoid issue when loading model from a different directory (e.g. from Jupyter notebook)
             data_file_paths[0] = Helper_func.attempt_to_save_npy(data_file_paths[0], self._data_set)       # save to external files
             data_file_paths[1] = Helper_func.attempt_to_save_npy(data_file_paths[1], self._output_data_set)
-            print data_file_paths
+            print(data_file_paths)
             self._data_files = [os.path.basename(item_1) for item_1 in data_file_paths]   # restore relative paths
             self._data_set = self._output_data_set = None
         else:
@@ -893,7 +893,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 num_failed_jobs = Helper_func.run_multiple_jobs_on_local_machine(
                     command_list, num_of_jobs_in_parallel=2)
             else:
-                for item_commad in command_list: print item_commad
+                for item_commad in command_list: print(item_commad)
                 return
             print("num_failed_jobs = %d" % num_failed_jobs)
         return
@@ -1121,7 +1121,7 @@ class autoencoder_Keras(autoencoder):
                 temp_weights, data_for_pretraining, fve = self.layerwise_pretrain(
                     data_for_pretraining, self._node_num[index_layer - 1], self._node_num[index_layer])
                 molecule_net.layers[index_layer].set_weights(temp_weights)
-                print "fve of pretraining for layer %d = %f" % (index_layer, fve)
+                print("fve of pretraining for layer %d = %f" % (index_layer, fve))
 
         training_print_info = '''training, index = %d, maxEpochs = %d, node_num = %s, layers = %s, num_data = %d,
 parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should not be less than %f (PCA)\n''' % (
@@ -1421,10 +1421,10 @@ class autoencoder_torch(autoencoder):
                                        self.get_var_from_np(data_out).data,
                                        self.get_var_from_np(self._previous_CVs).data)
         train_set, valid_set = self.get_train_valid_split(all_data)
-        print """
+        print("""
 data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_weight = %f, autocorr_weight = %f
 """ % (
-            len(all_data), len(train_set), len(valid_set), self._batch_size, self._rec_weight, self._autocorr_weight)
+            len(all_data), len(train_set), len(valid_set), self._batch_size, self._rec_weight, self._autocorr_weight))
         optimizer = torch.optim.Adam(self._ae.parameters(), lr=self._network_parameters[0], weight_decay=0)
         self._ae.train()    # set to training mode
         train_history, valid_history = [], []
@@ -1432,7 +1432,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
 
         for index_epoch in range(self._epochs):
             temp_train_history, temp_valid_history = [], []
-            print index_epoch
+            print(index_epoch)
             # training
             for item_batch in train_set:
                 if len(item_batch) == 2:   # without previous CVs
@@ -1466,7 +1466,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
             valid_history.append(temp_valid_history)
             if my_early_stopping.step(temp_valid_history[-1]):    # monitor loss
-                print "best in history is %f, current is %f" % (my_early_stopping._best, temp_valid_history[-1])
+                print("best in history is %f, current is %f" % (my_early_stopping._best, temp_valid_history[-1]))
                 break             # early stopping
         try:
             fig, axes = plt.subplots(1, 2)
@@ -1561,7 +1561,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                         latent_z_1_list[item_1] = latent_z_1_list[item_1] - latent_z_1_list[item_2] * torch.mean(
                             latent_z_1_list[item_2] * latent_z_1_list[item_1]
                         ) / scaling_factor
-                        print self.get_np(torch.mean(latent_z_1_list[item_2] * latent_z_1_list[item_1]))
+                        print(self.get_np(torch.mean(latent_z_1_list[item_2] * latent_z_1_list[item_1])))
                 latent_z_1 = torch.stack(latent_z_1_list, dim=-1)
                 # print latent_z_1.shape
                 latent_z_2_list = [latent_z_2[:, item] for item in range(latent_z_2.shape[1])]
@@ -1580,9 +1580,9 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
             if self._autocorr_weight != 1.0:
-                print ('warning: autocorrelation loss weight has no effect for model with reconstruction loss only')
+                print('warning: autocorrelation loss weight has no effect for model with reconstruction loss only')
             if self._rec_weight != 1.0:
-                print ('warning: reconstruction loss weight has no effect for model with reconstruction loss only')
+                print('warning: reconstruction loss weight has no effect for model with reconstruction loss only')
             loss = rec_loss
         return loss, rec_loss
 
