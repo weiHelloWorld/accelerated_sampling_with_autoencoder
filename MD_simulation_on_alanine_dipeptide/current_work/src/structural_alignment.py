@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 ref_structure_pdb_file = args.ref
 
-pdb_files = subprocess.check_output(['find', args.sample_path, '-name', "*.pdb"]).strip().split('\n')
+pdb_files = subprocess.check_output(['find', args.sample_path, '-name', "*.pdb"]).decode("utf-8").strip().split('\n')
 if args.ignore_aligned_file:
     pdb_files = [x for x in pdb_files if not '_aligned' in x]
 

@@ -38,7 +38,7 @@ def main():
 
     while next_job_index < total_num_jobs:
         time.sleep(interval)
-        current_running_python_jobs = [x for x in subprocess.check_output(['ps', 'aux']).split('\n') if ' python ' in x and not 'python workqueue.py' in x]
+        current_running_python_jobs = [x for x in subprocess.check_output(['ps', 'aux']).decode("utf-8").split('\n') if ' python ' in x and not 'python workqueue.py' in x]
         current_running_python_jobs = [' '.join(x.split()[10:]) for x in current_running_python_jobs]      # 11th column is command
         # print "current_running_jobs = %s" % str(current_running_python_jobs)
 

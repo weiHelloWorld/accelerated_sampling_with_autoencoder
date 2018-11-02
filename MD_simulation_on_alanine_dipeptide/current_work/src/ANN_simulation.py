@@ -364,12 +364,12 @@ class iteration(object):
                   (self._index, training_interval, num_of_trainings)
         if machine_to_run_simulations == 'local':
             print(command)
-            temp_output = subprocess.check_output(command.strip().split(' '))
+            temp_output = subprocess.check_output(command.strip().split(' ')).decode("utf-8")
         elif machine_to_run_simulations == 'cluster':
             command = 'OMP_NUM_THREADS=6  ' + command
             job_id = cluster_management.run_a_command_and_wait_on_cluster(command=command, ppn=10)
             output_file, _ = cluster_management.get_output_and_err_with_job_id(job_id=job_id)
-            temp_output = subprocess.check_output(['cat', output_file])
+            temp_output = subprocess.check_output(['cat', output_file]).decode("utf-8")
         else:
             raise Exception('machine type error')
         autoencoder_filename = temp_output.strip().split(
@@ -441,7 +441,7 @@ class single_biased_simulation_data(object):
         temp_potential_center_string = file_for_single_biased_simulation_coor.split('_pc_[')[1].split(']')[0]
         self._potential_center = [float(item) for item in temp_potential_center_string.split(',')]
         self._force_constant = float(file_for_single_biased_simulation_coor.split('output_fc_')[1].split('_pc_')[0])
-        self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).split()[0])
+        self._number_of_data = float(subprocess.check_output(['wc', '-l', file_for_single_biased_simulation_coor]).decode("utf-8").split()[0])
 
         if not self._my_network is None:
             if self._my_network._hidden_layers_type[1] == "Circular":

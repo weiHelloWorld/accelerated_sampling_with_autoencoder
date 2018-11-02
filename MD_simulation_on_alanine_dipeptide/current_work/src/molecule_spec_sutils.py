@@ -290,7 +290,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
         index_of_backbone_atoms = [str(item) for item in index_of_backbone_atoms]
-        filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
+        filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).decode("utf-8").strip().split('\n')
         output_file_list = []
 
         for input_file in filenames:
@@ -363,7 +363,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         - save storage space
         - reduce processing time of pdb file
         """
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name', '*.pdb']).split('\n')[:-1]
+        filenames = subprocess.check_output(['find', folder_for_pdb, '-name', '*.pdb']).decode("utf-8").split('\n')[:-1]
         for item in filenames:
             print(('removing water molecules from pdb file: ' + item))
             output_file = item[:-4] + '_rm_tmp.pdb'
