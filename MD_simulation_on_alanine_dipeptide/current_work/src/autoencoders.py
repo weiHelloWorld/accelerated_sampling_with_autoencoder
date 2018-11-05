@@ -1432,7 +1432,6 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
 
         for index_epoch in range(self._epochs):
             temp_train_history, temp_valid_history = [], []
-            print(index_epoch)
             # training
             for item_batch in train_set:
                 if len(item_batch) == 2:   # without previous CVs
@@ -1452,7 +1451,6 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 temp_train_history.append(loss_list)
                 optimizer.step()
             train_history.append(np.array(temp_train_history).mean(axis=0))
-
             # validation
             for item_batch in valid_set:
                 with torch.no_grad():
@@ -1468,6 +1466,8 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             if my_early_stopping.step(temp_valid_history[-1]):    # monitor loss
                 print("best in history is %f, current is %f" % (my_early_stopping._best, temp_valid_history[-1]))
                 break             # early stopping
+            print(index_epoch, np.mean(temp_train_history, axis=0),
+                  np.array(temp_valid_history).mean(axis=0))
         try:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history)
@@ -1507,6 +1507,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
                 # print autocorr_loss_num.shape, autocorr_loss_den.shape
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+                component_penalty = 0
                 # add pearson correlation loss
                 if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
                     new_CVs = [latent_z_1[:, index] for index in range(latent_z_1.shape[1])]
