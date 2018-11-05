@@ -1357,7 +1357,6 @@ class autoencoder_torch(autoencoder):
                     rec_weight = 1,         # weight of reconstruction loss
                     autocorr_weight = 1,       # weight of autocorrelation loss in the loss function
                     pearson_weight = None,      # weight for pearson correlation loss for imposing orthogonality, None means no pearson loss
-                    previous_CVs = None,       # previous CVs for sequential learning, requiring new CVs be orthogonal to them
                     start_from=None         # initialize with this model
                     ):
         self._network_parameters = network_parameters
@@ -1366,7 +1365,6 @@ class autoencoder_torch(autoencoder):
         self._rec_weight = rec_weight
         self._autocorr_weight = autocorr_weight
         self._pearson_weight = pearson_weight
-        self._previous_CVs = previous_CVs - previous_CVs.mean(axis=0) if not previous_CVs is None else None
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if start_from is None:
             self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
@@ -1413,13 +1411,8 @@ class autoencoder_torch(autoencoder):
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
-        if self._previous_CVs is None:
-            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
-                                       self.get_var_from_np(data_out).data)
-        else:
-            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
-                                       self.get_var_from_np(data_out).data,
-                                       self.get_var_from_np(self._previous_CVs).data)
+        all_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                   self.get_var_from_np(data_out).data)
         train_set, valid_set = self.get_train_valid_split(all_data)
         print("""
 data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_weight = %f, autocorr_weight = %f
@@ -1434,11 +1427,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             temp_train_history, temp_valid_history = [], []
             # training
             for item_batch in train_set:
-                if len(item_batch) == 2:   # without previous CVs
-                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
-                elif len(item_batch) == 3:
-                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
-                                                   previous_CVs=item_batch[2])
+                loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
                 plot_model_loss = False
                 if plot_model_loss:
                     from torchviz import make_dot, make_dot_from_trace
@@ -1454,11 +1443,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             # validation
             for item_batch in valid_set:
                 with torch.no_grad():
-                    if len(item_batch) == 2:
-                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
-                    elif len(item_batch) == 3:
-                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
-                                                       previous_CVs=item_batch[2])
+                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
                 loss_list = np.array([self.get_np(loss)])
                 temp_valid_history.append(loss_list)
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
@@ -1485,8 +1470,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             except: pass
         return
 
-    def get_loss(self, batch_in, batch_out, dim_input, previous_CVs=None):
-        """previous_CVs are for Pearson loss only"""
+    def get_loss(self, batch_in, batch_out, dim_input):
         rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
         if self._rec_loss_type == 2:
             rec_loss = 0
@@ -1516,39 +1500,8 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                         for yy in range(xx + 1, len(new_CVs)):
                             pearson_corr += torch.sum(new_CVs[xx] * new_CVs[yy]) ** 2 / (
                                     torch.sum(new_CVs[xx] ** 2) * torch.sum(new_CVs[yy] ** 2))
-                    if not previous_CVs is None:        # Pearson loss with respect to previous CVs
-                        for item_new_CV in new_CVs:
-                            for item_old_CV in torch.transpose(previous_CVs, 0, 1):
-                                pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
-                                    torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
                     # print self.get_np(pearson_corr)
                     autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
-            elif constraint_type == 'natural':
-                if not previous_CVs is None:
-                    component_penalty = 0
-                    for item_old_CV in torch.transpose(previous_CVs, 0, 1):
-                        scaling_factor = torch.mean(item_old_CV * item_old_CV)
-                        item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
-                        component_penalty += 0.01 * torch.sum((torch.mean(latent_z_1 * item_old_CV, dim=0)
-                                                            / torch.std(latent_z_1, dim=0)) ** 2)
-                        # print "std_z = %s, std_old_CV = %f, coeff_psi = %s, component_penalty = %f" % (
-                        #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
-                        #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
-                        latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV, dim=0) / scaling_factor
-                        latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV, dim=0) / scaling_factor
-                        # print "std_z = %s, std_old_CV = %f, coeff_psi = %s, component_penalty = %f" % (
-                        #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
-                        #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
-                        # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
-                        # assert (latent_z_1.shape[1] == 2)
-                else: component_penalty = 0
-                autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
-                # temp_ratio = autocorr_loss_num / autocorr_loss_den
-                # print self.get_np(temp_ratio)
-                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-                # print "c", self.get_np(autocorr_loss_num), self.get_np(autocorr_loss_den), self.get_np(
-                #     autocorr_loss_num / autocorr_loss_den)
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
             if self._autocorr_weight != 1.0:
