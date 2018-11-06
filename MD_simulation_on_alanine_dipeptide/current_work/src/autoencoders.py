@@ -11,7 +11,6 @@ from keras.callbacks import EarlyStopping
 from keras import layers
 from keras import backend as K
 import random
-from compatible import *
 
 ##################    set types of molecules  ############################
 
