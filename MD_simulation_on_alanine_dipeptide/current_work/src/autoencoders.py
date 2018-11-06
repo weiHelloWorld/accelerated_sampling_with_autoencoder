@@ -1155,7 +1155,8 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
 def temp_lambda_func_for_circular_for_Keras(x):
     """This has to be defined at the module level here, otherwise the pickle will not work
     """
-    return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
+    return x / K.sqrt(K.sum(x * x, axis=2, keepdims=True))
+    # return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
 
 temp_lambda_tanh_layer = Lambda(lambda x: K.tanh(x))
 temp_lambda_sigmoid_layer = Lambda(lambda x: K.sigmoid(x))
