@@ -109,20 +109,6 @@ class autoencoder(object):
         print("data_files = %s" % str(ae._data_files))
         ae.save_into_file(model_pkl)
         return
-    
-    def remove_pybrain_dependency(self):    
-        """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
-        self._in_layer_type = None
-        self._hidden_layers_type = [layer_type_to_name_mapping[item] for item in self._hidden_layers_type]
-        self._out_layer_type = layer_type_to_name_mapping[self._out_layer_type]
-        return
-
-    @staticmethod
-    def remove_pybrain_dependency_and_save_to_file(filename):
-        ae = autoencoder.load_from_pkl_file(filename)
-        ae.remove_pybrain_dependency()
-        ae.save_into_file(filename)
-        return
 
     def helper_save_data(self, filename):
         """helper function to save data externally if _data_files are defined"""
