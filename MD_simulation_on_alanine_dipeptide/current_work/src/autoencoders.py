@@ -56,7 +56,7 @@ class autoencoder(object):
         self._out_layer_type = out_layer_type
         self._node_num = node_num
         if index_CV is None:
-            self._index_CV = (len(self._node_num) - 1) / 2
+            self._index_CV = (len(self._node_num) - 1) // 2
         else:
             self._index_CV = index_CV
         self._epochs = epochs
@@ -95,7 +95,7 @@ class autoencoder(object):
         else:
             raise Exception('obsolete, not going to do this')
         if not hasattr(a, '_index_CV'):
-            a._index_CV = (len(a._node_num) - 1) / 2
+            a._index_CV = (len(a._node_num) - 1) // 2
         a.helper_load_data(filename)
         return a
 
@@ -261,7 +261,7 @@ class autoencoder(object):
         """
         result = ''
         result += Sutils._get_plumed_script_with_pairwise_dis_as_input(solute_atom_indices, scaling_factor=scaling_solute)
-        num_pairwise_dis = len(solute_atom_indices) * (len(solute_atom_indices) - 1) / 2
+        num_pairwise_dis = len(solute_atom_indices) * (len(solute_atom_indices) - 1) // 2
         for _1, item in enumerate(solute_atoms_cg):
             result += "sph_%d: SPHSHMOD ATOMS=%s ATOMREF=%d RLOW=%f RHIGH=%f SIGMA=%.4f CUTOFF=%.4f\n" % (
                 _1, water_index_string, item, r_low / 10.0, r_high / 10.0,
@@ -411,9 +411,9 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             actual_output_data = actual_output_data[:-lag_time]
 
         if self._hierarchical:
-            num_PCs = self._node_num[self._index_CV] / 2 if self._hidden_layers_type[self._index_CV - 1] == "Circular" \
+            num_PCs = self._node_num[self._index_CV] // 2 if self._hidden_layers_type[self._index_CV - 1] == "Circular" \
                 else self._node_num[self._index_CV]
-            length_for_hierarchical_component = actual_output_data.shape[1] / num_PCs
+            length_for_hierarchical_component = actual_output_data.shape[1] // num_PCs
             actual_output_list = [actual_output_data[:,
                                     item * length_for_hierarchical_component:
                                     (item + 1) * length_for_hierarchical_component]
@@ -452,7 +452,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             autoencoder_info_file = self._autoencoder_info_file
         PCs_of_network = self.get_PCs()
         if self._hidden_layers_type[1] == "Circular":
-            assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
+            assert (len(PCs_of_network[0]) == self._node_num[2] // 2)
         else:
             assert (len(PCs_of_network[0]) == self._node_num[2])
         if list_of_potential_center is None:
@@ -912,9 +912,9 @@ class autoencoder_Keras(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         if self._hidden_layers_type[self._index_CV - 1] == "Circular":
-            PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
+            PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) // 2)]
                    for item in self._encoder_net.predict(input_data)])
-            assert (len(PCs[0]) == self._node_num[self._index_CV] / 2), (len(PCs[0]), self._node_num[self._index_CV] / 2)
+            assert (len(PCs[0]) == self._node_num[self._index_CV] // 2), (len(PCs[0]), self._node_num[self._index_CV] // 2)
         else:
             PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[self._index_CV])
@@ -944,7 +944,7 @@ class autoencoder_Keras(autoencoder):
     def get_pca_fve(self, data=None):
         """compare the autoencoder against PCA"""
         if data is None: data = self._data_set
-        pca = PCA(n_components=self._node_num[(len(self._node_num) - 1) / 2])
+        pca = PCA(n_components=self._node_num[(len(self._node_num) - 1) // 2])
         actual_output = pca.inverse_transform(pca.fit_transform(data))
         return 1 - np.sum((actual_output - data).var(axis=0)) / np.sum(data.var(axis=0)), pca
 
@@ -955,8 +955,8 @@ class autoencoder_Keras(autoencoder):
         temp_nodes = layer._outbound_nodes
         return [item.outbound_layer for item in temp_nodes]
 
-    def train(self, hierarchical=None, hierarchical_variant = None):
-        """lag_time is included for training time-lagged autoencoder"""
+    def train(self, hierarchical=None, hierarchical_variant = None, lag_time=None):
+        """lag_time is obsolete"""
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if hierarchical is None: hierarchical = self._hierarchical
         if hierarchical_variant is None: hierarchical_variant = self._hi_variant
@@ -968,7 +968,7 @@ class autoencoder_Keras(autoencoder):
         else:
             output_data_set = data
 
-        num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
+        num_CVs = node_num[self._index_CV] // 2 if act_funcs[self._index_CV - 1] == "circular" else \
             node_num[self._index_CV]
         if self._node_num[self._index_CV] == 1:
             hierarchical = False
@@ -1059,7 +1059,7 @@ class autoencoder_Keras(autoencoder):
             if act_funcs[self._index_CV - 1] == "circular":
                 x = Dense(node_num[self._index_CV], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
-                x = Reshape((node_num[self._index_CV] / 2, 2), input_shape=(node_num[self._index_CV],))(x)
+                x = Reshape((node_num[self._index_CV] // 2, 2), input_shape=(node_num[self._index_CV],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
                 encoded = Reshape((node_num[self._index_CV],))(x)
             else:

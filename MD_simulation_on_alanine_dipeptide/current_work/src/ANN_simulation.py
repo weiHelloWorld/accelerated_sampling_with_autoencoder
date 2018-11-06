@@ -235,7 +235,7 @@ class plotting(object):
             # do analysis using K-S test
             PCs = self._network.get_PCs(data)
             dim_of_PCs = PCs.shape[1]
-            PCs = PCs[:int(PCs.shape[0]) / num_of_splits * num_of_splits]   # in case that PCs cannot be splitted evenly
+            PCs = PCs[:int(PCs.shape[0]) // num_of_splits * num_of_splits]   # in case that PCs cannot be splitted evenly
             samples_for_KS_testing = np.split(PCs, num_of_splits)
             ks_stats = max([
                 sum(
@@ -445,7 +445,7 @@ class single_biased_simulation_data(object):
 
         if not self._my_network is None:
             if self._my_network._hidden_layers_type[1] == "Circular":
-                self._dimension_of_PCs = self._my_network._node_num[2] / 2
+                self._dimension_of_PCs = self._my_network._node_num[2] // 2
             else:
                 self._dimension_of_PCs = self._my_network._node_num[2]
 

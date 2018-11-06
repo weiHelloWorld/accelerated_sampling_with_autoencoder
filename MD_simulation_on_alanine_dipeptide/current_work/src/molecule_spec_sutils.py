@@ -60,7 +60,7 @@ class Sutils(object):
         temp_sample = Universe(pdb_file)
         temp_atoms = temp_sample.select_atoms('all')
         if not item_positions is None:
-            item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
+            item_positions = item_positions.reshape((item_positions.shape[0] // 3, 3))
             temp_positions = temp_atoms.positions
             temp_positions[indices] = item_positions
             temp_atoms.positions = temp_positions
@@ -225,7 +225,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
-        num_atoms = len(data_set[0]) / 3
+        num_atoms = len(data_set[0]) // 3
         data_set = data_set.reshape((num_of_data, num_atoms, 3))
         temp_data_set = []
         for _ in range(num_of_copies):
@@ -589,7 +589,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             for item_1 in range(num_atoms):
                 for item_2 in range(item_1 + 1, num_atoms):
                     p_distances += [mat[item_1][item_2]]
-            assert (len(p_distances) == num_atoms * (num_atoms - 1) / 2)
+            assert (len(p_distances) == num_atoms * (num_atoms - 1) // 2)
             result += [p_distances]
 
         return np.array(result)
@@ -597,7 +597,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def get_non_repeated_pairwise_distance_from_pos_npy(pos_npy):
         from sklearn.metrics.pairwise import pairwise_distances
-        num_atoms = pos_npy.shape[1] / 3
+        num_atoms = pos_npy.shape[1] // 3
         temp_pos_npy = pos_npy.reshape(pos_npy.shape[0], num_atoms, 3)
         pairwise_dis = np.array([pairwise_distances(item, item) for item in temp_pos_npy])
         temp_result = np.array(
@@ -629,7 +629,7 @@ class Alanine_dipeptide(Sutils):
 
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
-        num_of_coordinates = len(list(a_coordinate)) / 3
+        num_of_coordinates = len(list(a_coordinate)) // 3
         a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
         diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
@@ -800,10 +800,10 @@ class Trp_cage(Sutils):
             temp_angle = []
             len_of_cos_sin = 76
             assert (len(item) == len_of_cos_sin), (len(item), len_of_cos_sin)
-            for idx_of_angle in range(len_of_cos_sin / 2):
+            for idx_of_angle in range(len_of_cos_sin // 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
 
-            assert (len(temp_angle) == len_of_cos_sin / 2)
+            assert (len(temp_angle) == len_of_cos_sin // 2)
 
             result += [temp_angle]
 
