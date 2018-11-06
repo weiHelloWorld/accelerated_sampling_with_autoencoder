@@ -990,13 +990,7 @@ class autoencoder_Keras(autoencoder):
             for item in range(2, self._index_CV):
                 x = Dense(node_num[item], activation=act_funcs[item - 1], kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
             if act_funcs[self._index_CV - 1] == "circular":
-                # TODO: make this part consistent with else branch
-                x = Dense(node_num[self._index_CV], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
-                x = Reshape((num_CVs, 2), input_shape=(node_num[self._index_CV],))(x)
-                x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
-                encoded = Reshape((node_num[self._index_CV],))(x)
-                encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(num_CVs)]
+                raise RuntimeError("circular layer not implemented for hierarchical case")
             else:
                 encoded_split = [Dense(1, activation=act_funcs[self._index_CV - 1],
                                 kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x) for _ in range(num_CVs)]
@@ -1159,16 +1153,6 @@ def temp_lambda_func_for_circular_for_Keras(x):
 
 temp_lambda_tanh_layer = Lambda(lambda x: K.tanh(x))
 temp_lambda_sigmoid_layer = Lambda(lambda x: K.sigmoid(x))
-# not sure if there are better ways to do this, since Lambda layer has to be defined at top level of the file,
-# following line does not work
-# temp_lambda_slice_layers = [Lambda(lambda x: x[:, [index]], output_shape=(1,)) for index in range(20)]
-temp_lambda_slice_layers_circular = [
-    Lambda(lambda x: x[:, [0,1]], output_shape=(2,)),   Lambda(lambda x: x[:, [2,3]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [4,5]], output_shape=(2,)),   Lambda(lambda x: x[:, [6,7]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [8,9]], output_shape=(2,)),   Lambda(lambda x: x[:, [10,11]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [12,13]], output_shape=(2,)), Lambda(lambda x: x[:, [14,15]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [16,17]], output_shape=(2,)), Lambda(lambda x: x[:, [18,19]], output_shape=(2,))
-]
 
 def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
     # following is custom loss function for hierarchical error of hierarchical autoencoder
