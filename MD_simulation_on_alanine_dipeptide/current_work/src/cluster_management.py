@@ -171,7 +171,7 @@ exit 0
         for item in job_file_lists[0:num]:
             output_info = subprocess.check_output(['qsub', item]).decode("utf-8").strip()
             sge_job_id_list.append(cluster_management.get_job_id_from_qsub_output(output_info))
-            print(('submitting ' + str(item)))
+            print('submitting ' + str(item))
             subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
         return sge_job_id_list
 

@@ -155,13 +155,13 @@ additional_argument_list['node_num'] = temp_node_num
 
 if args.auto_scale:
     auto_scaling_factor = np.max(np.abs(data_set)).astype(np.float)
-    print(("auto_scaling_factor = %f" % auto_scaling_factor))
+    print("auto_scaling_factor = %f" % auto_scaling_factor)
     data_set /= auto_scaling_factor
     output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
     assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
 
-print(("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
-                                                                  np.min(data_set), np.max(data_set))))
+print("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
+                                                                  np.min(data_set), np.max(data_set)))
 
 if not args.save_to_data_files is None:
     args.save_to_data_files = args.save_to_data_files.split(',')

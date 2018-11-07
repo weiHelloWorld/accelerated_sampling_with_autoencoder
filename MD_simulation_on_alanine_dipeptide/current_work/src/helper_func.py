@@ -219,7 +219,7 @@ class Helper_func(object):
         total_num_failed_jobs = 0
         for item in range(int(len(commands) / num_of_jobs_in_parallel) + 1):
             temp_commands_parallel = commands[item * num_of_jobs_in_parallel: (item + 1) * num_of_jobs_in_parallel]
-            print(("running: \t" + '\n'.join(temp_commands_parallel)))
+            print("running: \t" + '\n'.join(temp_commands_parallel))
             procs_to_run_commands = [subprocess.Popen(_1.strip(), shell=True) for _1 in temp_commands_parallel]
             exit_codes = [p.wait() for p in procs_to_run_commands]
             total_num_failed_jobs += sum(exit_codes)

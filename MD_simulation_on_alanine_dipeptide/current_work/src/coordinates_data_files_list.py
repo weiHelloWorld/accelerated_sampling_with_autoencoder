@@ -68,7 +68,7 @@ class coordinates_data_files_list(object):
             temp_index_related_to_this_pdb_file.sort()
 
             if len(temp_index_related_to_this_pdb_file) != 0:
-                if verbose: print((pdb_files[item]))
+                if verbose: print(pdb_files[item])
                 with open(pdb_files[item], 'r') as in_file:
                     content = in_file.read().split('MODEL')[1:]  # remove header
                     frames_to_use = [content[ii] for ii in temp_index_related_to_this_pdb_file]

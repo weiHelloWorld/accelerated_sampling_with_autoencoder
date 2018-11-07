@@ -141,7 +141,7 @@ class plotting(object):
                         temp_list_of_coor_index += [item * step_interval for item in ind_list]  # should include step_interval
 
                         for item in ind_list:
-                            print((item, x[item], y[item]))
+                            print(item, x[item], y[item])
                     return
 
             elif saving_snapshot_mode == 'single_point':
@@ -153,7 +153,7 @@ class plotting(object):
                         ind_list = list(event.ind)
                         print ('onclick:')
                         for item in ind_list:
-                            print((item, x[item], y[item]))
+                            print(item, x[item], y[item])
 
                         temp_ind_list = [item * step_interval for item in ind_list]  # should include step_interval
                         average_x = sum([x[item] for item in ind_list]) / len(ind_list)
@@ -418,7 +418,7 @@ class simulation_with_ANN_main(object):
             one_iteration.train_network_and_save(training_interval = self._training_interval)   # train it if it is empty
 
         one_iteration.prepare_simulation()
-        print(('running this iteration #index = %d' % one_iteration._index))
+        print('running this iteration #index = %d' % one_iteration._index)
         one_iteration.run_simulation()
         return
 

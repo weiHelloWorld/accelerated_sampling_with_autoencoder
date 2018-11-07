@@ -137,9 +137,9 @@ class autoencoder(object):
 
         if fraction_of_data_to_be_saved != 1.0:
             number_of_data_points_to_be_saved = int(self._data_set.shape[0] * fraction_of_data_to_be_saved)
-            print(("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
+            print("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
                                                                                         number_of_data_points_to_be_saved,
-                                                                                        self._data_set.shape[0])))
+                                                                                        self._data_set.shape[0]))
             self._data_set = self._data_set[:number_of_data_points_to_be_saved]
             if not (self._output_data_set is None or self._output_data_set == np.array(None)):        # for backward compatibility
                 self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]

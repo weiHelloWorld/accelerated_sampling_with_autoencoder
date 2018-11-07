@@ -32,7 +32,7 @@ for sample_structure_pdb_file in pdb_files:
         output_pdb_file = parser.name
 
     if os.path.exists(output_pdb_file) and os.path.getmtime(sample_structure_pdb_file) < os.path.getmtime(output_pdb_file):
-        print(("aligned file already exists: %s (remove previous one if needed)" % output_pdb_file))
+        print("aligned file already exists: %s (remove previous one if needed)" % output_pdb_file)
     else:
         ref = Universe(ref_structure_pdb_file) 
         trj = Universe(sample_structure_pdb_file) 

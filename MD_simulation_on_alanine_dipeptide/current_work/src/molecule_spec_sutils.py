@@ -183,7 +183,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1,  # start_index included, end_index not included
                                           new_pdb_file_name=None, method=1):
-        print(('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval)))
+        print('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
@@ -300,9 +300,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
             output_file_list += [output_file]
             if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
-                print(("coordinate file already exists: %s (remove previous one if needed)" % output_file))
+                print("coordinate file already exists: %s (remove previous one if needed)" % output_file)
             else:
-                print(('generating coordinates of ' + input_file))
+                print('generating coordinates of ' + input_file)
 
                 with open(input_file) as f_in:
                     with open(output_file, 'w') as f_out:
@@ -365,7 +365,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         """
         filenames = subprocess.check_output(['find', folder_for_pdb, '-name', '*.pdb']).decode("utf-8").split('\n')[:-1]
         for item in filenames:
-            print(('removing water molecules from pdb file: ' + item))
+            print('removing water molecules from pdb file: ' + item)
             output_file = item[:-4] + '_rm_tmp.pdb'
             is_line_removed_flag = False
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
@@ -734,7 +734,7 @@ class Trp_cage(Sutils):
         try:
             assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)
         except:
-            print(("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2)))
+            print("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2))
             # print ("coordinates of four atoms are:")
             # print (coords_of_four)
 

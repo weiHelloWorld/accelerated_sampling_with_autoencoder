@@ -280,10 +280,10 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     if args.starting_checkpoint != 'none':
         if args.starting_checkpoint == "auto":  # restart from checkpoint if it exists
             if os.path.isfile(checkpoint_file):
-                print(("resume simulation from %s" % checkpoint_file))
+                print("resume simulation from %s" % checkpoint_file)
                 simulation.loadCheckpoint(checkpoint_file)
         else:
-            print(("resume simulation from %s" % args.starting_checkpoint))
+            print("resume simulation from %s" % args.starting_checkpoint)
             simulation.loadCheckpoint(args.starting_checkpoint)     # the topology is already set by pdb file, and the positions in the pdb file will be overwritten by those in the starting_checkpoing file
 
     if args.minimize_energy:
