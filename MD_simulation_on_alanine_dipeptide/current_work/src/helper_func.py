@@ -254,3 +254,11 @@ class Helper_func(object):
     @staticmethod
     def get_autocorr(x_list, lag_time):
         return np.corrcoef(np.array([x_list[0:len(x_list) - lag_time], x_list[lag_time:len(x_list)]]))[0, 1]
+
+    @staticmethod
+    def generate_sequence_with_constant_autocorrelation(constant_autocorrelation, length):
+        traj_list = [np.random.normal()]
+        for _ in range(length - 1):
+            temp_value = np.random.normal(constant_autocorrelation * traj_list[-1], scale=1)
+            traj_list.append(temp_value)
+        return traj_list
