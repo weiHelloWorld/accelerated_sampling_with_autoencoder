@@ -1,5 +1,5 @@
-import numpy as np
-from msmbuilder.decomposition.tica import tICA
+import numpy as np, pyemma as py
+# from msmbuilder.decomposition.tica import tICA
 from sklearn.kernel_approximation import Nystroem
 
 """modified from https://github.com/msmbuilder/msmbuilder/blob/master/msmbuilder/decomposition/ktica.py"""
@@ -18,7 +18,8 @@ class Kernel_tica(object):
         self._landmarks = landmarks
         self._gamma = gamma
         self._nystroem = Nystroem(gamma=gamma, n_components=n_components_nystroem)
-        self._tica = tICA(n_components=n_components, lag_time=lag_time, shrinkage=shrinkage)
+        self._tica = py.coordinates.tica(None, lag=lag_time, n_dim=n_components, kinetic_map=True)
+        # self._tica = tICA(n_components=n_components, lag_time=lag_time, shrinkage=shrinkage)
         self._shrinkage = shrinkage
         return
 
@@ -26,15 +27,15 @@ class Kernel_tica(object):
         if self._landmarks is None:
             sequence_transformed = self._nystroem.fit_transform(sequence)
         else:
-            print "using landmarks"
+            print("using landmarks")
             self._nystroem.fit(self._landmarks)
             sequence_transformed = self._nystroem.transform(sequence)
-        self._tica.fit([sequence_transformed])
+        self._tica.fit(sequence_transformed)
         return
 
     def transform(self, sequence):
         return self._tica.transform(
-            [self._nystroem.transform(sequence)])
+            self._nystroem.transform(sequence))
 
     def fit_transform(self, sequence):
         self.fit(sequence)
@@ -45,4 +46,4 @@ class Kernel_tica(object):
                                n_components_nystroem=self._n_components_nystroem, landmarks=self._landmarks,
                                shrinkage=self._shrinkage)
         model.fit(sequence)
-        return np.sum(model._tica.eigenvalues_)
+        return np.sum(model._tica.eigenvalues)
