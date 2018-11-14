@@ -262,3 +262,7 @@ class Helper_func(object):
             temp_value = np.random.normal(constant_autocorrelation * traj_list[-1], scale=1)
             traj_list.append(temp_value)
         return traj_list
+
+    @staticmethod
+    def load_object_from_pkl_file(file_path):
+        return pickle.load(open(file_path, 'rb'))

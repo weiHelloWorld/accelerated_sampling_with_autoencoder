@@ -132,7 +132,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
-        return pickle.load(open(file_path, 'rb'))
+        return Helper_func.load_object_from_pkl_file(file_path)
 
     @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list_for_pdb_file_list(list_of_files, index_list, new_pdb_file_name):
