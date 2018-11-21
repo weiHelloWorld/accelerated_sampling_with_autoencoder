@@ -25,11 +25,11 @@ class Kernel_tica(object):
 
     def fit(self, sequence_list):
         if self._landmarks is None:
-            sequence_transformed = self._nystroem.fit_transform(np.concatenate(sequence_list))
+            self._nystroem.fit(np.concatenate(sequence_list))
         else:
             print("using landmarks")
             self._nystroem.fit(self._landmarks)
-            sequence_transformed = [self._nystroem.transform(item) for item in sequence_list]
+        sequence_transformed = [self._nystroem.transform(item) for item in sequence_list]
         self._tica.fit(sequence_transformed)
         return
 
