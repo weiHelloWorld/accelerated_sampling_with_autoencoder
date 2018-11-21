@@ -10,7 +10,8 @@ class Kernel_tica(object):
                  gamma,             # gamma value for rbf kernel
                  n_components_nystroem=100,  # number of components for Nystroem kernel approximation
                  landmarks = None,
-                 shrinkage = None
+                 shrinkage = None,
+                 weights='empirical'    # if 'koopman', use Koopman reweighting for tICA (see Wu, Hao, et al. "Variational Koopman models: slow collective variables and molecular kinetics from short off-equilibrium simulations." The Journal of Chemical Physics 146.15 (2017): 154104.)
                  ):
         self._n_components = n_components
         self._lag_time = lag_time
@@ -18,7 +19,7 @@ class Kernel_tica(object):
         self._landmarks = landmarks
         self._gamma = gamma
         self._nystroem = Nystroem(gamma=gamma, n_components=n_components_nystroem)
-        self._tica = py.coordinates.tica(None, lag=lag_time, dim=n_components, kinetic_map=True)
+        self._weights = weights
         # self._tica = tICA(n_components=n_components, lag_time=lag_time, shrinkage=shrinkage)
         self._shrinkage = shrinkage
         return
@@ -30,7 +31,11 @@ class Kernel_tica(object):
             print("using landmarks")
             self._nystroem.fit(self._landmarks)
         sequence_transformed = [self._nystroem.transform(item) for item in sequence_list]
-        self._tica.fit(sequence_transformed)
+        # define tica object at fit() with sequence_list supplied for initialization, as it is required by
+        # Koopman reweighting
+        self._tica = py.coordinates.tica(sequence_transformed, lag=self._lag_time,
+                                         dim=self._n_components, kinetic_map=True,
+                                         weights=self._weights)
         return
 
     def transform(self, sequence_list):
