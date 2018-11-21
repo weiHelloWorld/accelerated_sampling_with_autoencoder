@@ -11,7 +11,6 @@ from keras.callbacks import EarlyStopping
 from keras import layers
 from keras import backend as K
 import random
-from compatible import *
 
 ##################    set types of molecules  ############################
 
@@ -57,7 +56,7 @@ class autoencoder(object):
         self._out_layer_type = out_layer_type
         self._node_num = node_num
         if index_CV is None:
-            self._index_CV = (len(self._node_num) - 1) / 2
+            self._index_CV = (len(self._node_num) - 1) // 2
         else:
             self._index_CV = index_CV
         self._epochs = epochs
@@ -96,7 +95,7 @@ class autoencoder(object):
         else:
             raise Exception('obsolete, not going to do this')
         if not hasattr(a, '_index_CV'):
-            a._index_CV = (len(a._node_num) - 1) / 2
+            a._index_CV = (len(a._node_num) - 1) // 2
         a.helper_load_data(filename)
         return a
 
@@ -108,20 +107,6 @@ class autoencoder(object):
         ae._data_files = data_files
         print("data_files = %s" % str(ae._data_files))
         ae.save_into_file(model_pkl)
-        return
-    
-    def remove_pybrain_dependency(self):    
-        """previously pybrain layers are directly used in attributes of this object, should be replaced by string to remove dependency"""
-        self._in_layer_type = None
-        self._hidden_layers_type = [layer_type_to_name_mapping[item] for item in self._hidden_layers_type]
-        self._out_layer_type = layer_type_to_name_mapping[self._out_layer_type]
-        return
-
-    @staticmethod
-    def remove_pybrain_dependency_and_save_to_file(filename):
-        ae = autoencoder.load_from_pkl_file(filename)
-        ae.remove_pybrain_dependency()
-        ae.save_into_file(filename)
         return
 
     def helper_save_data(self, filename):
@@ -152,9 +137,9 @@ class autoencoder(object):
 
         if fraction_of_data_to_be_saved != 1.0:
             number_of_data_points_to_be_saved = int(self._data_set.shape[0] * fraction_of_data_to_be_saved)
-            print(("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
+            print("Warning: only %f of data (%d out of %d) are saved into pkl file" % (fraction_of_data_to_be_saved,
                                                                                         number_of_data_points_to_be_saved,
-                                                                                        self._data_set.shape[0])))
+                                                                                        self._data_set.shape[0]))
             self._data_set = self._data_set[:number_of_data_points_to_be_saved]
             if not (self._output_data_set is None or self._output_data_set == np.array(None)):        # for backward compatibility
                 self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]
@@ -276,7 +261,7 @@ class autoencoder(object):
         """
         result = ''
         result += Sutils._get_plumed_script_with_pairwise_dis_as_input(solute_atom_indices, scaling_factor=scaling_solute)
-        num_pairwise_dis = len(solute_atom_indices) * (len(solute_atom_indices) - 1) / 2
+        num_pairwise_dis = len(solute_atom_indices) * (len(solute_atom_indices) - 1) // 2
         for _1, item in enumerate(solute_atoms_cg):
             result += "sph_%d: SPHSHMOD ATOMS=%s ATOMREF=%d RLOW=%f RHIGH=%f SIGMA=%.4f CUTOFF=%.4f\n" % (
                 _1, water_index_string, item, r_low / 10.0, r_high / 10.0,
@@ -426,9 +411,9 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             actual_output_data = actual_output_data[:-lag_time]
 
         if self._hierarchical:
-            num_PCs = self._node_num[self._index_CV] / 2 if self._hidden_layers_type[self._index_CV - 1] == "Circular" \
+            num_PCs = self._node_num[self._index_CV] // 2 if self._hidden_layers_type[self._index_CV - 1] == "Circular" \
                 else self._node_num[self._index_CV]
-            length_for_hierarchical_component = actual_output_data.shape[1] / num_PCs
+            length_for_hierarchical_component = actual_output_data.shape[1] // num_PCs
             actual_output_list = [actual_output_data[:,
                                     item * length_for_hierarchical_component:
                                     (item + 1) * length_for_hierarchical_component]
@@ -467,7 +452,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             autoencoder_info_file = self._autoencoder_info_file
         PCs_of_network = self.get_PCs()
         if self._hidden_layers_type[1] == "Circular":
-            assert (len(PCs_of_network[0]) == self._node_num[2] / 2)
+            assert (len(PCs_of_network[0]) == self._node_num[2] // 2)
         else:
             assert (len(PCs_of_network[0]) == self._node_num[2])
         if list_of_potential_center is None:
@@ -927,9 +912,9 @@ class autoencoder_Keras(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         if self._hidden_layers_type[self._index_CV - 1] == "Circular":
-            PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) / 2)]
+            PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) // 2)]
                    for item in self._encoder_net.predict(input_data)])
-            assert (len(PCs[0]) == self._node_num[self._index_CV] / 2), (len(PCs[0]), self._node_num[self._index_CV] / 2)
+            assert (len(PCs[0]) == self._node_num[self._index_CV] // 2), (len(PCs[0]), self._node_num[self._index_CV] // 2)
         else:
             PCs = self._encoder_net.predict(input_data)
             assert (len(PCs[0]) == self._node_num[self._index_CV])
@@ -959,7 +944,7 @@ class autoencoder_Keras(autoencoder):
     def get_pca_fve(self, data=None):
         """compare the autoencoder against PCA"""
         if data is None: data = self._data_set
-        pca = PCA(n_components=self._node_num[(len(self._node_num) - 1) / 2])
+        pca = PCA(n_components=self._node_num[(len(self._node_num) - 1) // 2])
         actual_output = pca.inverse_transform(pca.fit_transform(data))
         return 1 - np.sum((actual_output - data).var(axis=0)) / np.sum(data.var(axis=0)), pca
 
@@ -970,8 +955,8 @@ class autoencoder_Keras(autoencoder):
         temp_nodes = layer._outbound_nodes
         return [item.outbound_layer for item in temp_nodes]
 
-    def train(self, hierarchical=None, hierarchical_variant = None):
-        """lag_time is included for training time-lagged autoencoder"""
+    def train(self, hierarchical=None, hierarchical_variant = None, lag_time=None):
+        """lag_time is obsolete"""
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if hierarchical is None: hierarchical = self._hierarchical
         if hierarchical_variant is None: hierarchical_variant = self._hi_variant
@@ -983,7 +968,7 @@ class autoencoder_Keras(autoencoder):
         else:
             output_data_set = data
 
-        num_CVs = node_num[self._index_CV] / 2 if act_funcs[self._index_CV - 1] == "circular" else \
+        num_CVs = node_num[self._index_CV] // 2 if act_funcs[self._index_CV - 1] == "circular" else \
             node_num[self._index_CV]
         if self._node_num[self._index_CV] == 1:
             hierarchical = False
@@ -1005,13 +990,7 @@ class autoencoder_Keras(autoencoder):
             for item in range(2, self._index_CV):
                 x = Dense(node_num[item], activation=act_funcs[item - 1], kernel_regularizer=l2(self._network_parameters[4][item - 1]))(x)
             if act_funcs[self._index_CV - 1] == "circular":
-                # TODO: make this part consistent with else branch
-                x = Dense(node_num[self._index_CV], activation='linear',
-                            kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
-                x = Reshape((num_CVs, 2), input_shape=(node_num[self._index_CV],))(x)
-                x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
-                encoded = Reshape((node_num[self._index_CV],))(x)
-                encoded_split = [temp_lambda_slice_layers_circular[item](encoded) for item in range(num_CVs)]
+                raise RuntimeError("circular layer not implemented for hierarchical case")
             else:
                 encoded_split = [Dense(1, activation=act_funcs[self._index_CV - 1],
                                 kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x) for _ in range(num_CVs)]
@@ -1080,7 +1059,7 @@ class autoencoder_Keras(autoencoder):
             if act_funcs[self._index_CV - 1] == "circular":
                 x = Dense(node_num[self._index_CV], activation='linear',
                             kernel_regularizer=l2(self._network_parameters[4][self._index_CV - 1]))(x)
-                x = Reshape((node_num[self._index_CV] / 2, 2), input_shape=(node_num[self._index_CV],))(x)
+                x = Reshape((node_num[self._index_CV] // 2, 2), input_shape=(node_num[self._index_CV],))(x)
                 x = Lambda(temp_lambda_func_for_circular_for_Keras)(x)
                 encoded = Reshape((node_num[self._index_CV],))(x)
             else:
@@ -1169,20 +1148,11 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
 def temp_lambda_func_for_circular_for_Keras(x):
     """This has to be defined at the module level here, otherwise the pickle will not work
     """
-    return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
+    return x / K.sqrt(K.sum(x * x, axis=2, keepdims=True))
+    # return x / ((x ** 2).sum(axis=2, keepdims=True).sqrt())
 
 temp_lambda_tanh_layer = Lambda(lambda x: K.tanh(x))
 temp_lambda_sigmoid_layer = Lambda(lambda x: K.sigmoid(x))
-# not sure if there are better ways to do this, since Lambda layer has to be defined at top level of the file,
-# following line does not work
-# temp_lambda_slice_layers = [Lambda(lambda x: x[:, [index]], output_shape=(1,)) for index in range(20)]
-temp_lambda_slice_layers_circular = [
-    Lambda(lambda x: x[:, [0,1]], output_shape=(2,)),   Lambda(lambda x: x[:, [2,3]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [4,5]], output_shape=(2,)),   Lambda(lambda x: x[:, [6,7]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [8,9]], output_shape=(2,)),   Lambda(lambda x: x[:, [10,11]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [12,13]], output_shape=(2,)), Lambda(lambda x: x[:, [14,15]], output_shape=(2,)),
-    Lambda(lambda x: x[:, [16,17]], output_shape=(2,)), Lambda(lambda x: x[:, [18,19]], output_shape=(2,))
-]
 
 def get_hierarchical_weights(weight_factor_for_hierarchical_err = 1):
     # following is custom loss function for hierarchical error of hierarchical autoencoder
@@ -1357,7 +1327,6 @@ class autoencoder_torch(autoencoder):
                     rec_weight = 1,         # weight of reconstruction loss
                     autocorr_weight = 1,       # weight of autocorrelation loss in the loss function
                     pearson_weight = None,      # weight for pearson correlation loss for imposing orthogonality, None means no pearson loss
-                    previous_CVs = None,       # previous CVs for sequential learning, requiring new CVs be orthogonal to them
                     start_from=None         # initialize with this model
                     ):
         self._network_parameters = network_parameters
@@ -1366,7 +1335,6 @@ class autoencoder_torch(autoencoder):
         self._rec_weight = rec_weight
         self._autocorr_weight = autocorr_weight
         self._pearson_weight = pearson_weight
-        self._previous_CVs = previous_CVs - previous_CVs.mean(axis=0) if not previous_CVs is None else None
         act_funcs = [item.lower() for item in self._hidden_layers_type] + [self._out_layer_type.lower()]
         if start_from is None:
             self._ae = AE_net(self._node_num[:self._index_CV + 1], self._node_num[self._index_CV:],
@@ -1413,13 +1381,8 @@ class autoencoder_torch(autoencoder):
         if self._hierarchical:
             num_CVs = self._node_num[self._index_CV]
             data_out = np.concatenate([data_out] * num_CVs, axis=-1)
-        if self._previous_CVs is None:
-            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
-                                       self.get_var_from_np(data_out).data)
-        else:
-            all_data = self.My_dataset(self.get_var_from_np(data_in).data,
-                                       self.get_var_from_np(data_out).data,
-                                       self.get_var_from_np(self._previous_CVs).data)
+        all_data = self.My_dataset(self.get_var_from_np(data_in).data,
+                                   self.get_var_from_np(data_out).data)
         train_set, valid_set = self.get_train_valid_split(all_data)
         print("""
 data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_weight = %f, autocorr_weight = %f
@@ -1432,14 +1395,9 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
 
         for index_epoch in range(self._epochs):
             temp_train_history, temp_valid_history = [], []
-            print(index_epoch)
             # training
             for item_batch in train_set:
-                if len(item_batch) == 2:   # without previous CVs
-                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
-                elif len(item_batch) == 3:
-                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
-                                                   previous_CVs=item_batch[2])
+                loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
                 plot_model_loss = False
                 if plot_model_loss:
                     from torchviz import make_dot, make_dot_from_trace
@@ -1452,15 +1410,10 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                 temp_train_history.append(loss_list)
                 optimizer.step()
             train_history.append(np.array(temp_train_history).mean(axis=0))
-
             # validation
             for item_batch in valid_set:
                 with torch.no_grad():
-                    if len(item_batch) == 2:
-                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
-                    elif len(item_batch) == 3:
-                        loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1],
-                                                       previous_CVs=item_batch[2])
+                    loss, rec_loss = self.get_loss(item_batch[0], item_batch[1], temp_in_shape[1])
                 loss_list = np.array([self.get_np(loss)])
                 temp_valid_history.append(loss_list)
             temp_valid_history = np.array(temp_valid_history).mean(axis=0)
@@ -1468,6 +1421,8 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             if my_early_stopping.step(temp_valid_history[-1]):    # monitor loss
                 print("best in history is %f, current is %f" % (my_early_stopping._best, temp_valid_history[-1]))
                 break             # early stopping
+            print(index_epoch, np.mean(temp_train_history, axis=0),
+                  np.array(temp_valid_history).mean(axis=0))
         try:
             fig, axes = plt.subplots(1, 2)
             axes[0].plot(train_history)
@@ -1485,8 +1440,7 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             except: pass
         return
 
-    def get_loss(self, batch_in, batch_out, dim_input, previous_CVs=None):
-        """previous_CVs are for Pearson loss only"""
+    def get_loss(self, batch_in, batch_out, dim_input):
         rec_x, latent_z_1 = self._ae(Variable(batch_in[:, :dim_input]))
         if self._rec_loss_type == 2:
             rec_loss = 0
@@ -1501,12 +1455,13 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
             latent_z_1 = latent_z_1 - torch.mean(latent_z_1, dim=0)
             # print latent_z_1.shape
             latent_z_2 = latent_z_2 - torch.mean(latent_z_2, dim=0)
-            constraint_type = 'natural'
+            constraint_type = 'regularization'
             if constraint_type == 'regularization':
                 autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
                 autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
                 # print autocorr_loss_num.shape, autocorr_loss_den.shape
                 autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
+                component_penalty = 0
                 # add pearson correlation loss
                 if not (self._pearson_weight is None or self._pearson_weight == 0):   # include pearson correlation for first two CVs as loss function
                     new_CVs = [latent_z_1[:, index] for index in range(latent_z_1.shape[1])]
@@ -1515,68 +1470,8 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                         for yy in range(xx + 1, len(new_CVs)):
                             pearson_corr += torch.sum(new_CVs[xx] * new_CVs[yy]) ** 2 / (
                                     torch.sum(new_CVs[xx] ** 2) * torch.sum(new_CVs[yy] ** 2))
-                    if not previous_CVs is None:        # Pearson loss with respect to previous CVs
-                        for item_new_CV in new_CVs:
-                            for item_old_CV in torch.transpose(previous_CVs, 0, 1):
-                                pearson_corr += torch.sum(item_new_CV * item_old_CV) ** 2 / (
-                                    torch.sum(item_new_CV ** 2) * torch.sum(item_old_CV ** 2))
                     # print self.get_np(pearson_corr)
                     autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
-            elif constraint_type == 'natural':
-                if not previous_CVs is None:
-                    component_penalty = 0
-                    for item_old_CV in torch.transpose(previous_CVs, 0, 1):
-                        scaling_factor = torch.mean(item_old_CV * item_old_CV)
-                        item_old_CV = item_old_CV.reshape(item_old_CV.shape[0], 1)
-                        component_penalty += 0.01 * torch.sum((torch.mean(latent_z_1 * item_old_CV, dim=0)
-                                                            / torch.std(latent_z_1, dim=0)) ** 2)
-                        # print "std_z = %s, std_old_CV = %f, coeff_psi = %s, component_penalty = %f" % (
-                        #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
-                        #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
-                        latent_z_1 = latent_z_1 - item_old_CV * torch.mean(latent_z_1 * item_old_CV, dim=0) / scaling_factor
-                        latent_z_2 = latent_z_2 - item_old_CV * torch.mean(latent_z_2 * item_old_CV, dim=0) / scaling_factor
-                        # print "std_z = %s, std_old_CV = %f, coeff_psi = %s, component_penalty = %f" % (
-                        #     str(np.std(self.get_np(latent_z_1), axis=0)), np.std(self.get_np(item_old_CV)),
-                        #     str(self.get_np(torch.mean(latent_z_1 * item_old_CV, dim=0))), self.get_np(component_penalty))
-                        # print self.get_np(torch.mean(latent_z_1, dim=0)), self.get_np(torch.max(latent_z_1, dim=0)[0])
-                        # assert (latent_z_1.shape[1] == 2)
-                else: component_penalty = 0
-                autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
-                # temp_ratio = autocorr_loss_num / autocorr_loss_den
-                # print self.get_np(temp_ratio)
-                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
-                # print "c", self.get_np(autocorr_loss_num), self.get_np(autocorr_loss_den), self.get_np(
-                #     autocorr_loss_num / autocorr_loss_den)
-            elif constraint_type == 'natural_simultaneous':
-                # no previous_CVs in this part, we learn slow modes simultaneously
-                component_penalty = 0
-                latent_z_1_list = [latent_z_1[:, item] for item in range(latent_z_1.shape[1])]
-                for item_1 in range(1, len(latent_z_1_list)):
-                    for item_2 in range(item_1):
-                        scaling_factor = torch.std(latent_z_1_list[item_2]) ** 2
-                        component_penalty += 0.01 * torch.sum(
-                            (torch.mean(latent_z_1_list[item_1] * latent_z_1_list[item_2], dim=0)
-                                        / torch.std(latent_z_1_list[item_1], dim=0)) ** 2)
-                        latent_z_1_list[item_1] = latent_z_1_list[item_1] - latent_z_1_list[item_2] * torch.mean(
-                            latent_z_1_list[item_2] * latent_z_1_list[item_1]
-                        ) / scaling_factor
-                        print(self.get_np(torch.mean(latent_z_1_list[item_2] * latent_z_1_list[item_1])))
-                latent_z_1 = torch.stack(latent_z_1_list, dim=-1)
-                # print latent_z_1.shape
-                latent_z_2_list = [latent_z_2[:, item] for item in range(latent_z_2.shape[1])]
-                for item_1 in range(1, len(latent_z_2_list)):
-                    for item_2 in range(item_1):
-                        scaling_factor = torch.std(latent_z_2_list[item_2]) ** 2
-                        latent_z_2_list[item_1] = latent_z_2_list[item_1] - latent_z_2_list[item_2] * torch.mean(
-                            latent_z_2_list[item_2] * latent_z_2_list[item_1]
-                        ) / scaling_factor
-                latent_z_2 = torch.stack(latent_z_1_list, dim=-1)
-                autocorr_loss_num = torch.mean(latent_z_1 * latent_z_2, dim=0)
-                autocorr_loss_den = torch.std(latent_z_1, dim=0) * torch.std(latent_z_2, dim=0)
-                # temp_ratio = autocorr_loss_num / autocorr_loss_den
-                # print self.get_np(temp_ratio)
-                autocorr_loss = - torch.sum(autocorr_loss_num / autocorr_loss_den)
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
             if self._autocorr_weight != 1.0:

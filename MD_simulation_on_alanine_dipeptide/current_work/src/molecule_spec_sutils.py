@@ -60,7 +60,7 @@ class Sutils(object):
         temp_sample = Universe(pdb_file)
         temp_atoms = temp_sample.select_atoms('all')
         if not item_positions is None:
-            item_positions = item_positions.reshape((item_positions.shape[0] / 3, 3))
+            item_positions = item_positions.reshape((item_positions.shape[0] // 3, 3))
             temp_positions = temp_atoms.positions
             temp_positions[indices] = item_positions
             temp_atoms.positions = temp_positions
@@ -132,7 +132,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
-        return pickle.load(open(file_path, 'rb'))
+        return Helper_func.load_object_from_pkl_file(file_path)
 
     @staticmethod
     def write_some_frames_into_a_new_file_based_on_index_list_for_pdb_file_list(list_of_files, index_list, new_pdb_file_name):
@@ -183,7 +183,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def write_some_frames_into_a_new_file(pdb_file_name, start_index, end_index, step_interval = 1,  # start_index included, end_index not included
                                           new_pdb_file_name=None, method=1):
-        print(('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval)))
+        print('writing frames of %s: [%d:%d:%d]...' % (pdb_file_name, start_index, end_index, step_interval))
         if new_pdb_file_name is None:
             new_pdb_file_name = pdb_file_name.strip().split('.pdb')[0] + '_frame_%d_%d_%d.pdb' % (start_index, end_index, step_interval)
 
@@ -225,7 +225,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
         num_of_data = data_set.shape[0]
         output_data_set = np.array(output_data_set.tolist() * num_of_copies)
-        num_atoms = len(data_set[0]) / 3
+        num_atoms = len(data_set[0]) // 3
         data_set = data_set.reshape((num_of_data, num_atoms, 3))
         temp_data_set = []
         for _ in range(num_of_copies):
@@ -290,7 +290,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
         index_of_backbone_atoms = [str(item) for item in index_of_backbone_atoms]
-        filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).strip().split('\n')
+        filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).decode("utf-8").strip().split('\n')
         output_file_list = []
 
         for input_file in filenames:
@@ -300,9 +300,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
             output_file_list += [output_file]
             if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
-                print(("coordinate file already exists: %s (remove previous one if needed)" % output_file))
+                print("coordinate file already exists: %s (remove previous one if needed)" % output_file)
             else:
-                print(('generating coordinates of ' + input_file))
+                print('generating coordinates of ' + input_file)
 
                 with open(input_file) as f_in:
                     with open(output_file, 'w') as f_out:
@@ -363,9 +363,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         - save storage space
         - reduce processing time of pdb file
         """
-        filenames = subprocess.check_output(['find', folder_for_pdb, '-name', '*.pdb']).split('\n')[:-1]
+        filenames = subprocess.check_output(['find', folder_for_pdb, '-name', '*.pdb']).decode("utf-8").split('\n')[:-1]
         for item in filenames:
-            print(('removing water molecules from pdb file: ' + item))
+            print('removing water molecules from pdb file: ' + item)
             output_file = item[:-4] + '_rm_tmp.pdb'
             is_line_removed_flag = False
             with open(item, 'r') as f_in, open(output_file, 'w') as f_out:
@@ -589,7 +589,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
             for item_1 in range(num_atoms):
                 for item_2 in range(item_1 + 1, num_atoms):
                     p_distances += [mat[item_1][item_2]]
-            assert (len(p_distances) == num_atoms * (num_atoms - 1) / 2)
+            assert (len(p_distances) == num_atoms * (num_atoms - 1) // 2)
             result += [p_distances]
 
         return np.array(result)
@@ -597,7 +597,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     @staticmethod
     def get_non_repeated_pairwise_distance_from_pos_npy(pos_npy):
         from sklearn.metrics.pairwise import pairwise_distances
-        num_atoms = pos_npy.shape[1] / 3
+        num_atoms = pos_npy.shape[1] // 3
         temp_pos_npy = pos_npy.reshape(pos_npy.shape[0], num_atoms, 3)
         pairwise_dis = np.array([pairwise_distances(item, item) for item in temp_pos_npy])
         temp_result = np.array(
@@ -629,7 +629,7 @@ class Alanine_dipeptide(Sutils):
 
     @staticmethod
     def get_cossin_from_a_coordinate(a_coordinate):
-        num_of_coordinates = len(list(a_coordinate)) / 3
+        num_of_coordinates = len(list(a_coordinate)) // 3
         a_coordinate = np.array(a_coordinate).reshape(num_of_coordinates, 3)
         diff_coordinates = a_coordinate[1:num_of_coordinates, :] - a_coordinate[0:num_of_coordinates - 1,:]  # bond vectors
         diff_coordinates_1=diff_coordinates[0:num_of_coordinates-2,:];diff_coordinates_2=diff_coordinates[1:num_of_coordinates-1,:]
@@ -734,7 +734,7 @@ class Trp_cage(Sutils):
         try:
             assert ( cos_of_angle ** 2 + sin_of_angle ** 2 - 1 < 0.0001)
         except:
-            print(("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2)))
+            print("error: cos^2 x+ sin^2 x != 1, it is %f" %(cos_of_angle ** 2 + sin_of_angle ** 2))
             # print ("coordinates of four atoms are:")
             # print (coords_of_four)
 
@@ -800,10 +800,10 @@ class Trp_cage(Sutils):
             temp_angle = []
             len_of_cos_sin = 76
             assert (len(item) == len_of_cos_sin), (len(item), len_of_cos_sin)
-            for idx_of_angle in range(len_of_cos_sin / 2):
+            for idx_of_angle in range(len_of_cos_sin // 2):
                 temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
 
-            assert (len(temp_angle) == len_of_cos_sin / 2)
+            assert (len(temp_angle) == len_of_cos_sin // 2)
 
             result += [temp_angle]
 

@@ -6,8 +6,8 @@ class cluster_management(object):
 
     @staticmethod
     def get_server_and_user():
-        server = subprocess.check_output(['uname', '-n']).strip()
-        user = subprocess.check_output('echo $HOME', shell=True).strip().split('/')[-1]
+        server = subprocess.check_output(['uname', '-n']).decode("utf-8").strip()
+        user = subprocess.check_output('echo $HOME', shell=True).decode("utf-8").strip().split('/')[-1]
         return server, user
 
     @staticmethod
@@ -80,8 +80,7 @@ export PMI_NO_FORK=1
 export PMI_NO_PREINITIALIZE=1
 module unload bwpy
 module load bwpy/2.0.0-pre1
-source /u/sciteam/chen21/.myPy/bin/activate
-# source /u/sciteam/chen21/.bashrc
+source /u/sciteam/chen21/.myPy3/bin/activate
 %s
 wait       # to wait for all jobs to finish
 echo "This job is DONE!"
@@ -149,7 +148,7 @@ exit 0
     @staticmethod
     def get_num_of_running_jobs():
         _, user = cluster_management.get_server_and_user()
-        output = subprocess.check_output(['qstat', '-u', user])
+        output = subprocess.check_output(['qstat', '-u', user]).decode("utf-8")
         all_entries = output.strip().split('\n')[2:]   # remove header
         all_entries = [item for item in all_entries if user in item]        # remove unrelated lines
         all_entries = [item for item in all_entries if (not item.strip().split()[4] == 'dr')]   # remove job in "dr" state
@@ -169,9 +168,9 @@ exit 0
         assert(os.path.exists(dir_to_archive_files))
         sge_job_id_list = []
         for item in job_file_lists[0:num]:
-            output_info = subprocess.check_output(['qsub', item]).strip()
+            output_info = subprocess.check_output(['qsub', item]).decode("utf-8").strip()
             sge_job_id_list.append(cluster_management.get_job_id_from_qsub_output(output_info))
-            print(('submitting ' + str(item)))
+            print('submitting ' + str(item))
             subprocess.check_output(['mv', item, dir_to_archive_files]) # archive files
         return sge_job_id_list
 
@@ -206,14 +205,14 @@ exit 0
 
     @staticmethod
     def get_output_and_err_with_job_id(job_id):
-        temp_file_list = subprocess.check_output(['ls']).strip().split('\n')
+        temp_file_list = subprocess.check_output(['ls']).decode("utf-8").strip().split('\n')
         out_file = list([x for x in temp_file_list if '.sge.o' + job_id in x])[0]
         err_file = list([x for x in temp_file_list if '.sge.e' + job_id in x])[0]
         return out_file, err_file
 
     @staticmethod
     def get_sge_files_list():
-        result = [x for x in subprocess.check_output(['ls', '../sge_files']).split('\n') if x[-3:] == "sge"]
+        result = [x for x in subprocess.check_output(['ls', '../sge_files']).decode("utf-8").split('\n') if x[-3:] == "sge"]
         result = ['../sge_files/' + x for x in result]
         return result
 
@@ -264,10 +263,10 @@ exit 0
     def is_job_on_cluster(job_sgefile_name):    # input could be sge file name or job id
         server, user = cluster_management.get_server_and_user()
         if 'alf' in server:
-            output = subprocess.check_output(['qstat', '-r'])
+            output = subprocess.check_output(['qstat', '-r']).decode("utf-8")
             result = job_sgefile_name in output
         elif "h2ologin" in server or 'nid' in server:
-            output = subprocess.check_output(['qstat', '-u', user, '-f', '-x'])   # output in xml format, make sure long file name is displayed in one line
+            output = subprocess.check_output(['qstat', '-u', user, '-f', '-x']).decode("utf-8")   # output in xml format, make sure long file name is displayed in one line
             result = False
             for item in output.split('<Job>')[1:]:
                 if (job_sgefile_name in item) and (not '<job_state>C</job_state>' in item):  # ignore completed jobs

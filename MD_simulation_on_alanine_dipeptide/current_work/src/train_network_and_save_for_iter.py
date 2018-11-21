@@ -25,7 +25,6 @@ parser.add_argument('--rec_loss_type', type=int, default=True, help='0: standard
 parser.add_argument('--rec_weight', type=float, default=1.0, help='weight of reconstruction loss (pytorch only)')
 parser.add_argument('--autocorr_weight', type=float, default=1.0, help='weight of autocorrelation loss in the loss function (pytorch only)')
 parser.add_argument('--pearson_weight', type=float, default=None, help='weight of pearson loss (pytorch only)')
-parser.add_argument('--previous_CVs', type=str, default=None, help='npy file list containing previous CVs to compute pearson loss (pytorch only)')
 parser.add_argument('--sf', type=str, default=None, help='model to start with (pytorch only)')
 args = parser.parse_args()
 
@@ -156,13 +155,13 @@ additional_argument_list['node_num'] = temp_node_num
 
 if args.auto_scale:
     auto_scaling_factor = np.max(np.abs(data_set)).astype(np.float)
-    print(("auto_scaling_factor = %f" % auto_scaling_factor))
+    print("auto_scaling_factor = %f" % auto_scaling_factor)
     data_set /= auto_scaling_factor
     output_data_set /= (np.max(np.abs(output_data_set)).astype(np.float))
     assert np.max(np.abs(data_set)) == 1.0 and np.max(np.abs(output_data_set)) == 1.0
 
-print(("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
-                                                                  np.min(data_set), np.max(data_set))))
+print("min/max of output = %f, %f, min/max of input = %f, %f" % (np.min(output_data_set), np.max(output_data_set),
+                                                                  np.min(data_set), np.max(data_set)))
 
 if not args.save_to_data_files is None:
     args.save_to_data_files = args.save_to_data_files.split(',')
@@ -180,10 +179,6 @@ elif CONFIG_45 == 'pytorch':
     additional_argument_list['rec_weight'] = args.rec_weight
     additional_argument_list['autocorr_weight'] = args.autocorr_weight
     additional_argument_list['pearson_weight'] = args.pearson_weight
-    if not args.previous_CVs is None:
-        previous_CVs_list = args.previous_CVs.strip().split(',')
-        additional_argument_list['previous_CVs'] = np.concatenate([
-            np.load(item) for item in previous_CVs_list], axis=-1)
     temp_network_list = [autoencoder_torch(index=args.index,
                                            data_set_for_training=data_set,
                                            output_data_set=output_data_set,

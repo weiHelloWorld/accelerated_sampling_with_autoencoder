@@ -16,7 +16,7 @@ class classification_sampler(object):
 
     def get_input_from_pdbs(self, pdb_list):
         """can be modified to other input features later"""
-        print(('get input from %s' % str(pdb_list)))
+        print('get input from %s' % str(pdb_list))
         result =  Sutils.get_non_repeated_pairwise_distance(
             pdb_list, atom_selection=self._atom_selection) / self._scaling_factor
         self._input_dim = result.shape[1]

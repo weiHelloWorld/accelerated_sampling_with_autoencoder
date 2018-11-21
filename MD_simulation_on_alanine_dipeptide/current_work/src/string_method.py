@@ -43,7 +43,7 @@ class String_method_1(object):  # with autoencoder approach
         temp_output = subprocess.check_output(['python', '../src/train_network_and_save_for_iter.py', str(index),
                                  '--data_folder', folder_containing_data_in_previous_iteration,
                                  '--num_PCs', '1'
-                                 ])
+                                 ]).decode("utf-8")
         print(temp_output)
         autoencoder_filename = temp_output.strip().split('\n')[-1]
         new_pdb_file_name = self.get_images_and_write_into_a_pdb_file(folder_containing_data_in_previous_iteration,
@@ -173,7 +173,7 @@ class String_method(object):
         item = 0
         while True:
             temp_result = subprocess.check_output(
-                ['find', folder, '-name', 'temp_string_%04d*_aligned.pdb' % item]).strip().split()
+                ['find', folder, '-name', 'temp_string_%04d*_aligned.pdb' % item]).decode("utf-8").strip().split()
             if len(temp_result) == 0: break
             else:
                 result.append(temp_result)

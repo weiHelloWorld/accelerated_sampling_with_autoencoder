@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 ref_structure_pdb_file = args.ref
 
-pdb_files = subprocess.check_output(['find', args.sample_path, '-name', "*.pdb"]).strip().split('\n')
+pdb_files = subprocess.check_output(['find', args.sample_path, '-name', "*.pdb"]).decode("utf-8").strip().split('\n')
 if args.ignore_aligned_file:
     pdb_files = [x for x in pdb_files if not '_aligned' in x]
 
@@ -32,7 +32,7 @@ for sample_structure_pdb_file in pdb_files:
         output_pdb_file = parser.name
 
     if os.path.exists(output_pdb_file) and os.path.getmtime(sample_structure_pdb_file) < os.path.getmtime(output_pdb_file):
-        print(("aligned file already exists: %s (remove previous one if needed)" % output_pdb_file))
+        print("aligned file already exists: %s (remove previous one if needed)" % output_pdb_file)
     else:
         ref = Universe(ref_structure_pdb_file) 
         trj = Universe(sample_structure_pdb_file) 

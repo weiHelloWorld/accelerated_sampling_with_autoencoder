@@ -20,7 +20,7 @@ whether_to_qsub = args.submit
 command_in_sge_file = args.command.strip()
 if command_in_sge_file[-1] == '&':  # need to remove & otherwise it will not work in the cluster
     command_in_sge_file = command_in_sge_file[:-1]
-server_name = subprocess.check_output(['uname', '-n']).strip()
+server_name = subprocess.check_output(['uname', '-n']).decode("utf-8").strip()
 
 content_for_sge_file = cluster_management.get_sge_file_content(
     [command_in_sge_file], args.gpu, max_time=args.max_time, node=args.node,

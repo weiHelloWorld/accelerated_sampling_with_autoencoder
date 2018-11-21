@@ -10,12 +10,12 @@ class coordinates_data_files_list(object):
         self._list_of_coor_data_files = []
 
         for item in self._list_of_dir_of_coor_data_files:
-            self._list_of_coor_data_files += subprocess.check_output('''find %s -name "*coordinates.txt"''' % item, shell=True).strip().split('\n')
+            self._list_of_coor_data_files += subprocess.check_output('''find %s -name "*coordinates.txt"''' % item, shell=True).decode("utf-8").strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         self._list_of_coor_data_files = [x for x in self._list_of_coor_data_files if os.stat(x).st_size > 0]   # remove empty files
         self._list_of_coor_data_files.sort()                # to be consistent
-        self._list_of_line_num_of_coor_data_file = [int(subprocess.check_output(['wc', '-l', x]).strip().split()[0]) for x in self._list_of_coor_data_files]
+        self._list_of_line_num_of_coor_data_file = [int(subprocess.check_output(['wc', '-l', x]).decode("utf-8").strip().split()[0]) for x in self._list_of_coor_data_files]
 
         return
 
@@ -68,7 +68,7 @@ class coordinates_data_files_list(object):
             temp_index_related_to_this_pdb_file.sort()
 
             if len(temp_index_related_to_this_pdb_file) != 0:
-                if verbose: print((pdb_files[item]))
+                if verbose: print(pdb_files[item])
                 with open(pdb_files[item], 'r') as in_file:
                     content = in_file.read().split('MODEL')[1:]  # remove header
                     frames_to_use = [content[ii] for ii in temp_index_related_to_this_pdb_file]

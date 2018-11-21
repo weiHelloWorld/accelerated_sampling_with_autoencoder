@@ -450,6 +450,7 @@ class test_autoencoder_torch(object):
         a = autoencoder_torch(1447, data,
                               output_data_set=data,
                               hierarchical=True, hi_variant=2,
+                              rec_loss_type=1,
                               batch_size=500,
                               node_num=[21, 100, 2, 100, 21],
                               hidden_layers_types=['tanh', 'tanh', 'tanh'], epochs=10)
