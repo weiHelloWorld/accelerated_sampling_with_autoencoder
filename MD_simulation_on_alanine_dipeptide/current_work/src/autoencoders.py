@@ -284,7 +284,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
             )
         return result
 
-    def write_expression_script_for_plumed(self, out_file=None, mode="native"):
+    def write_expression_script_for_plumed(self, out_file=None, mode="ANN"):
         if out_file is None: out_file = self._autoencoder_info_file
         expression = self.get_expression_script_for_plumed(mode=mode)
         with open(out_file, 'w') as f_out:
