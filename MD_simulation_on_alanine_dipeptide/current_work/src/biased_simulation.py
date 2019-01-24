@@ -82,6 +82,7 @@ def run_simulation(force_constant):
     assert(os.path.exists(folder_to_store_output_files))
     input_pdb_file_of_molecule = args.starting_pdb_file
     force_field_file = 'amber99sb.xml'
+    water_field_file = 'tip3p.xml'
     pdb_reporter_file = '%s/output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
 
     if not args.output_pdb is None:
@@ -101,8 +102,16 @@ def run_simulation(force_constant):
 
     pdb = PDBFile(input_pdb_file_of_molecule)
     modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
-    forcefield = ForceField(force_field_file) # without water
-    system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=AllBonds)
+    solvent_opt = 'explicit'
+    if solvent_opt == 'explicit':
+        forcefield = ForceField(force_field_file, water_field_file)
+        modeller.addSolvent(forcefield, model=water_field_file.split('.xml')[0], boxSize=Vec3(3, 3, 3) * nanometers,
+                            ionicStrength=0 * molar)
+        system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * nanometers,
+                                         constraints=AllBonds, ewaldErrorTolerance=0.0005)
+    else:
+        forcefield = ForceField(force_field_file)
+        system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=AllBonds)
 
     if args.bias_method == "US":
         if float(force_constant) != 0:
