@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import copy, pickle, re, os, time, subprocess, datetime, itertools, sys, abc, argparse, matplotlib, glob
 matplotlib.use('agg')
+sys.path.append('/home/kengyangyao/Dropbox/temp_Linux/temp_research_proj/cluster_management/cm/src')
 from scipy import io as sciio
 import numpy as np, pandas as pd, seaborn as sns
 from numpy.testing import assert_almost_equal
