@@ -1474,10 +1474,6 @@ data size = %d, train set size = %d, valid set size = %d, batch size = %d, rec_w
                     autocorr_loss = autocorr_loss + self._pearson_weight * pearson_corr
             loss = self._rec_weight * rec_loss + self._autocorr_weight * autocorr_loss + mean_penalty + component_penalty
         else:
-            if self._autocorr_weight != 1.0:
-                print('warning: autocorrelation loss weight has no effect for model with reconstruction loss only')
-            if self._rec_weight != 1.0:
-                print('warning: reconstruction loss weight has no effect for model with reconstruction loss only')
             loss = rec_loss
         return loss, rec_loss
 
