@@ -36,7 +36,8 @@ def get_mol_param(parameter_list, molecule_name=CONFIG_30):   # get molecule spe
     return result
 
 def get_index_list_with_selection_statement(pdb_file, atom_selection_statement):
-    return (Universe(pdb_file).select_atoms(atom_selection_statement).indices + 1).tolist()
+    pdb_file_1 = os.path.join(os.path.dirname(__file__), pdb_file)
+    return (Universe(pdb_file_1).select_atoms(atom_selection_statement).indices + 1).tolist()
 
 #######################################################################
 ##################   configurations  ##################################
