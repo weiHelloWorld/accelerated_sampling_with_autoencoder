@@ -16,4 +16,5 @@ temp/**
 *.npy
 *.pdf
 temp_model.dot
+HDE_paper_notebooks/**
 

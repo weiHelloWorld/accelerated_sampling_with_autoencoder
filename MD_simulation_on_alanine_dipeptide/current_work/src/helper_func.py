@@ -72,7 +72,7 @@ class Helper_func(object):
     @staticmethod
     def get_gyration_tensor_and_principal_moments(coords):
         coords = Helper_func.remove_translation(coords)
-        temp_coords = coords.reshape(coords.shape[0], coords.shape[1] / 3, 3)
+        temp_coords = coords.reshape(coords.shape[0], coords.shape[1] // 3, 3)
         gyration = np.zeros((coords.shape[0], 3, 3))
         for xx in range(3):
             for yy in range(3):
