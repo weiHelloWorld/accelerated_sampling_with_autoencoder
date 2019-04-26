@@ -265,4 +265,9 @@ class Helper_func(object):
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
-        return pickle.load(open(file_path, 'rb'))
+        try:
+            result = pickle.load(open(file_path, 'rb'))
+        except:    # solve encoding issue for python2 -> python3
+            with open(file_path, 'rb') as ff:
+                result = pickle.load(ff, encoding='latin1')
+        return result
