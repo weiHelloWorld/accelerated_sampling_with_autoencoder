@@ -30,8 +30,9 @@ class coordinates_data_files_list(object):
     def get_list_of_coor_data_files(self):
         return self._list_of_coor_data_files
 
-    def get_coor_data(self, scaling_factor):
-        result = np.concatenate([np.loadtxt(item) for item in self._list_of_coor_data_files], axis=0) / scaling_factor
+    def get_coor_data(self, scaling_factor, format='npy'):
+        result = np.concatenate([
+            Helper_func.load_npy(item, format=format) for item in self._list_of_coor_data_files], axis=0) / scaling_factor
         assert (sum(self._list_of_line_num_of_coor_data_file) == result.shape[0])
         return result
 

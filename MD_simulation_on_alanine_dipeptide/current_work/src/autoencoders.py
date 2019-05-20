@@ -1078,7 +1078,7 @@ class autoencoder_Keras(autoencoder):
             plot_model(molecule_net, show_shapes=True, to_file='model.png')
         except: pass
 
-        temp_optimizer_name = "Adam"
+        temp_optimizer_name = "SGD"
         if temp_optimizer_name == 'SGD':
             temp_optimizer = SGD(lr=self._network_parameters[0],
                                    momentum=self._network_parameters[1],
