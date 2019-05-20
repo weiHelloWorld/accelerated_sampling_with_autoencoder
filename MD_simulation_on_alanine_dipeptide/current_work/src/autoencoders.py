@@ -141,8 +141,6 @@ class autoencoder(object):
                                                                                         number_of_data_points_to_be_saved,
                                                                                         self._data_set.shape[0]))
             self._data_set = self._data_set[:number_of_data_points_to_be_saved]
-            if not (self._output_data_set is None or self._output_data_set == np.array(None)):        # for backward compatibility
-                self._output_data_set = self._output_data_set[:number_of_data_points_to_be_saved]
 
         hdf5_file_name = filename.replace('.pkl', '.hdf5')
         hdf5_file_name_encoder = hdf5_file_name.replace('.hdf5', '_encoder.hdf5')
