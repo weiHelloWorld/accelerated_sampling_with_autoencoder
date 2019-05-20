@@ -66,6 +66,7 @@ force_constant = args.force_constant
 scaling_factor = args.scaling_factor
 num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
 num_of_nodes = [int(item) for item in num_of_nodes]
+out_format = CONFIG_81
 
 platform = Platform.getPlatformByName(args.platform)
 temperature = args.temperature
@@ -317,7 +318,10 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     print("Done equilibration")
     print(datetime.datetime.now())
 
-    simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    if out_format == 'pdb':
+        simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    elif out_format == 'dcd':
+        simulation.reporters.append(DCDReporter(pdb_reporter_file.replace('.pdb', '.dcd'), record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, time=True,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True, volume = True,density=True,

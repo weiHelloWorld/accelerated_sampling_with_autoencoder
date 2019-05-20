@@ -64,6 +64,7 @@ scaling_factor = args.scaling_factor
 layer_types = re.sub("\[|\]|\"|\'| ",'', args.layer_types).split(',')
 num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
 num_of_nodes = [int(item) for item in num_of_nodes]
+out_format = CONFIG_81
 
 if float(force_constant) != 0:
     from ANN import *
@@ -232,7 +233,10 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
         print('energy minimization not required')
 
     simulation.step(args.equilibration_steps)
-    simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    if out_format == 'pdb':
+        simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    elif out_format == 'dcd':
+        simulation.reporters.append(DCDReporter(pdb_reporter_file.replace('.pdb', '.dcd'), record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True,
