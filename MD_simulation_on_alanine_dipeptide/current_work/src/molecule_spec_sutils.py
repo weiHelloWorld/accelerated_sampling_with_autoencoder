@@ -2,7 +2,7 @@
 """
 
 from config import *
-import random
+import random, mdtraj as md
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
 from helper_func import *
@@ -127,8 +127,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def create_subclass_instance_using_name(name):
-        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(),
-                'Src_kinase': Src_kinase(), 'BetaHairpin': BetaHairpin(), 'C24': C24()}[name]
+        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage()}[name]
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
@@ -288,40 +287,24 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return result
 
     @staticmethod
-    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in index_of_backbone_atoms]
-        filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).decode("utf-8").strip().split('\n')
+    def _generate_coordinates_from_pdb_files(atom_index, file_path=CONFIG_12, format='npy'):
+        atom_index = [int(_1) for _1 in atom_index]
+        atom_index = np.array(atom_index) - 1     # note that atom index starts from 1
+        filenames = subprocess.check_output(['find', file_path, '-name', '*.pdb']).decode("utf-8").strip().split('\n')
         output_file_list = []
 
         for input_file in filenames:
-            output_file = input_file.replace('.pdb', '_coordinates.txt')
-            if step_interval != 1:
-                output_file = output_file.replace('_coordinates.txt', '_int_%d_coordinates.txt' % step_interval)
+            output_file = input_file.replace('.pdb', '_coordinates.') + format
 
             output_file_list += [output_file]
             if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
                 print("coordinate file already exists: %s (remove previous one if needed)" % output_file)
             else:
                 print('generating coordinates of ' + input_file)
-
-                with open(input_file) as f_in:
-                    with open(output_file, 'w') as f_out:
-                        # fix based on this format: https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html
-                        # reason for the fix is sometimes there is no space between two neighboring fields
-                        # for instance, when atom index is greater than 10000, no space between first two fields, leading to wrong parsing
-                        for line in f_in:
-                            line = line.strip()
-                            fields = [line[:6], line[6:11], line[30:38], line[38:46], line[46:54]]
-                            fields = [item_field.strip() for item_field in fields]
-                            if (fields[0] == 'ATOM' or fields[0] == 'HETATM') and fields[1] in index_of_backbone_atoms:
-                                f_out.write(reduce(lambda x, y: x + '\t' + y, fields[2:5]))
-                                f_out.write('\t')
-                                if fields[1] == index_of_backbone_atoms[-1]:
-                                    f_out.write('\n')
-
-                if step_interval > 1:
-                    data = np.loadtxt(output_file)[::step_interval]
-                    np.savetxt(output_file, data, fmt="%.3f", delimiter='\t')
+                mdxyz = md.load(input_file).xyz
+                mdxyz = mdxyz[:, atom_index, :].reshape(mdxyz.shape[0], len(atom_index) * 3)
+                if format == 'txt': np.savetxt(output_file, mdxyz)
+                elif format == 'npy': np.save(output_file, mdxyz)
 
         print("Done generating coordinates files\n")
         return output_file_list
@@ -692,9 +675,9 @@ class Alanine_dipeptide(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval =1):
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12):
         index_of_backbone_atoms = [str(item) for item in CONFIG_57[0]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, file_path=path_for_pdb)
         return output_file_list
 
     @staticmethod
@@ -813,12 +796,11 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12, step_interval=1):
+    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12):
         index_of_backbone_atoms = [str(item) for item in CONFIG_57[1]]
         assert (len(index_of_backbone_atoms) % 3 == 0)
 
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
-                                                                       step_interval=step_interval)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, file_path=path_for_pdb)
 
         return output_file_list
 
@@ -989,74 +971,3 @@ class Trp_cage(Sutils):
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[1]
         return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
-
-
-class Src_kinase(Sutils):
-    def __init__(self):
-        super(Src_kinase, self).__init__()
-        return
-
-    @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in CONFIG_57[2]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(
-            index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
-        return output_file_list
-
-    @staticmethod
-    def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
-        index_of_backbone_atoms = CONFIG_57[2]
-        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
-
-    @staticmethod
-    def metric_salt_bridge_switching(list_of_files, step_interval=1):
-        """this function measures (distance between E310-R409) - (distance between E310-K295),
-        this is a good metric showing switching between two salt bridges
-        """
-
-        dis_310_409 = []
-        dis_310_295 = []
-        index = 0
-        for sample_file in list_of_files:
-            sample = Universe(sample_file)
-            # note that we only simulate residue 260-521
-            temp_atom_310 = sample.select_atoms('resid 51 and name CD')
-            temp_atom_409 = sample.select_atoms('resid 150 and name CZ')
-            temp_atom_295 = sample.select_atoms('resid 36 and name NZ')
-            for _ in sample.trajectory:
-                if index % step_interval == 0:
-                    dis_310_409.append(
-                        distance_array(temp_atom_310.positions, temp_atom_409.positions))
-                    dis_310_295.append(
-                        distance_array(temp_atom_310.positions, temp_atom_295.positions))
-
-                index += 1
-
-        return np.array(dis_310_409).flatten() - np.array(dis_310_295).flatten()
-
-class BetaHairpin(Sutils):
-    def __init__(self):
-        super(BetaHairpin, self).__init__()
-        return
-
-    @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in CONFIG_57[3]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
-                                                                       step_interval=step_interval)
-
-        return output_file_list
-
-class C24(Sutils):
-    def __init__(self):
-        super(C24, self).__init__()
-        return
-
-    @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in CONFIG_57[4]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms,
-                                                                       path_for_pdb=path_for_pdb,
-                                                                       step_interval=step_interval,
-                                                                       start_index_of_xyz_field=5)
-        return output_file_list
