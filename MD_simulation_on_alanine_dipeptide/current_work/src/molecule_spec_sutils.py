@@ -107,7 +107,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         for item in range(len(alignment_coor_file_suffix_list)):
             for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(),
                               coor_data_obj_output_list[item].get_list_of_coor_data_files()):
-                assert (_2 == _1.replace('_coordinates.txt', alignment_coor_file_suffix_list[item])), (_2, _1)
+                assert (_2 == _1.replace('_coordinates.npy', alignment_coor_file_suffix_list[item])), (_2, _1)
 
         output_data_set = np.concatenate([Sutils.remove_translation(item.get_coor_data(scaling_factor))
                                           for item in coor_data_obj_output_list] , axis=1)

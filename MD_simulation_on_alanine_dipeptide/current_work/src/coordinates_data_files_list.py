@@ -10,12 +10,12 @@ class coordinates_data_files_list(object):
         self._list_of_coor_data_files = []
 
         for item in self._list_of_dir_of_coor_data_files:
-            self._list_of_coor_data_files += subprocess.check_output('''find %s -name "*coordinates.txt"''' % item, shell=True).decode("utf-8").strip().split('\n')
+            self._list_of_coor_data_files += subprocess.check_output('''find %s -name "*coordinates.npy"''' % item, shell=True).decode("utf-8").strip().split('\n')
 
         self._list_of_coor_data_files = list(set(self._list_of_coor_data_files))  # remove duplicates
         self._list_of_coor_data_files = [x for x in self._list_of_coor_data_files if os.stat(x).st_size > 0]   # remove empty files
         self._list_of_coor_data_files.sort()                # to be consistent
-        self._list_of_line_num_of_coor_data_file = [int(subprocess.check_output(['wc', '-l', x]).decode("utf-8").strip().split()[0]) for x in self._list_of_coor_data_files]
+        self._list_num_frames = [np.load(_1).shape[0] for _1 in self._list_of_coor_data_files]
 
         return
 
@@ -33,11 +33,11 @@ class coordinates_data_files_list(object):
     def get_coor_data(self, scaling_factor, format='npy'):
         result = np.concatenate([
             Helper_func.load_npy(item, format=format) for item in self._list_of_coor_data_files], axis=0) / scaling_factor
-        assert (sum(self._list_of_line_num_of_coor_data_file) == result.shape[0])
+        assert (sum(self._list_num_frames) == result.shape[0])
         return result
 
     def get_list_of_corresponding_pdb_files(self):
-        list_of_corresponding_pdb_files = [x.strip().split('_coordinates.txt')[0] + '.pdb' for x in self.get_list_of_coor_data_files()]
+        list_of_corresponding_pdb_files = [x.strip().replace('_coordinates.npy', '.pdb') for x in self.get_list_of_coor_data_files()]
         for item in list_of_corresponding_pdb_files:
             try:
                 assert os.path.exists(item)
@@ -45,9 +45,6 @@ class coordinates_data_files_list(object):
                 raise Exception('%s does not exist!' % item)
 
         return list_of_corresponding_pdb_files
-
-    def get_list_of_line_num_of_coor_data_file(self):
-        return self._list_of_line_num_of_coor_data_file
 
     def write_pdb_frames_into_file_with_list_of_coor_index(self, list_of_coor_index, out_file_name, verbose=True):
         """
@@ -59,7 +56,7 @@ class coordinates_data_files_list(object):
         Helper_func.backup_rename_file_if_exists(out_file_name)
         list_of_coor_index.sort()
         pdb_files = self.get_list_of_corresponding_pdb_files()
-        accum_sum = np.cumsum(np.array(self._list_of_line_num_of_coor_data_file))  # use accumulative sum to find corresponding pdb files
+        accum_sum = np.cumsum(np.array(self._list_num_frames))  # use accumulative sum to find corresponding pdb files
         for item in range(len(accum_sum)):
             if item == 0:
                 temp_index_related_to_this_pdb_file = [x for x in list_of_coor_index if x < accum_sum[item]]
@@ -80,7 +77,7 @@ class coordinates_data_files_list(object):
         return
 
     def get_pdb_name_and_corresponding_frame_index_with_global_coor_index(self, coor_index):
-        for item, temp_pdb in zip(self._list_of_line_num_of_coor_data_file, self.get_list_of_corresponding_pdb_files()):
+        for item, temp_pdb in zip(self._list_num_frames, self.get_list_of_corresponding_pdb_files()):
             if coor_index < item: break
             else: coor_index -= item
         return temp_pdb, coor_index

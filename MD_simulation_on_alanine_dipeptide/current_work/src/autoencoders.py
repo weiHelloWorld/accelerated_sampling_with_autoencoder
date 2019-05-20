@@ -368,7 +368,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 _1.write_pdb_frames_into_file_with_list_of_coor_index(item, output_pdb_name, verbose=False)
                 # assertion part
                 molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=output_pdb_name)
-                temp_input_data = np.loadtxt(output_pdb_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
+                temp_input_data = np.loadtxt(output_pdb_name.replace('.pdb', '_coordinates.npy')) / scaling_factor
                 temp_input_data = Sutils.remove_translation(temp_input_data)
                 PCs_of_points_selected = self.get_PCs(input_data=temp_input_data)
                 assert_almost_equal(PCs_of_points_selected, PCs[item], decimal=4)
@@ -472,7 +472,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                     nearest_pdb, nearest_frame_index = _1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(index_of_nearest_config)
                     nearest_pdb_frame_index_list.append([nearest_pdb, nearest_frame_index])
                     # assertion part
-                    temp_input_data_2 = np.loadtxt(nearest_pdb.replace('.pdb', '_coordinates.txt')) / CONFIG_49
+                    temp_input_data_2 = np.loadtxt(nearest_pdb.replace('.pdb', '_coordinates.npy')) / CONFIG_49
                     temp_input_data_2 = Sutils.remove_translation(temp_input_data_2)
                     temp_PC_2 = self.get_PCs(temp_input_data_2)[nearest_frame_index]
                     print(temp_distances[index_of_nearest_config])
@@ -482,9 +482,9 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 
             if force_constant_for_biased is None:
                 if isinstance(molecule_type, Trp_cage):
-                    temp_state_coor_file = '../resources/1l2y_coordinates.txt'
+                    temp_state_coor_file = '../resources/1l2y_coordinates.npy'
                 elif isinstance(molecule_type, Alanine_dipeptide):
-                    temp_state_coor_file = '../resources/alanine_dipeptide_coordinates.txt'
+                    temp_state_coor_file = '../resources/alanine_dipeptide_coordinates.npy'
                 elif isinstance(molecule_type, Src_kinase) or isinstance(molecule_type, BetaHairpin):
                     temp_state_coor_file = None
                 else:
