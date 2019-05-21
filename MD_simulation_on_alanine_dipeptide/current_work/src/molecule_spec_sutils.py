@@ -290,7 +290,8 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     def _generate_coordinates_from_pdb_files(atom_index, file_path=CONFIG_12, format='npy'):
         atom_index = [int(_1) for _1 in atom_index]
         atom_index = np.array(atom_index) - 1     # note that atom index starts from 1
-        filenames = subprocess.check_output(['find', file_path, '-name', '*.pdb']).decode("utf-8").strip().split('\n')
+        filenames = subprocess.check_output([
+            'find', file_path, '-name', '*.pdb', '-o', '-name', '*.dcd']).decode("utf-8").strip().split('\n')
         output_file_list = []
 
         for input_file in filenames:
@@ -301,7 +302,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
                 print("coordinate file already exists: %s (remove previous one if needed)" % output_file)
             else:
                 print('generating coordinates of ' + input_file)
-                mdxyz = md.load(input_file).xyz
+                mdxyz = md.load(input_file, top=CONFIG_62[0]).xyz
                 mdxyz = mdxyz[:, atom_index, :].reshape(mdxyz.shape[0], len(atom_index) * 3)
                 if format == 'txt': np.savetxt(output_file, mdxyz)
                 elif format == 'npy': np.save(output_file, mdxyz)

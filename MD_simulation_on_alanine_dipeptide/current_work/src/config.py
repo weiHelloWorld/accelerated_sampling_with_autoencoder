@@ -101,7 +101,7 @@ elif CONFIG_76 == 'pairwise_distance':
     ])
 else: raise Exception('error')
 
-CONFIG_5 = 200                   # max number of training epochs
+CONFIG_5 = 50                   # max number of training epochs
 CONFIG_6 = None                # filename to save this network
 CONFIG_36 = 2                  #   dimensionality
 CONFIG_37 = 2 * CONFIG_36 if CONFIG_17[1] == "Circular" else CONFIG_36      # number of nodes in bottleneck layer

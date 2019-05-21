@@ -103,7 +103,7 @@ def run_simulation(force_constant):
 
     pdb = PDBFile(input_pdb_file_of_molecule)
     modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
-    solvent_opt = 'explicit'
+    solvent_opt = 'no_water'
     if solvent_opt == 'explicit':
         forcefield = ForceField(force_field_file, water_field_file)
         modeller.addSolvent(forcefield, model=water_field_file.split('.xml')[0], boxSize=Vec3(3, 3, 3) * nanometers,
