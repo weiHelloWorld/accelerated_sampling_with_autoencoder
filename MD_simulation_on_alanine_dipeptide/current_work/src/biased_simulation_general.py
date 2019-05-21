@@ -192,7 +192,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
             force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
-            force.set_scaling_factor(float(scaling_factor) / 10.0)     # factor of 10: since default unit is nm in OpenMM
+            unit_scaling = 1.0  # TODO: check unit scaling
+            force.set_scaling_factor(float(scaling_factor) / unit_scaling)  # since default unit is nm in OpenMM
 
             with open(autoencoder_info_file, 'r') as f_in:
                 content = f_in.readlines()

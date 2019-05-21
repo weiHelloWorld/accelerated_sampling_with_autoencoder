@@ -127,7 +127,8 @@ def run_simulation(force_constant):
             force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
-            force.set_scaling_factor(float(scaling_factor) / 10.0)     # factor of 10: since default unit is nm in OpenMM
+            unit_scaling = 1.0  # TODO: check unit scaling
+            force.set_scaling_factor(float(scaling_factor) / unit_scaling)   # since default unit is nm in OpenMM
 
             # TODO: need to fix following for multi-hidden layer cases
             temp_coeffs, temp_bias = np.load(autoencoder_info_file)

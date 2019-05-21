@@ -174,7 +174,7 @@ class plotting(object):
                                 list_of_files=[out_file_name.replace('.pdb', '_coordinates.npy')])
                         elif CONFIG_48 == "Cartesian" or 'pairwise_distance':
                             scaling_factor = CONFIG_49
-                            temp_input_data = np.loadtxt(out_file_name.replace('.pdb', '_coordinates.npy')) / scaling_factor
+                            temp_input_data = np.load(out_file_name.replace('.pdb', '_coordinates.npy')) / scaling_factor
                             temp_input_data = Sutils.remove_translation(temp_input_data)
                         else:
                             raise Exception("input data type error")
@@ -229,7 +229,7 @@ class plotting(object):
         temp_arrow_start_list = []
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
-            data = np.loadtxt(item)[starting_index_of_last_few_frames:] / scaling_factor
+            data = np.load(item)[starting_index_of_last_few_frames:] / scaling_factor
             data = Sutils.remove_translation(data)
             potential_centers_list.append([float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')])
             # do analysis using K-S test
@@ -453,7 +453,7 @@ class single_biased_simulation_data(object):
                 [self._file_for_single_biased_simulation_coor]))
         elif input_data_type == 'Cartesian':
             scaling_factor = CONFIG_49
-            temp_data = np.loadtxt(self._file_for_single_biased_simulation_coor) / scaling_factor
+            temp_data = np.load(self._file_for_single_biased_simulation_coor) / scaling_factor
             temp_data = Sutils.remove_translation(temp_data)
             PCs = self._my_network.get_PCs(temp_data)
         else:

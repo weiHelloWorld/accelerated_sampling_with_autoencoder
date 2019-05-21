@@ -321,9 +321,10 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         # following remove translation using p_com
         for item in range(len(index_of_backbone_atoms)):
             for _1, _2 in enumerate(['.x', '.y', '.z']):
+                unit_scaling = 10.0    # TODO: may need to fix factor for scaling factor
+                                        # because default unit is A in pdb file, and nm in PLUMED
                 plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
-                        % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor,
-                            # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
+                        % (3 * item + _1, unit_scaling / scaling_factor, unit_scaling / scaling_factor,
                             item, _2, _2)
         return plumed_script
 
@@ -333,10 +334,11 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         index_input = 0
         for item_1 in range(len(index_atoms)):
             for item_2 in range(item_1 + 1, len(index_atoms)):
+                unit_scaling = 10.0
                 plumed_string += "dis_%d:  DISTANCE ATOMS=%d,%d\n" % (
                     index_input, index_atoms[item_1], index_atoms[item_2])
                 plumed_string += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f ARG=dis_%d\n" % (
-                    index_input, 10.0 / scaling_factor, index_input)
+                    index_input, unit_scaling / scaling_factor, index_input)
                 index_input += 1
         return plumed_string
 
