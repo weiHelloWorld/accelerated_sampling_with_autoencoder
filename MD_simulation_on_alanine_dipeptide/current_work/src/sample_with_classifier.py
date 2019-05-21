@@ -194,7 +194,7 @@ if __name__ == "__main__":
     if system_name == 'Alanine_dipeptide':
         _1 = coordinates_data_files_list(['../resources/temp_ALA/'])
         _1 = _1.create_sub_coor_data_files_list_using_filter_conditional(lambda x: not '2.5' in x)
-        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1], molecule='Alanine_dipeptide',
+        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_dcd(), [0, 1], molecule='Alanine_dipeptide',
                                            scaling_factor=5.0, atom_selection='not name H*')
         mode = 'ANN_Force'
         for item in rangme(2, 10):
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     elif system_name == 'Src_kinase':
         atom_selection = '(resid 144:170 or resid 44:58) and name CA'
         _1 = coordinates_data_files_list(['../resources/temp_classifier_Src/'])
-        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_files(), [0, 1], molecule='Src_kinase',
+        c_sampler = classification_sampler(1, _1.get_list_of_corresponding_pdb_dcd(), [0, 1], molecule='Src_kinase',
                                            scaling_factor=40.0, atom_selection=atom_selection)
         mode = 'ANN_Force'
         for item in range(2, 10):

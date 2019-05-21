@@ -716,7 +716,7 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                 assert (len(dihedral_angle_range) == len(temp_umbOP[0]))
                 umbOP += temp_umbOP
             elif isinstance(molecule_type, Trp_cage):
-                temp_corresponding_pdb_list = coordinates_data_files_list([item]).get_list_of_corresponding_pdb_files()
+                temp_corresponding_pdb_list = coordinates_data_files_list([item]).get_list_of_corresponding_pdb_dcd()
                 temp_CA_RMSD = np.array(Trp_cage.metric_RMSD_of_atoms(temp_corresponding_pdb_list))
                 temp_helix_RMSD = np.array(Trp_cage.metric_RMSD_of_atoms(temp_corresponding_pdb_list,
                                                                 atom_selection_statement='resid 2:8 and name CA'))
