@@ -1115,6 +1115,8 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
         train_history = molecule_net.fit(train_in, train_out, epochs=self._epochs, batch_size=self._batch_size,
                                          verbose=True, validation_split=0.2, callbacks=call_back_list)
         self._connection_between_layers_coeffs, self._connection_with_bias_layers_coeffs = [], []
+        # It is implemented this way to handle hierarchical case,
+        # where the encoded layer may be concatenation of multiple single-node layer:
         for item_l in encoder_net.layers:
             outbound_layers = autoencoder_Keras.get_outbound_layers(item_l)
             if len(outbound_layers) > 0 and isinstance(outbound_layers[0], Dense):
