@@ -295,7 +295,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         output_file_list = []
 
         for input_file in filenames:
-            output_file = input_file.replace('.pdb', '_coordinates.') + format
+            output_file = input_file[:-4] + '_coordinates.' + format
 
             output_file_list += [output_file]
             if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
