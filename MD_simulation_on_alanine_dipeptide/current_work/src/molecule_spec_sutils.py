@@ -503,7 +503,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         index = 0
 
         for sample_file in list_of_files:
-            sample = Universe(sample_file)
+            sample = Universe(ref_file, sample_file)
             sample_atom_selection = sample.select_atoms(atom_selection_statement)
 
             for _ in sample.trajectory:
