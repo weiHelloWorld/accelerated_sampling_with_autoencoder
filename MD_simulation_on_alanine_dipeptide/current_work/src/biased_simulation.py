@@ -129,20 +129,17 @@ def run_simulation(force_constant):
             force.set_force_constant(float(force_constant))
             force.set_scaling_factor(float(scaling_factor) / 10.0)     # factor of 10: since default unit is nm in OpenMM
 
-            with open(autoencoder_info_file, 'r') as f_in:
-                content = f_in.readlines()
-
             # TODO: need to fix following for multi-hidden layer cases
-            temp_coeffs = [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
-            temp_bias  = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
+            temp_coeffs, temp_bias = np.load(autoencoder_info_file)
             for item_layer_index in [0, 1]:
                 assert (len(temp_coeffs[item_layer_index]) ==
                         num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1]), (len(temp_coeffs[item_layer_index]),
                                 (num_of_nodes[item_layer_index], num_of_nodes[item_layer_index + 1]))
                 assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1]), (len(temp_bias[item_layer_index]), num_of_nodes[item_layer_index + 1])
 
-            force.set_coeffients_of_connections(temp_coeffs)
-            force.set_values_of_biased_nodes(temp_bias)
+            # need tolist() since C++ only accepts Python list
+            force.set_coeffients_of_connections([item_w.tolist() for item_w in temp_coeffs])
+            force.set_values_of_biased_nodes([item_w.tolist() for item_w in temp_bias])
 
             system.addForce(force)
     elif args.bias_method == "US_on_phipsi":

@@ -1,3 +1,4 @@
+from temp_tf_load import *
 from config import *
 from molecule_spec_sutils import *  # import molecule specific unitity code
 from coordinates_data_files_list import *
@@ -49,7 +50,7 @@ class autoencoder(object):
         else:
             self._data_files = [os.path.basename(item_f) for item_f in data_files]   # require that data are store in the same folder as pkl file
         if autoencoder_info_file is None:
-            self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.txt" % (CONFIG_30, index)
+            self._autoencoder_info_file = "../resources/%s/autoencoder_info_%d.npy" % (CONFIG_30, index)
         else:
             self._autoencoder_info_file = autoencoder_info_file
         self._hidden_layers_type = hidden_layers_types
@@ -292,13 +293,8 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
     def write_coefficients_of_connections_into_file(self, out_file=None):
         if out_file is None: out_file = self._autoencoder_info_file
         Helper_func.backup_rename_file_if_exists(out_file)
-        with open(out_file, 'w') as f_out:
-            for item in range(self._index_CV):
-                f_out.write(str(list(self._connection_between_layers_coeffs[item])))
-                f_out.write(',\n')
-            for item in range(self._index_CV):
-                f_out.write(str(list(self._connection_with_bias_layers_coeffs[item])))
-                f_out.write(',\n')
+        np.save(out_file, [self._connection_between_layers_coeffs[:self._index_CV],
+                           self._connection_with_bias_layers_coeffs[:self._index_CV] ])
         return
 
     def check_PC_consistency(self, another_autoencoder, input_data = None, single_component_pair=None):
@@ -1113,7 +1109,7 @@ parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should no
             call_back_list += [earlyStopping]
         [train_in, train_out] = Helper_func.shuffle_multiple_arrays([data, output_data_set])
         train_history = molecule_net.fit(train_in, train_out, epochs=self._epochs, batch_size=self._batch_size,
-                                         verbose=True, validation_split=0.2, callbacks=call_back_list)
+                                         verbose=False, validation_split=0.2, callbacks=call_back_list)
         self._connection_between_layers_coeffs, self._connection_with_bias_layers_coeffs = [], []
         # It is implemented this way to handle hierarchical case,
         # where the encoded layer may be concatenation of multiple single-node layer:

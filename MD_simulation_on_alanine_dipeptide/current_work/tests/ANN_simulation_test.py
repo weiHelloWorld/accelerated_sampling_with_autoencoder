@@ -446,7 +446,7 @@ class test_autoencoder_torch(object):
 class test_biased_simulation(object):
     @staticmethod
     def helper_biased_simulation_alanine_dipeptide(potential_center):
-        autoencoder_coeff_file = 'autoencoder_info_9.txt'
+        autoencoder_coeff_file = 'autoencoder_info_9.npy'
         autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_9.pkl'
         my_network = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         assert (isinstance(my_network, autoencoder))
