@@ -672,7 +672,7 @@ class Alanine_dipeptide(Sutils):
             assert (len(item) == 8)
             temp_angle = []
             for ii in range(4):
-                temp_angle += [np.arccos(item[2 * ii]) * np.sign(item[2 * ii + 1])]
+                temp_angle += [np.arctan2(item[2 * ii + 1], item[2 * ii])]
 
             result += [list(temp_angle)]
         return result
@@ -788,7 +788,7 @@ class Trp_cage(Sutils):
             len_of_cos_sin = 76
             assert (len(item) == len_of_cos_sin), (len(item), len_of_cos_sin)
             for idx_of_angle in range(len_of_cos_sin // 2):
-                temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
+                temp_angle += [np.arctan2(item[2 * idx_of_angle + 1], item[2 * idx_of_angle])]
 
             assert (len(temp_angle) == len_of_cos_sin // 2)
 
