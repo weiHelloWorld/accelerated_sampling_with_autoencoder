@@ -155,7 +155,7 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
         system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
-        plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed(scaling_factor=5.0)
+        plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed(scaling_factor=0.5)
         with open(autoencoder_info_file, 'r') as f_in:
             plumed_force_string += f_in.read()
 

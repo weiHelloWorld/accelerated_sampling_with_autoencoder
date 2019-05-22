@@ -516,10 +516,11 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
 
             for index, potential_center in enumerate(list_of_potential_center):
                 if isinstance(molecule_type, Alanine_dipeptide):
+                    pc_string_sim = 'pc_' + str(potential_center).replace(' ', '')[1:-1]
                     parameter_list = (str(CONFIG_16), str(num_of_simulation_steps), str(force_constant_for_biased[index]),
                                       '../target/Alanine_dipeptide/network_%d' % self._index,
                                       autoencoder_info_file,
-                                      'pc_' + str(potential_center).replace(' ', '')[1:-1],
+                                      pc_string_sim,
                                       input_data_type
                                       # need to remove white space, otherwise parsing error
                                       )
@@ -1069,11 +1070,11 @@ class autoencoder_Keras(autoencoder):
             encoder_net = Model(inputs=inputs_net, outputs=encoded)
             loss_function = get_mse_weighted(self._mse_weights)
 
-        try:
-            from keras.utils import plot_model
-            Helper_func.backup_rename_file_if_exists('model.png')
-            plot_model(molecule_net, show_shapes=True, to_file='model.png')
-        except: pass
+        # try:
+        #     from keras.utils import plot_model
+        #     Helper_func.backup_rename_file_if_exists('model.png')
+        #     plot_model(molecule_net, show_shapes=True, to_file='model.png')
+        # except: pass
 
         temp_optimizer_name = "SGD"
         if temp_optimizer_name == 'SGD':
