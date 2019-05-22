@@ -229,12 +229,12 @@ class test_coordinates_data_files_list(object):
     @staticmethod
     def test__init__():
         folder = '../tests/dependency/temp_data'
-        num_of_coor_files = len(subprocess.check_output(['find', folder, '-name', "*_coordinates.txt"]).strip().split())
+        num_of_coor_files = len(subprocess.check_output(['find', folder, '-name', "*_coordinates.npy"]).strip().split())
         a = coordinates_data_files_list([folder])
-        assert len(a.get_list_of_coor_data_files()) == num_of_coor_files - 1      # one file is empty
-        assert a.get_list_of_line_num_of_coor_data_file() == [100 for _ in range(num_of_coor_files - 1)]
+        assert len(a.get_list_of_coor_data_files()) == num_of_coor_files
+        assert a._list_num_frames == [100 for _ in range(num_of_coor_files)]
         assert sorted(a.get_list_of_coor_data_files()) == a.get_list_of_coor_data_files()
-        assert len(a.get_list_of_corresponding_pdb_dcd()) == num_of_coor_files - 1
+        assert len(a.get_list_of_corresponding_pdb_dcd()) == num_of_coor_files
         assert sorted(a.get_list_of_corresponding_pdb_dcd()) == a.get_list_of_corresponding_pdb_dcd()
 
     @staticmethod
@@ -251,7 +251,7 @@ class test_coordinates_data_files_list(object):
         _1 = coordinates_data_files_list(['../tests/dependency/temp_data/'])
         pdb_files = _1.get_list_of_corresponding_pdb_dcd()
         for item in range(1, 602, 100):
-            assert (_1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(item) == (pdb_files[item / 100], 1))
+            assert (_1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(item) == (pdb_files[item // 100], 1))
         return
 
 
