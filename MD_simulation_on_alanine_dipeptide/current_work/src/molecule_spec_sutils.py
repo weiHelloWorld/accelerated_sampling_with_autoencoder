@@ -943,10 +943,10 @@ class Trp_cage(Sutils):
             temp_coords = np.array([_1.get_coord() for _1 in atoms_in_this_frame])
 
             for item in range(19):  # 19 * 2 = 38 dihedrals in total
-                C_atom_in_this_residue = filter(lambda x: x.get_name() == "C", atoms_in_this_frame)[item]
-                CA_atom_in_this_residue = filter(lambda x: x.get_name() == "CA", atoms_in_this_frame)[item]
-                CA_atom_in_next_residue = filter(lambda x: x.get_name() == "CA", atoms_in_this_frame)[item + 1]
-                N_atom_in_next_residue = filter(lambda x: x.get_name() == "N", atoms_in_this_frame)[item + 1]
+                C_atom_in_this_residue = list(filter(lambda x: x.get_name() == "C", atoms_in_this_frame))[item]
+                CA_atom_in_this_residue = list(filter(lambda x: x.get_name() == "CA", atoms_in_this_frame))[item]
+                CA_atom_in_next_residue = list(filter(lambda x: x.get_name() == "CA", atoms_in_this_frame))[item + 1]
+                N_atom_in_next_residue = list(filter(lambda x: x.get_name() == "N", atoms_in_this_frame))[item + 1]
 
                 axis_vector_0 = C_atom_in_this_residue.get_coord() - CA_atom_in_this_residue.get_coord()
                 axis_vector_1 = CA_atom_in_next_residue.get_coord() - N_atom_in_next_residue.get_coord()
