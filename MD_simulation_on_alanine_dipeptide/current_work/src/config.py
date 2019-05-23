@@ -27,7 +27,6 @@ it configures all default values/global parameters for constructors/functions
 ############   some global variables and helper functions  ############
 #######################################################################
 
-CONFIG_81 = 'dcd'                   # output trajectory format
 CONFIG_30 = "Alanine_dipeptide"     # the type of molecule we are studying
 WARNING_INFO = "Comment out this line to continue."
 

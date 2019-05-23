@@ -23,7 +23,7 @@ parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
-parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
+parser.add_argument("--out_traj", type=str, default=None, help="output trajectory file")
 parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
@@ -64,7 +64,7 @@ scaling_factor = args.scaling_factor
 layer_types = re.sub("\[|\]|\"|\'| ",'', args.layer_types).split(',')
 num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
 num_of_nodes = [int(item) for item in num_of_nodes]
-out_format = CONFIG_81
+out_format = '.dcd' if args.out_traj is None else os.path.splitext(args.out_traj)[1]
 
 if float(force_constant) != 0:
     from ANN import *
@@ -86,8 +86,8 @@ def run_simulation(force_constant):
     water_field_file = 'tip3p.xml'
     pdb_reporter_file = '%s/output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
 
-    if not args.output_pdb is None:
-        pdb_reporter_file = args.output_pdb
+    if not args.out_traj is None:
+        pdb_reporter_file = args.out_traj
 
     state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
 
@@ -231,9 +231,9 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
         print('energy minimization not required')
 
     simulation.step(args.equilibration_steps)
-    if out_format == 'pdb':
+    if out_format == '.pdb':
         simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
-    elif out_format == 'dcd':
+    elif out_format == '.dcd':
         simulation.reporters.append(DCDReporter(pdb_reporter_file.replace('.pdb', '.dcd'), record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
