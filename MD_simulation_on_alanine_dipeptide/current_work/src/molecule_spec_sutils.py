@@ -311,36 +311,9 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return output_file_list
 
     @staticmethod
-    def _get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor):
-        plumed_script = ""
-        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
-        plumed_script += "p_com: POSITION ATOM=com_1\n"
-
-        for item in range(len(index_of_backbone_atoms)):
-            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
-        # following remove translation using p_com
-        for item in range(len(index_of_backbone_atoms)):
-            for _1, _2 in enumerate(['.x', '.y', '.z']):
-                unit_scaling = 10.0    # TODO: may need to fix factor for scaling factor
-                                        # because default unit is A in pdb file, and nm in PLUMED
-                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
-                        % (3 * item + _1, unit_scaling / scaling_factor, unit_scaling / scaling_factor,
-                            item, _2, _2)
-        return plumed_script
-
-    @staticmethod
     def _get_plumed_script_with_pairwise_dis_as_input(index_atoms, scaling_factor):
-        plumed_string = ''
-        index_input = 0
-        for item_1 in range(len(index_atoms)):
-            for item_2 in range(item_1 + 1, len(index_atoms)):
-                unit_scaling = 10.0
-                plumed_string += "dis_%d:  DISTANCE ATOMS=%d,%d\n" % (
-                    index_input, index_atoms[item_1], index_atoms[item_2])
-                plumed_string += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f ARG=dis_%d\n" % (
-                    index_input, unit_scaling / scaling_factor, index_input)
-                index_input += 1
-        return plumed_string
+        return Plumed_helper.get_pairwise_dis(index_atoms, scaling_factor=scaling_factor,
+                                              unit_scaling=1.0, out_var_prefix='l_0_out_')
 
     @staticmethod
     def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
@@ -686,7 +659,7 @@ class Alanine_dipeptide(Sutils):
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[0]
-        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
+        return Plumed_helper.get_atom_positions(index_of_backbone_atoms, scaling_factor, unit_scaling=1.0)
 
 
 class Trp_cage(Sutils):
@@ -973,4 +946,4 @@ class Trp_cage(Sutils):
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[1]
-        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
+        return Plumed_helper.get_atom_positions(index_of_backbone_atoms, scaling_factor, unit_scaling=1.0)

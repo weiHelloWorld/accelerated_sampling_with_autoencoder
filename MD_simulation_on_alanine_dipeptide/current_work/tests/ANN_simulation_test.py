@@ -485,7 +485,7 @@ class test_biased_simulation(object):
 
     @staticmethod
     def test_biased_simulation_alanine_dipeptide_with_metadynamics(use_well_tempered=0, biasfactor=-1):
-        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_9.pkl'
+        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_5.pkl'
         output_folder = 'temp_output_test_biased_simulation'
         a = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         a.write_expression_script_for_plumed('temp_info.txt', mode='ANN')
