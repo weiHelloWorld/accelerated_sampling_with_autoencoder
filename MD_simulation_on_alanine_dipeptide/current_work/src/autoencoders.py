@@ -908,7 +908,7 @@ class autoencoder_Keras(autoencoder):
     def get_PCs(self, input_data=None):
         if input_data is None: input_data = self._data_set
         if self._hidden_layers_type[self._index_CV - 1] == "Circular":
-            PCs = np.array([[acos(item[2 * _1]) * np.sign(item[2 * _1 + 1]) for _1 in range(len(item) // 2)]
+            PCs = np.array([[np.arctan2(item[2 * _1 + 1], item[2 * _1]) for _1 in range(len(item) // 2)]
                    for item in self._encoder_net.predict(input_data)])
             assert (len(PCs[0]) == self._node_num[self._index_CV] // 2), (len(PCs[0]), self._node_num[self._index_CV] // 2)
         else:
