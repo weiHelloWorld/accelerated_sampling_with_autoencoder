@@ -134,10 +134,10 @@ class test_Sutils(object):
 
     @staticmethod
     def test__get_expression_script_for_plumed():
-        with open('dependency/actual_plumed_Trp_script.txt', 'r') as my_f:
+        with open('dependency/expected_plumed_Trp_script.txt', 'r') as my_f:
             expected = my_f.read().strip()
-        actual = Trp_cage.get_expression_script_for_plumed().strip()
-        assert (expected == actual)
+        actual = Trp_cage.get_expression_script_for_plumed(scaling_factor=2.0).strip()
+        assert (expected == actual), actual
         return
 
 

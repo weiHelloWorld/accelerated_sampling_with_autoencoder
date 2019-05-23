@@ -54,7 +54,7 @@ CONFIG_58 = False              # use representative points for training (generat
 CONFIG_59 = 500               # number of representative points
 
 # CONFIG_49 = get_mol_param([5.0, 20.0, 40.0, 20.0, 20.0]) # scaling factor for output for Cartesian coordinates
-CONFIG_49 = get_mol_param([0.5, 20.0, 40.0, 20.0, 20.0]) # scaling factor for Cartesian coordinates, be careful about units
+CONFIG_49 = get_mol_param([0.5, 2.0, 4.0, 2.0, 2.0]) # scaling factor for Cartesian coordinates, be careful about units
 CONFIG_1 = ['../target/' + CONFIG_30] # list of directories that contains all coordinates files
 
 CONFIG_57 = [
