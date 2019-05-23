@@ -450,7 +450,7 @@ class test_biased_simulation(object):
     @staticmethod
     def helper_biased_simulation_alanine_dipeptide(potential_center):
         autoencoder_coeff_file = 'autoencoder_info_9.npy'
-        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_9.pkl'
+        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_5.pkl'
         my_network = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         assert (isinstance(my_network, autoencoder))
         my_network.write_coefficients_of_connections_into_file(autoencoder_coeff_file)
@@ -466,18 +466,20 @@ class test_biased_simulation(object):
 
         Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
         fig, ax = plt.subplots()
-        input_data = coordinates_data_files_list([output_folder]).get_coor_data(5.0)
+        input_data = coordinates_data_files_list([output_folder]).get_coor_data(0.5)
         input_data = Sutils.remove_translation(input_data)
         PCs = my_network.get_PCs(input_data)
         x, y = list(zip(*PCs))
-        ax.scatter(x, y, c=list(range(len(x))), cmap='gist_rainbow')
+        ax.scatter(x, y, c=list(range(len(x))), cmap='gist_rainbow', s=5)
+        potential_center_num = [float(item_1) for item_1 in potential_center.split(',')]
+        ax.scatter([potential_center_num[0]], [potential_center_num[1]], marker='X', s=30)
         fig.savefig('test_biased_simulation_%s.png' % potential_center)
         subprocess.check_output(['rm', '-rf', output_folder])
         return
 
     @staticmethod
     def test_biased_simulation_alanine_dipeptide():
-        for item in ['-0.4,0.7', '-0.5,0.7', '-0.6,0.7', '-0.7,0.3', '-0.7,0.4','-0.7,0.7','-0.5,0.4']:
+        for item in ['-0.3,-0.7', '-0.3,-0.5', '-0.2,-0.4', '0,-0.4', '-0.1,-0.5']:
             test_biased_simulation.helper_biased_simulation_alanine_dipeptide(item.replace(' ',''))
         return
 
@@ -492,9 +494,9 @@ class test_biased_simulation(object):
                                 % (output_folder, biasfactor, use_well_tempered), shell=True)
         subprocess.check_output(['python', '../src/generate_coordinates.py', 'Alanine_dipeptide', '--path', output_folder])
         fig, axes = plt.subplots(1, 3)
-        data = np.loadtxt(
-            output_folder + '/output_fc_0.000000_pc_[0.0,0.0]_coordinates.txt')
-        data /= 5.0
+        data = np.load(
+            output_folder + '/output_fc_0.000000_pc_[0.0,0.0]_coordinates.npy')
+        data /= 0.5
         data = Sutils.remove_translation(data)
         PCs = a.get_PCs(data)
         ax = axes[0]
