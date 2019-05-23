@@ -220,9 +220,9 @@ class autoencoder(object):
                 temp_bias_string += ' VALUES_OF_BIASED_NODES%d=%s' % \
                                      (_1, ','.join([str(item) for item in item_bias]))
 
-            plumed_script += "ann_force: ANN ARG=%s NUM_OF_NODES=%s LAYER_TYPES=%s %s %s" % \
-                (temp_input_string, temp_num_nodes_string, temp_layer_type_string,
-                 temp_coeff_string, temp_bias_string)
+            plumed_script += "ann_force: ANN ARG=%s NUM_LAYERS=%d NUM_OF_NODES=%s LAYER_TYPES=%s %s %s" % \
+                             (temp_input_string, temp_num_of_layers_used, temp_num_nodes_string, temp_layer_type_string,
+                              temp_coeff_string, temp_bias_string)
         else:
             raise Exception("mode error")
         return plumed_script
