@@ -18,9 +18,9 @@ Nose testing framework: https://github.com/nose-devs/nose
 
 PLUMED (ANN included): https://github.com/plumed/plumed2 + https://github.com/weiHelloWorld/plumed_additional
 
-cluster management: TODO
+cluster management: https://github.com/weiHelloWorld/cluster_management
 
-plumed helper: TODO
+plumed helper: https://github.com/weiHelloWorld/plumed_helper
 
 OpenMM-PLUMED force plugin: https://github.com/peastman/openmm-plumed
 
@@ -45,7 +45,7 @@ echo "you may need to install following packages manually: PLUMED, OpenMM-plumed
 
 ## Installation and preparation
 
-No installation is required.  You may simply have all dependent packages installed and checkout this repository (or download the package with dependency files here: https://drive.google.com/a/illinois.edu/file/d/0B6OOQc-KDdimbklIbkd1cjhnSWs/view?usp=sharing).  Reference pdb files for simulation are needed.
+No installation is required.  You may simply have all dependent packages installed and checkout this repository.
 
 It is **highly recommended** to run tests before running code to make sure packages are correctly installed.
 
