@@ -546,8 +546,6 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                         command += ' --starting_pdb_file %s --starting_frame %d ' % (nearest_pdb_frame_index_list[index][0],
                                                                                      nearest_pdb_frame_index_list[index][1])
                     if isinstance(molecule_type, Trp_cage): command = command.replace('placeholder_1', 'Trp_cage').replace('placeholder_2', 'Trp_cage')
-                    elif isinstance(molecule_type, Src_kinase): command = command.replace('placeholder_1', 'Src_kinase').replace('placeholder_2', '2src')
-                    elif isinstance(molecule_type, BetaHairpin): command = command.replace('placeholder_1', 'BetaHairpin').replace('placeholder_2', 'BetaHairpin')
                     else: raise Exception("molecule type not defined")
 
                 todo_list_of_commands_for_simulations += [command]
@@ -916,27 +914,6 @@ class autoencoder_Keras(autoencoder):
             assert (len(PCs[0]) == self._node_num[self._index_CV])
         return PCs
 
-    @staticmethod
-    def layerwise_pretrain(data, dim_in, dim_out):
-        """ref: https://www.kaggle.com/baogorek/autoencoder-with-greedy-layer-wise-pretraining/notebook"""
-        # TODO: 1. use better training parameters. 2. use consistant activation functions, 3. consider how to do this for hierarchical case
-        # TODO: 4. make activation function consistent with neural network
-        data_in = Input(shape=(dim_in,))
-        encoded = Dense(dim_out, activation='tanh')(data_in)
-        data_out = Dense(dim_in, activation='tanh')(encoded)
-        temp_ae = Model(inputs=data_in, outputs=data_out)
-        encoder = Model(inputs=data_in, outputs=encoded)
-        sgd = SGD(lr=0.3, decay=0, momentum=0.9, nesterov=True)
-        temp_ae.compile(loss='mean_squared_error', optimizer=sgd)
-        temp_ae.fit(data, data, epochs=20, batch_size=50,
-                    validation_split=0.20, shuffle=True, verbose=False)
-        encoded_data = encoder.predict(data)
-        reconstructed = temp_ae.predict(data)
-        var_of_output = np.sum(np.var(data, axis=0))
-        var_of_err = np.sum(np.var(reconstructed - data, axis=0))
-        fve = 1 - var_of_err / var_of_output
-        return temp_ae.layers[1].get_weights(), encoded_data, fve
-
     def get_pca_fve(self, data=None):
         """compare the autoencoder against PCA"""
         if data is None: data = self._data_set
@@ -1087,16 +1064,6 @@ class autoencoder_Keras(autoencoder):
 
         molecule_net.compile(loss=loss_function, metrics=[loss_function],
                              optimizer= temp_optimizer)
-        # encoder_net.compile(loss=loss_function, metrics=[loss_function],
-        #                      optimizer=temp_optimizer)  # not needed, but do not want to see endless warning...
-        pretraining = False
-        data_for_pretraining = self._data_set
-        if pretraining:
-            for index_layer in range(1, 3):   # TODO: currently only for first 2 Dense layers
-                temp_weights, data_for_pretraining, fve = self.layerwise_pretrain(
-                    data_for_pretraining, self._node_num[index_layer - 1], self._node_num[index_layer])
-                molecule_net.layers[index_layer].set_weights(temp_weights)
-                print("fve of pretraining for layer %d = %f" % (index_layer, fve))
 
         training_print_info = '''training, index = %d, maxEpochs = %d, node_num = %s, layers = %s, num_data = %d,
 parameter = %s, optimizer = %s, hierarchical = %d with variant %d, FVE should not be less than %f (PCA)\n''' % (

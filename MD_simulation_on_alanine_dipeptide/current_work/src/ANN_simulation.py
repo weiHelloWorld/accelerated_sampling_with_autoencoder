@@ -372,15 +372,7 @@ class iteration(object):
             'excited! this is the name of best network: ')[1].strip().split('\n')[0]    # locate filename in output
 
         print(temp_output)
-        self._network = autoencoder.load_from_pkl_file(autoencoder_filename)
-        return
-
-    def prepare_simulation(self):
-        if CONFIG_28 == "ANN_Force":
-            self._network.write_coefficients_of_connections_into_file()
-        else:
-            raise Exception("force type not defined!")
-        return
+        return autoencoder.load_from_pkl_file(autoencoder_filename)
 
     def run_simulation(self, machine_to_run_simulations = CONFIG_24, commands = None, cuda=None):
         if cuda is None: cuda = (CONFIG_23 == 'CUDA')
@@ -411,9 +403,9 @@ class simulation_with_ANN_main(object):
         if one_iteration is None:
             one_iteration = iteration(1, network=None)
         if one_iteration._network is None:
-            one_iteration.train_network_and_save(training_interval = self._training_interval)   # train it if it is empty
-
-        one_iteration.prepare_simulation()
+            one_iteration._network = one_iteration.train_network_and_save(
+                training_interval = self._training_interval)   # train it if it is empty
+        self._network.write_coefficients_of_connections_into_file()
         print('running this iteration #index = %d' % one_iteration._index)
         one_iteration.run_simulation()
         return

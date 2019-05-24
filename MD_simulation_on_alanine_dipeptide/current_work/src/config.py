@@ -210,7 +210,6 @@ else:
     print('unknown user directory: %s' % temp_home_directory)
 
 CONFIG_27 =  CONFIG_17[:2]  # layer_types for ANN_Force, it should be consistent with autoencoder
-CONFIG_28 = "ANN_Force"    # the mode of biased force, it could be either "CustomManyParticleForce" (provided in the package) or "ANN_Force" (I wrote)
 
 CONFIG_32 = 5000           # maximum force constant allowed (for force constant adjustable mode)
 CONFIG_34 = 500            # force constant step, the value by which the force constant is increased each time (for force constant adjustable mode)
