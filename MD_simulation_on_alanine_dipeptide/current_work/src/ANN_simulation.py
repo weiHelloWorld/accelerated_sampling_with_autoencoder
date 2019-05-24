@@ -405,7 +405,7 @@ class simulation_with_ANN_main(object):
         if one_iteration._network is None:
             one_iteration._network = one_iteration.train_network_and_save(
                 training_interval = self._training_interval)   # train it if it is empty
-        self._network.write_coefficients_of_connections_into_file()
+        one_iteration._network.write_coefficients_of_connections_into_file()
         print('running this iteration #index = %d' % one_iteration._index)
         one_iteration.run_simulation()
         return
