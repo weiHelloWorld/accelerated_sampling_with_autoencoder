@@ -295,7 +295,14 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
         if out_file is None: out_file = self._autoencoder_info_file
         Helper_func.backup_rename_file_if_exists(out_file)
         np.save(out_file, [self._connection_between_layers_coeffs[:self._index_CV],
-                           self._connection_with_bias_layers_coeffs[:self._index_CV] ])
+                           self._connection_with_bias_layers_coeffs[:self._index_CV]])
+        # following is useful for SSAGES ANN CV, may need to be updated later
+        with open(out_file.replace('.npy', '.txt'), 'w') as my_f:
+            for item_1, item_2 in zip(self._connection_between_layers_coeffs, self._connection_with_bias_layers_coeffs):
+                my_f.write(','.join(item_1.astype(str).tolist()))
+                my_f.write('\n')
+                my_f.write(','.join(item_1.astype(str).tolist()))
+                my_f.write('\n')
         return
 
     def check_PC_consistency(self, another_autoencoder, input_data = None, single_component_pair=None):

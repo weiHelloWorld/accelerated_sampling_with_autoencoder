@@ -75,11 +75,11 @@ autoencoder_info_file = args.autoencoder_info_file
 potential_center = list([float(x) for x in args.pc_potential_center.replace('"','')\
                                 .replace('pc_','').split(',')])   # this API is the generalization for higher-dimensional cases
 
-def run_simulation(force_constant):
-    if not os.path.exists(folder_to_store_output_files):
-        try: os.makedirs(folder_to_store_output_files)
-        except: pass
+if not os.path.exists(folder_to_store_output_files):
+    try: os.makedirs(folder_to_store_output_files)
+    except: pass
 
+def run_simulation(force_constant):
     assert(os.path.exists(folder_to_store_output_files))
     input_pdb_file_of_molecule = args.starting_pdb_file
     force_field_file = 'amber99sb.xml'
@@ -256,6 +256,21 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     print('offset = %s' % str(offset))
     distance = sqrt(sum([item * item for item in offset]))
     return distance
+
+
+def run_simulation_ssages(force_constant):
+    ssages_output_file = '%s/output_fc_%f_pc_%s.json' % (
+        folder_to_store_output_files, force_constant, str(potential_center).replace(' ', ''))
+    subprocess.check_output('python ../src/temp_create_json_ssages.py %s pc_%s %s %s %s' % (
+        ssages_output_file, str(potential_center).replace(' ', ''), autoencoder_info_file.replace('.npy', '.txt'),
+        ssages_output_file.replace('.json', '.trr'), force_constant), shell=True)
+    command = "ssages " + ssages_output_file
+    subprocess.check_output(command, shell=True)
+    pdb_reporter_file = ssages_output_file.replace('.json', '.pdb')
+    subprocess.check_output('mdconvert -o %s %s -t ../resources/alanine_dipeptide.pdb' % (
+        pdb_reporter_file, pdb_reporter_file.replace('.pdb', '.trr')), shell = True)
+    return pdb_reporter_file
+
 
 if __name__ == '__main__':
     if not args.fc_adjustable:
