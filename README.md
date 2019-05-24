@@ -10,9 +10,9 @@ ANN_Force biasing force package: https://github.com/weiHelloWorld/ANN_Force
 
 Keras: https://github.com/fchollet/keras
 
-MDAnalysis: https://github.com/MDAnalysis/mdanalysis
+PyTorch: https://pytorch.org
 
-Sklearn: https://github.com/scikit-learn/scikit-learn
+MDAnalysis: https://github.com/MDAnalysis/mdanalysis
 
 Nose testing framework: https://github.com/nose-devs/nose
 
@@ -26,22 +26,8 @@ OpenMM-PLUMED force plugin: https://github.com/peastman/openmm-plumed
 
 Bayes WHAM free energy calculation package: https://bitbucket.org/andrewlferguson/bayeswham_python
 
-Some other Python scientific calculation packages (e.g. seaborn, pandas) are also needed, it is recommended to install them with Anaconda: https://www.continuum.io/downloads
+Some other Python scientific calculation packages (e.g. seaborn, pandas, sklearn) are also needed, it is recommended to install them with Anaconda: https://www.continuum.io/downloads
 
-For Linux/Ubuntu, you may use following script to install most of these packages:
-
-```bash
-ANACONDA_INSTALLATION_FILE=Anaconda2-4.4.0-Linux-x86_64.sh
-wget https://repo.continuum.io/archive/${ANACONDA_INSTALLATION_FILE}
-bash ${ANACONDA_INSTALLATION_FILE}
-export PATH="$HOME/.anaconda2/bin:$PATH"
-
-conda install -c mdanalysis mdanalysis
-conda install -c omnia openmm
-conda install -c conda-forge tensorflow-gpu keras coverage
-
-echo "you may need to install following packages manually: PLUMED, OpenMM-plumed, ANN_Force"
-```
 
 ## Installation and preparation
 
@@ -54,12 +40,12 @@ It is **highly recommended** to run tests before running code to make sure packa
 This package uses `nosetest` framework.  To run testing, run
 
 ```bash
-root_dir=accelerated_sampling_with_autoencoder/MD_simulation_on_alanine_dipeptide/current_work
+root_dir=MD_simulation_on_alanine_dipeptide/current_work
 cd ${root_dir}/tests
 make test
 ```
 
-Tests include numerical unit tests (for tests with clear expected results) and figure plots (for others, such as training).
+Tests include numerical unit tests (for tests with clear expected results) and figure plots (for others, such as neural network training).
 
 ## 1-minute quick start
 
@@ -130,15 +116,9 @@ ${root_dir}/tests: test source code
 ```
 
 
-## TODO
-
-## Best practices
-
-TODO
-
 ## Extensions
 
-- How to apply this framework to new molecules?
+#### 1. apply to new molecules
 
 1. Create a subclass of `Sutils` for the molecule and implement corresponding methods in `${root_dir}/src/molecule_spec_sutils.py`.
 
@@ -148,15 +128,19 @@ TODO
 
 4. Add molecule-related statements to `${root_dir}/src/ANN_simulation.py` and `${root_dir}/src/autoencoders.py` whenever `Trp_cage` appears.
 
-- How to apply a new network structure or switch to a new training backend?
+#### 2. use a new neural network architecture or switch to a new training backend
 
 1. Create a subclass of `autoencoder` for the new structure/backend and do implementation.  Note that all abstract methods (`@abc.abstractmethod`) must be implemented.
 
 2. Include new network information in the configuration file `${root_dir}/src/config.py`.
 
-- How to apply a new potential center selection algorithm?
+#### 3. apply a new potential center selection algorithm
 
 Modify method `Sutils.get_boundary_points()` in `${root_dir}/src/molecule_spec_sutils.py`.
+
+#### 4. use a new simulation package
+
+Modify `biased_simulation.py` or `biased_simulation_general.py`
 
 ## Citation
 
