@@ -82,6 +82,7 @@ class autoencoder(object):
 
     @staticmethod
     def load_from_pkl_file(filename):
+        filename = str(filename)
         a = Sutils.load_object_from_pkl_file(filename)
         if os.path.isfile(filename.replace('.pkl','.hdf5')):
             a._molecule_net = load_model(filename.replace('.pkl','.hdf5'),custom_objects={'mse_weighted': get_mse_weighted()})
@@ -298,10 +299,10 @@ PRINT STRIDE=50 ARG=%s,ave FILE=%s""" % (
                            self._connection_with_bias_layers_coeffs[:self._index_CV]])
         # following is useful for SSAGES ANN CV, may need to be updated later
         with open(out_file.replace('.npy', '.txt'), 'w') as my_f:
-            for item_1, item_2 in zip(self._connection_between_layers_coeffs, self._connection_with_bias_layers_coeffs):
-                my_f.write(','.join(item_1.astype(str).tolist()))
+            for item in range(self._index_CV):
+                my_f.write(','.join(self._connection_between_layers_coeffs[item].astype(str).tolist()))
                 my_f.write('\n')
-                my_f.write(','.join(item_1.astype(str).tolist()))
+                my_f.write(','.join(self._connection_with_bias_layers_coeffs[item].astype(str).tolist()))
                 my_f.write('\n')
         return
 

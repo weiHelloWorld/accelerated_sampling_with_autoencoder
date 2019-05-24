@@ -261,7 +261,7 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
 def run_simulation_ssages(force_constant):
     ssages_output_file = '%s/output_fc_%f_pc_%s.json' % (
         folder_to_store_output_files, force_constant, str(potential_center).replace(' ', ''))
-    subprocess.check_output('python ../src/temp_create_json_ssages.py %s pc_%s %s %s %s' % (
+    subprocess.check_output('python ../src/temp_create_json_ssages.py %s %s %s %s %s' % (
         ssages_output_file, str(potential_center).replace(' ', ''), autoencoder_info_file.replace('.npy', '.txt'),
         ssages_output_file.replace('.json', '.trr'), force_constant), shell=True)
     command = "ssages " + ssages_output_file
