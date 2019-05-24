@@ -271,3 +271,8 @@ class Helper_func(object):
             with open(file_path, 'rb') as ff:
                 result = pickle.load(ff, encoding='latin1')
         return result
+
+    @staticmethod
+    def load_npy(file, format):
+        if format == 'txt': return np.loadtxt(file)
+        elif format == 'npy': return np.load(file)

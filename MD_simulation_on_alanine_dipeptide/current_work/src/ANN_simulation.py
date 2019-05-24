@@ -171,10 +171,10 @@ class plotting(object):
                         molecule_type.generate_coordinates_from_pdb_files(path_for_pdb=out_file_name)
                         if CONFIG_48 == "cossin":
                             temp_input_data = molecule_type.get_many_cossin_from_coordinates_in_list_of_files(
-                                list_of_files=[out_file_name.replace('.pdb', '_coordinates.txt')])
+                                list_of_files=[out_file_name.replace('.pdb', '_coordinates.npy')])
                         elif CONFIG_48 == "Cartesian" or 'pairwise_distance':
                             scaling_factor = CONFIG_49
-                            temp_input_data = np.loadtxt(out_file_name.replace('.pdb', '_coordinates.txt')) / scaling_factor
+                            temp_input_data = np.load(out_file_name.replace('.pdb', '_coordinates.npy')) / scaling_factor
                             temp_input_data = Sutils.remove_translation(temp_input_data)
                         else:
                             raise Exception("input data type error")
@@ -229,7 +229,7 @@ class plotting(object):
         temp_arrow_start_list = []
         _1 = coordinates_data_files_list([coor_file_folder])
         for item in _1.get_list_of_coor_data_files():
-            data = np.loadtxt(item)[starting_index_of_last_few_frames:] / scaling_factor
+            data = np.load(item)[starting_index_of_last_few_frames:] / scaling_factor
             data = Sutils.remove_translation(data)
             potential_centers_list.append([float(item_1) for item_1 in item.split('_pc_[')[1].split(']')[0].split(',')])
             # do analysis using K-S test
@@ -328,12 +328,8 @@ class iteration(object):
         else:
             if isinstance(molecule_type, Trp_cage):
                 temp_target_folder = '../target/Trp_cage'
-            elif isinstance(molecule_type, BetaHairpin):
-                temp_target_folder = '../target/BetaHairpin'
             elif isinstance(molecule_type, Alanine_dipeptide):
                 temp_target_folder = '../target/Alanine_dipeptide'
-            elif isinstance(molecule_type, Src_kinase):
-                temp_target_folder = '../target/Src_kinase'
             else:
                 raise Exception("molecule type error")
 
@@ -376,15 +372,7 @@ class iteration(object):
             'excited! this is the name of best network: ')[1].strip().split('\n')[0]    # locate filename in output
 
         print(temp_output)
-        self._network = autoencoder.load_from_pkl_file(autoencoder_filename)
-        return
-
-    def prepare_simulation(self):
-        if CONFIG_28 == "ANN_Force":
-            self._network.write_coefficients_of_connections_into_file()
-        else:
-            raise Exception("force type not defined!")
-        return
+        return autoencoder.load_from_pkl_file(autoencoder_filename)
 
     def run_simulation(self, machine_to_run_simulations = CONFIG_24, commands = None, cuda=None):
         if cuda is None: cuda = (CONFIG_23 == 'CUDA')
@@ -415,9 +403,9 @@ class simulation_with_ANN_main(object):
         if one_iteration is None:
             one_iteration = iteration(1, network=None)
         if one_iteration._network is None:
-            one_iteration.train_network_and_save(training_interval = self._training_interval)   # train it if it is empty
-
-        one_iteration.prepare_simulation()
+            one_iteration._network = one_iteration.train_network_and_save(
+                training_interval = self._training_interval)   # train it if it is empty
+        one_iteration._network.write_coefficients_of_connections_into_file()
         print('running this iteration #index = %d' % one_iteration._index)
         one_iteration.run_simulation()
         return
@@ -457,7 +445,7 @@ class single_biased_simulation_data(object):
                 [self._file_for_single_biased_simulation_coor]))
         elif input_data_type == 'Cartesian':
             scaling_factor = CONFIG_49
-            temp_data = np.loadtxt(self._file_for_single_biased_simulation_coor) / scaling_factor
+            temp_data = np.load(self._file_for_single_biased_simulation_coor) / scaling_factor
             temp_data = Sutils.remove_translation(temp_data)
             PCs = self._my_network.get_PCs(temp_data)
         else:

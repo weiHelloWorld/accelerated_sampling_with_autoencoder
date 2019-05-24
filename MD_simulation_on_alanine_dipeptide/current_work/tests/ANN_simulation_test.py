@@ -29,14 +29,14 @@ class test_Sutils(object):
     def test_write_some_frames_into_a_new_file():
         input_pdb = '../tests/dependency/temp_output_0.pdb'
         output_pdb = "../tests/dependency/temp_output_0_interval_3.pdb"
-        output_coor = output_pdb.replace('.pdb', '_coordinates.txt')
-        actual_output_coor = '../tests/dependency/temp_output_0_coor.txt'
+        output_coor = output_pdb.replace('.pdb', '_coordinates.npy')
+        actual_output_coor = '../tests/dependency/temp_output_0_coor.npy'
         for interval in range(3, 10):
             Sutils.write_some_frames_into_a_new_file(input_pdb, 0, 0, interval, output_pdb)
             if os.path.exists(output_coor):
                 subprocess.check_output(['rm', output_coor])
             Alanine_dipeptide.generate_coordinates_from_pdb_files(output_pdb)
-            assert_almost_equal(np.loadtxt(output_coor), np.loadtxt(actual_output_coor)[::interval])
+            assert_almost_equal(np.load(output_coor), np.load(actual_output_coor)[::interval])
             subprocess.check_output(['rm', output_coor, output_pdb])
         return
 
@@ -134,57 +134,59 @@ class test_Sutils(object):
 
     @staticmethod
     def test__get_expression_script_for_plumed():
-        with open('temp_plumed_script.txt', 'w') as my_f:
-            my_f.write(Trp_cage.get_expression_script_for_plumed())
+        with open('dependency/expected_plumed_Trp_script.txt', 'r') as my_f:
+            expected = my_f.read().strip()
+        actual = Trp_cage.get_expression_script_for_plumed(scaling_factor=2.0).strip()
+        assert (expected == actual), actual
         return
 
 
-class test_Alanine_dipeptide(object):
-    @staticmethod
-    def test_get_many_cossin_from_coordiantes_in_list_of_files():
-        list_of_files = ['../tests/dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
-        actual = Alanine_dipeptide().get_many_cossin_from_coordinates_in_list_of_files(list_of_files)
-        assert_equal(100, len(actual))
-        assert_equal(8, len(actual[0]))
-        expected = np.loadtxt('../tests/dependency/output_cossin.txt')
-        assert_almost_equal(expected, actual)
-        return
+# class test_Alanine_dipeptide(object):
+    # @staticmethod
+    # def test_get_many_cossin_from_coordiantes_in_list_of_files():
+    #     list_of_files = ['../tests/dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
+    #     actual = Alanine_dipeptide().get_many_cossin_from_coordinates_in_list_of_files(list_of_files)
+    #     assert_equal(100, len(actual))
+    #     assert_equal(8, len(actual[0]))
+    #     expected = np.loadtxt('../tests/dependency/output_cossin.txt')
+    #     assert_almost_equal(expected, actual)
+    #     return
+    #
+    # @staticmethod
+    # def test_get_many_dihedrals_from_cossin():
+    #     angle = [.4, -.7, math.pi, -.45]
+    #     cossin = [[1, 0, -1, 0, 1, 0, -1, 0], [0, 1, 0, -1, 0, 1, 0, -1],
+    #               reduce(lambda x, y: x + y, [[cos(x), sin(x)] for x in angle])
+    #               ]
+    #     actual = Alanine_dipeptide().get_many_dihedrals_from_cossin(cossin)
+    #     expected = [[0, 0, 0, 0], [math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2], angle]
+    #     for item in range(len(actual)):
+    #         for index in range(4):
+    #             assert_almost_equal(actual[item][index], expected[item][index], 4)
+    #     return
+    #
+    # @staticmethod
+    # def test_get_many_dihedrals_from_coordinates_in_file():
+    #     list_of_files = ['../tests/dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
+    #     actual = Alanine_dipeptide.get_many_dihedrals_from_coordinates_in_file(list_of_files)
+    #     expected = np.loadtxt('../tests/dependency/output_dihedrals.txt')
+    #     assert_almost_equal(actual, expected)
+    #     return
 
-    @staticmethod
-    def test_get_many_dihedrals_from_cossin():
-        angle = [.4, -.7, math.pi, -.45]
-        cossin = [[1, 0, -1, 0, 1, 0, -1, 0], [0, 1, 0, -1, 0, 1, 0, -1],
-                  reduce(lambda x, y: x + y, [[cos(x), sin(x)] for x in angle])
-                  ]
-        actual = Alanine_dipeptide().get_many_dihedrals_from_cossin(cossin)
-        expected = [[0, 0, 0, 0], [math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2], angle]
-        for item in range(len(actual)):
-            for index in range(4):
-                assert_almost_equal(actual[item][index], expected[item][index], 4)
-        return
-
-    @staticmethod
-    def test_get_many_dihedrals_from_coordinates_in_file():
-        list_of_files = ['../tests/dependency/biased_output_fc_1000_x1_0.7_x2_-1.07_coordinates.txt']
-        actual = Alanine_dipeptide.get_many_dihedrals_from_coordinates_in_file(list_of_files)
-        expected = np.loadtxt('../tests/dependency/output_dihedrals.txt')
-        assert_almost_equal(actual, expected)
-        return
-
-    @staticmethod
-    def test_generate_coordinates_from_pdb_files():
-        pdb_file_name = '../tests/dependency/temp_output_0.pdb'
-        actual_output_file = pdb_file_name.replace('.pdb', '_coordinates.txt')
-        expected_output_files = '../tests/dependency/temp_output_0_coor.txt'
-        for interval in range(1, 10):
-            if interval != 1:
-                actual_output_file = pdb_file_name.replace('.pdb', '_int_%d_coordinates.txt' % interval)
-            if os.path.exists(actual_output_file):
-                subprocess.check_output(['rm', actual_output_file])
-            Alanine_dipeptide.generate_coordinates_from_pdb_files(pdb_file_name, step_interval=interval)
-            assert_equal(np.loadtxt(actual_output_file), np.loadtxt(expected_output_files)[::interval])
-            subprocess.check_output(['rm', actual_output_file])
-        return
+    # @staticmethod
+    # def test_generate_coordinates_from_pdb_files():
+    #     pdb_file_name = '../tests/dependency/temp_output_0.pdb'
+    #     actual_output_file = pdb_file_name.replace('.pdb', '_coordinates.txt')
+    #     expected_output_files = '../tests/dependency/temp_output_0_coor.txt'
+    #     for interval in range(1, 10):
+    #         if interval != 1:
+    #             actual_output_file = pdb_file_name.replace('.pdb', '_int_%d_coordinates.txt' % interval)
+    #         if os.path.exists(actual_output_file):
+    #             subprocess.check_output(['rm', actual_output_file])
+    #         Alanine_dipeptide.generate_coordinates_from_pdb_files(pdb_file_name, step_interval=interval)
+    #         assert_equal(np.loadtxt(actual_output_file), np.loadtxt(expected_output_files)[::interval])
+    #         subprocess.check_output(['rm', actual_output_file])
+    #     return
 
 
 class test_Trp_cage(object):
@@ -216,6 +218,7 @@ class test_Trp_cage(object):
             Trp_cage.rotating_dihedral_angles_and_save_to_pdb(pdb_file, target_dihedrals, output)
             out_coor_file_list = Trp_cage.generate_coordinates_from_pdb_files(output)
             actual_dihedrals = Trp_cage.get_many_dihedrals_from_coordinates_in_file(out_coor_file_list)
+            print(out_coor_file_list)
             # print np.max(np.abs(actual_dihedrals - target_dihedrals))
             assert_almost_equal(actual_dihedrals, target_dihedrals, decimal=2)
 
@@ -226,13 +229,13 @@ class test_coordinates_data_files_list(object):
     @staticmethod
     def test__init__():
         folder = '../tests/dependency/temp_data'
-        num_of_coor_files = len(subprocess.check_output(['find', folder, '-name', "*_coordinates.txt"]).strip().split())
+        num_of_coor_files = len(subprocess.check_output(['find', folder, '-name', "*_coordinates.npy"]).strip().split())
         a = coordinates_data_files_list([folder])
-        assert len(a.get_list_of_coor_data_files()) == num_of_coor_files - 1      # one file is empty
-        assert a.get_list_of_line_num_of_coor_data_file() == [100 for _ in range(num_of_coor_files - 1)]
+        assert len(a.get_list_of_coor_data_files()) == num_of_coor_files
+        assert a._list_num_frames == [100 for _ in range(num_of_coor_files)]
         assert sorted(a.get_list_of_coor_data_files()) == a.get_list_of_coor_data_files()
-        assert len(a.get_list_of_corresponding_pdb_files()) == num_of_coor_files - 1
-        assert sorted(a.get_list_of_corresponding_pdb_files()) == a.get_list_of_corresponding_pdb_files()
+        assert len(a.get_list_of_corresponding_pdb_dcd()) == num_of_coor_files
+        assert sorted(a.get_list_of_corresponding_pdb_dcd()) == a.get_list_of_corresponding_pdb_dcd()
 
     @staticmethod
     def test_create_sub_coor_data_files_list_using_filter_conditional():
@@ -246,9 +249,9 @@ class test_coordinates_data_files_list(object):
     @staticmethod
     def test_get_pdb_name_and_corresponding_frame_index_with_global_coor_index():
         _1 = coordinates_data_files_list(['../tests/dependency/temp_data/'])
-        pdb_files = _1.get_list_of_corresponding_pdb_files()
+        pdb_files = _1.get_list_of_corresponding_pdb_dcd()
         for item in range(1, 602, 100):
-            assert (_1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(item) == (pdb_files[item / 100], 1))
+            assert (_1.get_pdb_name_and_corresponding_frame_index_with_global_coor_index(item) == (pdb_files[item // 100], 1))
         return
 
 
@@ -446,8 +449,8 @@ class test_autoencoder_torch(object):
 class test_biased_simulation(object):
     @staticmethod
     def helper_biased_simulation_alanine_dipeptide(potential_center):
-        autoencoder_coeff_file = 'autoencoder_info_9.txt'
-        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_9.pkl'
+        autoencoder_coeff_file = 'autoencoder_info_9.npy'
+        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_5.pkl'
         my_network = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         assert (isinstance(my_network, autoencoder))
         my_network.write_coefficients_of_connections_into_file(autoencoder_coeff_file)
@@ -463,24 +466,26 @@ class test_biased_simulation(object):
 
         Alanine_dipeptide.generate_coordinates_from_pdb_files(output_folder)
         fig, ax = plt.subplots()
-        input_data = coordinates_data_files_list([output_folder]).get_coor_data(5.0)
+        input_data = coordinates_data_files_list([output_folder]).get_coor_data(0.5)
         input_data = Sutils.remove_translation(input_data)
         PCs = my_network.get_PCs(input_data)
         x, y = list(zip(*PCs))
-        ax.scatter(x, y, c=list(range(len(x))), cmap='gist_rainbow')
+        ax.scatter(x, y, c=list(range(len(x))), cmap='gist_rainbow', s=5)
+        potential_center_num = [float(item_1) for item_1 in potential_center.split(',')]
+        ax.scatter([potential_center_num[0]], [potential_center_num[1]], marker='X', s=30)
         fig.savefig('test_biased_simulation_%s.png' % potential_center)
         subprocess.check_output(['rm', '-rf', output_folder])
         return
 
     @staticmethod
     def test_biased_simulation_alanine_dipeptide():
-        for item in ['-0.4,0.7', '-0.5,0.7', '-0.6,0.7', '-0.7,0.3', '-0.7,0.4','-0.7,0.7','-0.5,0.4']:
+        for item in ['-0.3,-0.7', '-0.3,-0.5', '-0.2,-0.4', '0,-0.4', '-0.1,-0.5']:
             test_biased_simulation.helper_biased_simulation_alanine_dipeptide(item.replace(' ',''))
         return
 
     @staticmethod
     def test_biased_simulation_alanine_dipeptide_with_metadynamics(use_well_tempered=0, biasfactor=-1):
-        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_9.pkl'
+        autoencoder_pkl_file = '../tests/dependency/test_biased_simulation/network_5.pkl'
         output_folder = 'temp_output_test_biased_simulation'
         a = autoencoder.load_from_pkl_file(autoencoder_pkl_file)
         a.write_expression_script_for_plumed('temp_info.txt', mode='ANN')
@@ -489,9 +494,9 @@ class test_biased_simulation(object):
                                 % (output_folder, biasfactor, use_well_tempered), shell=True)
         subprocess.check_output(['python', '../src/generate_coordinates.py', 'Alanine_dipeptide', '--path', output_folder])
         fig, axes = plt.subplots(1, 3)
-        data = np.loadtxt(
-            output_folder + '/output_fc_0.000000_pc_[0.0,0.0]_coordinates.txt')
-        data /= 5.0
+        data = np.load(
+            output_folder + '/output_fc_0.000000_pc_[0.0,0.0]_coordinates.npy')
+        data /= 0.5
         data = Sutils.remove_translation(data)
         PCs = a.get_PCs(data)
         ax = axes[0]
@@ -537,7 +542,7 @@ class test_Helper_func(object):
     def test_compute_distances_min_image_convention():
         output_pdb = 'out_for_computing_distances.pdb'
         subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0', 'temp_out_12345',
-                             'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA', '--device', '0', '--output_pdb', output_pdb])
+                             'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA', '--device', '0', '--out_traj', output_pdb])
         import mdtraj as md
         box_length = 4.5  # in nm
         temp_t = md.load(output_pdb)
@@ -598,10 +603,11 @@ RESTRAINT ARG=sph.Ntw AT=5 KAPPA=5 SLOPE=0 LABEL=mypotential
 PRINT STRIDE=50 ARG=sph.N,sph.Ntw,sph_2.N,sph_2.Ntw FILE=NDATA''' \
     % (potential_center[0], potential_center[1], potential_center[2], 
        potential_center[0], potential_center[1], potential_center[2]))  # since there is "TER" separating solute and solvent in pdb file, so index should start with 306, not 307
+        out_pdb = 'temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit_NPT.pdb'
         subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
                                  'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA',
-                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
-        out_pdb = 'temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit_NPT.pdb'
+                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt',
+                                 '--out_traj', out_pdb])
         temp_u = Universe(out_pdb)
         reporter_file = out_pdb.replace('output', 'report').replace('.pdb', '.txt')
         box_length_list = Helper_func.get_box_length_list_fom_reporter_file(reporter_file, unit='A')
@@ -627,10 +633,11 @@ PRINT STRIDE=50 ARG=sph.N,sph.Ntw,sph_2.N,sph_2.Ntw FILE=NDATA''' \
 SPHSHMOD ATOMS=306-11390:4 ATOMREF=1 RLOW=-0.5 RHIGH=0.311 SIGMA=0.01 CUTOFF=0.02 LABEL=sph
 RESTRAINT ARG=sph.Ntw AT=10 KAPPA=5 SLOPE=0 LABEL=mypotential
 PRINT STRIDE=50 ARG=sph.N,sph.Ntw FILE=NDATA''' )
+        out_pdb = 'temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit_NPT.pdb'
         subprocess.check_output(['python', '../src/biased_simulation_general.py', 'Trp_cage', '50', '1000', '0',
                                  'temp_plumed', 'none', 'pc_0,0', 'explicit', 'NPT', '--platform', 'CUDA',
-                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt'])
-        out_pdb = 'temp_plumed/output_fc_0.0_pc_[0.0,0.0]_T_300_explicit_NPT.pdb'
+                                 '--bias_method', 'plumed_other', '--plumed_file', 'temp_plumed.txt',
+                                 '--out_traj', out_pdb])
         temp_u = Universe(out_pdb)
         reporter_file = out_pdb.replace('output', 'report').replace('.pdb', '.txt')
         box_length_list = Helper_func.get_box_length_list_fom_reporter_file(reporter_file, unit='A')

@@ -44,7 +44,7 @@ def get_data_from_folder(temp_folder, input_type, output_type):
         assert (Sutils.check_center_of_mass_is_at_origin(data_set))
     elif input_type == 'pairwise_distance':
         data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
-            coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
+            coor_data_obj_input.get_list_of_corresponding_pdb_dcd(), step_interval=args.training_interval,
             atom_selection=CONFIG_73)) / CONFIG_49
     else:
         raise Exception('error input type')
@@ -75,7 +75,7 @@ def get_data_from_folder(temp_folder, input_type, output_type):
         assert (Sutils.check_center_of_mass_is_at_origin(output_data_set))
     elif output_type == 'pairwise_distance':
         output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
-            coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
+            coor_data_obj_input.get_list_of_corresponding_pdb_dcd(), step_interval=args.training_interval,
             atom_selection=CONFIG_73)) / CONFIG_49
     elif output_type == 'combined':
         scaling_factor = CONFIG_49
@@ -93,7 +93,7 @@ def get_data_from_folder(temp_folder, input_type, output_type):
         else:
             raise Exception('not defined')
         temp_output_data_set = np.array(Sutils.get_non_repeated_pairwise_distance(
-            coor_data_obj_input.get_list_of_corresponding_pdb_files(), step_interval=args.training_interval,
+            coor_data_obj_input.get_list_of_corresponding_pdb_dcd(), step_interval=args.training_interval,
             atom_selection=CONFIG_73)) / CONFIG_49
         output_data_set = np.concatenate([output_data_set, temp_output_data_set], axis=1)
     else:

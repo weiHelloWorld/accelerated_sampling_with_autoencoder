@@ -18,6 +18,10 @@ Nose testing framework: https://github.com/nose-devs/nose
 
 PLUMED (ANN included): https://github.com/plumed/plumed2 + https://github.com/weiHelloWorld/plumed_additional
 
+cluster management: https://github.com/weiHelloWorld/cluster_management
+
+plumed helper: https://github.com/weiHelloWorld/plumed_helper
+
 OpenMM-PLUMED force plugin: https://github.com/peastman/openmm-plumed
 
 Bayes WHAM free energy calculation package: https://bitbucket.org/andrewlferguson/bayeswham_python
@@ -34,14 +38,14 @@ export PATH="$HOME/.anaconda2/bin:$PATH"
 
 conda install -c mdanalysis mdanalysis
 conda install -c omnia openmm
-conda install -c conda-forge theano keras coverage
+conda install -c conda-forge tensorflow-gpu keras coverage
 
 echo "you may need to install following packages manually: PLUMED, OpenMM-plumed, ANN_Force"
 ```
 
 ## Installation and preparation
 
-No installation is required.  You may simply have all dependent packages installed and checkout this repository (or download the package with dependency files here: https://drive.google.com/a/illinois.edu/file/d/0B6OOQc-KDdimbklIbkd1cjhnSWs/view?usp=sharing).  Reference pdb files for simulation are needed.
+No installation is required.  You may simply have all dependent packages installed and checkout this repository.
 
 It is **highly recommended** to run tests before running code to make sure packages are correctly installed.
 
@@ -153,6 +157,14 @@ TODO
 - How to apply a new potential center selection algorithm?
 
 Modify method `Sutils.get_boundary_points()` in `${root_dir}/src/molecule_spec_sutils.py`.
+
+## Citation
+
+If you use this code in your work, please cite:
+
+- Chen, Wei, and Andrew L. Ferguson. "Molecular enhanced sampling with autoencoders: On‐the‐fly collective variable discovery and accelerated free energy landscape exploration." Journal of computational chemistry 39.25 (2018): 2079-2102.
+
+- Chen, Wei, Aik Rui Tan, and Andrew L. Ferguson. "Collective variable discovery and enhanced sampling using autoencoders: Innovations in network architecture and error function design." The Journal of chemical physics 149.7 (2018): 072312.
 
 ## Contact
 
