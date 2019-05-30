@@ -2,7 +2,7 @@
 """
 
 from config import *
-import random
+import random, mdtraj as md
 from coordinates_data_files_list import *
 from sklearn.cluster import KMeans
 from helper_func import *
@@ -107,7 +107,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         for item in range(len(alignment_coor_file_suffix_list)):
             for _1, _2 in zip(coor_data_obj_input.get_list_of_coor_data_files(),
                               coor_data_obj_output_list[item].get_list_of_coor_data_files()):
-                assert (_2 == _1.replace('_coordinates.txt', alignment_coor_file_suffix_list[item])), (_2, _1)
+                assert (_2 == _1.replace('_coordinates.npy', alignment_coor_file_suffix_list[item])), (_2, _1)
 
         output_data_set = np.concatenate([Sutils.remove_translation(item.get_coor_data(scaling_factor))
                                           for item in coor_data_obj_output_list] , axis=1)
@@ -127,8 +127,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
 
     @staticmethod
     def create_subclass_instance_using_name(name):
-        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage(),
-                'Src_kinase': Src_kinase(), 'BetaHairpin': BetaHairpin(), 'C24': C24()}[name]
+        return {'Alanine_dipeptide': Alanine_dipeptide(), 'Trp_cage': Trp_cage()}[name]
 
     @staticmethod
     def load_object_from_pkl_file(file_path):
@@ -288,73 +287,33 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         return result
 
     @staticmethod
-    def _generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in index_of_backbone_atoms]
-        filenames = subprocess.check_output(['find', path_for_pdb, '-name', '*.pdb']).decode("utf-8").strip().split('\n')
+    def _generate_coordinates_from_pdb_files(atom_index, file_path=CONFIG_12, format='npy'):
+        atom_index = [int(_1) for _1 in atom_index]
+        atom_index = np.array(atom_index) - 1     # note that atom index starts from 1
+        filenames = subprocess.check_output([
+            'find', file_path, '-name', '*.pdb', '-o', '-name', '*.dcd']).decode("utf-8").strip().split('\n')
         output_file_list = []
 
         for input_file in filenames:
-            output_file = input_file.replace('.pdb', '_coordinates.txt')
-            if step_interval != 1:
-                output_file = output_file.replace('_coordinates.txt', '_int_%d_coordinates.txt' % step_interval)
+            output_file = input_file[:-4] + '_coordinates.' + format
 
             output_file_list += [output_file]
             if os.path.exists(output_file) and os.path.getmtime(input_file) < os.path.getmtime(output_file):   # check modified time
                 print("coordinate file already exists: %s (remove previous one if needed)" % output_file)
             else:
                 print('generating coordinates of ' + input_file)
-
-                with open(input_file) as f_in:
-                    with open(output_file, 'w') as f_out:
-                        # fix based on this format: https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html
-                        # reason for the fix is sometimes there is no space between two neighboring fields
-                        # for instance, when atom index is greater than 10000, no space between first two fields, leading to wrong parsing
-                        for line in f_in:
-                            line = line.strip()
-                            fields = [line[:6], line[6:11], line[30:38], line[38:46], line[46:54]]
-                            fields = [item_field.strip() for item_field in fields]
-                            if (fields[0] == 'ATOM' or fields[0] == 'HETATM') and fields[1] in index_of_backbone_atoms:
-                                f_out.write(reduce(lambda x, y: x + '\t' + y, fields[2:5]))
-                                f_out.write('\t')
-                                if fields[1] == index_of_backbone_atoms[-1]:
-                                    f_out.write('\n')
-
-                if step_interval > 1:
-                    data = np.loadtxt(output_file)[::step_interval]
-                    np.savetxt(output_file, data, fmt="%.3f", delimiter='\t')
+                mdxyz = md.load(input_file, top=CONFIG_62[0]).xyz
+                mdxyz = mdxyz[:, atom_index, :].reshape(mdxyz.shape[0], len(atom_index) * 3)
+                if format == 'txt': np.savetxt(output_file, mdxyz)
+                elif format == 'npy': np.save(output_file, mdxyz)
 
         print("Done generating coordinates files\n")
         return output_file_list
 
     @staticmethod
-    def _get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor):
-        plumed_script = ""
-        plumed_script += "com_1: COM ATOMS=%s\n" % str(index_of_backbone_atoms)[1:-1].replace(' ', '')
-        plumed_script += "p_com: POSITION ATOM=com_1\n"
-
-        for item in range(len(index_of_backbone_atoms)):
-            plumed_script += "p_%d: POSITION ATOM=%d\n" % (item, index_of_backbone_atoms[item])
-        # following remove translation using p_com
-        for item in range(len(index_of_backbone_atoms)):
-            for _1, _2 in enumerate(['.x', '.y', '.z']):
-                plumed_script += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f,-%f ARG=p_%d%s,p_com%s\n" \
-                        % (3 * item + _1, 10.0 / scaling_factor, 10.0 / scaling_factor,
-                            # 10.0 exists because default unit is A in OpenMM, and nm in PLUMED
-                            item, _2, _2)
-        return plumed_script
-
-    @staticmethod
     def _get_plumed_script_with_pairwise_dis_as_input(index_atoms, scaling_factor):
-        plumed_string = ''
-        index_input = 0
-        for item_1 in range(len(index_atoms)):
-            for item_2 in range(item_1 + 1, len(index_atoms)):
-                plumed_string += "dis_%d:  DISTANCE ATOMS=%d,%d\n" % (
-                    index_input, index_atoms[item_1], index_atoms[item_2])
-                plumed_string += "l_0_out_%d: COMBINE PERIODIC=NO COEFFICIENTS=%f ARG=dis_%d\n" % (
-                    index_input, 10.0 / scaling_factor, index_input)
-                index_input += 1
-        return plumed_string
+        return Plumed_helper.get_pairwise_dis(index_atoms, scaling_factor=scaling_factor,
+                                              unit_scaling=1.0, out_var_prefix='l_0_out_')
 
     @staticmethod
     def remove_water_mol_and_Cl_from_pdb_file(folder_for_pdb = CONFIG_12, preserve_original_file=True):
@@ -519,7 +478,7 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
         index = 0
 
         for sample_file in list_of_files:
-            sample = Universe(sample_file)
+            sample = Universe(ref_file, sample_file)
             sample_atom_selection = sample.select_atoms(atom_selection_statement)
 
             for _ in sample.trajectory:
@@ -656,10 +615,11 @@ class Alanine_dipeptide(Sutils):
         return list(map(Alanine_dipeptide.get_cossin_from_a_coordinate, coordinates))
 
     @staticmethod
-    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
+    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1, format='npy'):
         coordinates = []
         for item in list_of_files:
-            temp_coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            temp_coordinates = Helper_func.load_npy(item, format=format)
+            # the result could be 1D or 2D numpy array, need further checking
             if temp_coordinates.shape[0] != 0:  # remove info from empty files
                 if len(temp_coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
                     temp_coordinates = temp_coordinates[:, None].T
@@ -685,21 +645,21 @@ class Alanine_dipeptide(Sutils):
             assert (len(item) == 8)
             temp_angle = []
             for ii in range(4):
-                temp_angle += [np.arccos(item[2 * ii]) * np.sign(item[2 * ii + 1])]
+                temp_angle += [np.arctan2(item[2 * ii + 1], item[2 * ii])]
 
             result += [list(temp_angle)]
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval =1):
+    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12):
         index_of_backbone_atoms = [str(item) for item in CONFIG_57[0]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, file_path=path_for_pdb)
         return output_file_list
 
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[0]
-        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
+        return Plumed_helper.get_atom_positions(index_of_backbone_atoms, scaling_factor, unit_scaling=1.0)
 
 
 class Trp_cage(Sutils):
@@ -771,10 +731,10 @@ class Trp_cage(Sutils):
         return list(map(Trp_cage.get_cossin_from_a_coordinate, coordinates))
 
     @staticmethod
-    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1):
+    def get_many_cossin_from_coordinates_in_list_of_files(list_of_files, step_interval=1, format='npy'):
         coordinates = []
         for item in list_of_files:
-            temp_coordinates = np.loadtxt(item)  # the result could be 1D or 2D numpy array, need further checking
+            temp_coordinates = Helper_func.load_npy(item, format=format)  # the result could be 1D or 2D numpy array, need further checking
             if temp_coordinates.shape[0] != 0:        # remove info from empty files
                 if len(temp_coordinates.shape) == 1:  # if 1D numpy array, convert it to 2D array for consistency
                     temp_coordinates = temp_coordinates[:, None].T
@@ -801,7 +761,7 @@ class Trp_cage(Sutils):
             len_of_cos_sin = 76
             assert (len(item) == len_of_cos_sin), (len(item), len_of_cos_sin)
             for idx_of_angle in range(len_of_cos_sin // 2):
-                temp_angle += [np.arccos(item[2 * idx_of_angle]) * np.sign(item[2 * idx_of_angle + 1])]
+                temp_angle += [np.arctan2(item[2 * idx_of_angle + 1], item[2 * idx_of_angle])]
 
             assert (len(temp_angle) == len_of_cos_sin // 2)
 
@@ -812,12 +772,11 @@ class Trp_cage(Sutils):
         return result
 
     @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12, step_interval=1):
+    def generate_coordinates_from_pdb_files(path_for_pdb = CONFIG_12):
         index_of_backbone_atoms = [str(item) for item in CONFIG_57[1]]
         assert (len(index_of_backbone_atoms) % 3 == 0)
 
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
-                                                                       step_interval=step_interval)
+        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, file_path=path_for_pdb)
 
         return output_file_list
 
@@ -957,10 +916,10 @@ class Trp_cage(Sutils):
             temp_coords = np.array([_1.get_coord() for _1 in atoms_in_this_frame])
 
             for item in range(19):  # 19 * 2 = 38 dihedrals in total
-                C_atom_in_this_residue = filter(lambda x: x.get_name() == "C", atoms_in_this_frame)[item]
-                CA_atom_in_this_residue = filter(lambda x: x.get_name() == "CA", atoms_in_this_frame)[item]
-                CA_atom_in_next_residue = filter(lambda x: x.get_name() == "CA", atoms_in_this_frame)[item + 1]
-                N_atom_in_next_residue = filter(lambda x: x.get_name() == "N", atoms_in_this_frame)[item + 1]
+                C_atom_in_this_residue = list(filter(lambda x: x.get_name() == "C", atoms_in_this_frame))[item]
+                CA_atom_in_this_residue = list(filter(lambda x: x.get_name() == "CA", atoms_in_this_frame))[item]
+                CA_atom_in_next_residue = list(filter(lambda x: x.get_name() == "CA", atoms_in_this_frame))[item + 1]
+                N_atom_in_next_residue = list(filter(lambda x: x.get_name() == "N", atoms_in_this_frame))[item + 1]
 
                 axis_vector_0 = C_atom_in_this_residue.get_coord() - CA_atom_in_this_residue.get_coord()
                 axis_vector_1 = CA_atom_in_next_residue.get_coord() - N_atom_in_next_residue.get_coord()
@@ -987,75 +946,4 @@ class Trp_cage(Sutils):
     @staticmethod
     def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
         index_of_backbone_atoms = CONFIG_57[1]
-        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
-
-
-class Src_kinase(Sutils):
-    def __init__(self):
-        super(Src_kinase, self).__init__()
-        return
-
-    @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in CONFIG_57[2]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(
-            index_of_backbone_atoms, path_for_pdb=path_for_pdb, step_interval=step_interval)
-        return output_file_list
-
-    @staticmethod
-    def get_expression_script_for_plumed(scaling_factor=CONFIG_49):
-        index_of_backbone_atoms = CONFIG_57[2]
-        return Sutils._get_expression_script_for_plumed(index_of_backbone_atoms, scaling_factor)
-
-    @staticmethod
-    def metric_salt_bridge_switching(list_of_files, step_interval=1):
-        """this function measures (distance between E310-R409) - (distance between E310-K295),
-        this is a good metric showing switching between two salt bridges
-        """
-
-        dis_310_409 = []
-        dis_310_295 = []
-        index = 0
-        for sample_file in list_of_files:
-            sample = Universe(sample_file)
-            # note that we only simulate residue 260-521
-            temp_atom_310 = sample.select_atoms('resid 51 and name CD')
-            temp_atom_409 = sample.select_atoms('resid 150 and name CZ')
-            temp_atom_295 = sample.select_atoms('resid 36 and name NZ')
-            for _ in sample.trajectory:
-                if index % step_interval == 0:
-                    dis_310_409.append(
-                        distance_array(temp_atom_310.positions, temp_atom_409.positions))
-                    dis_310_295.append(
-                        distance_array(temp_atom_310.positions, temp_atom_295.positions))
-
-                index += 1
-
-        return np.array(dis_310_409).flatten() - np.array(dis_310_295).flatten()
-
-class BetaHairpin(Sutils):
-    def __init__(self):
-        super(BetaHairpin, self).__init__()
-        return
-
-    @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in CONFIG_57[3]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms, path_for_pdb=path_for_pdb,
-                                                                       step_interval=step_interval)
-
-        return output_file_list
-
-class C24(Sutils):
-    def __init__(self):
-        super(C24, self).__init__()
-        return
-
-    @staticmethod
-    def generate_coordinates_from_pdb_files(path_for_pdb=CONFIG_12, step_interval=1):
-        index_of_backbone_atoms = [str(item) for item in CONFIG_57[4]]
-        output_file_list = Sutils._generate_coordinates_from_pdb_files(index_of_backbone_atoms,
-                                                                       path_for_pdb=path_for_pdb,
-                                                                       step_interval=step_interval,
-                                                                       start_index_of_xyz_field=5)
-        return output_file_list
+        return Plumed_helper.get_atom_positions(index_of_backbone_atoms, scaling_factor, unit_scaling=1.0)

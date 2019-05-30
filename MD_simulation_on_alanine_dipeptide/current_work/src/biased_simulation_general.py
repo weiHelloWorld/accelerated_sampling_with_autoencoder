@@ -19,7 +19,7 @@ parser.add_argument("autoencoder_info_file", type=str, help="file to store autoe
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
 parser.add_argument("whether_to_add_water_mol_opt", type=str, help='whether to add water (options: explicit, implicit, water_already_included, no_water)')
 parser.add_argument("ensemble_type", type=str, help='simulation ensemble type, either NVT or NPT')
-parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
+parser.add_argument("--out_traj", type=str, default=None, help="output trajectory file")
 parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--scaling_factor", type=float, default = CONFIG_49, help='scaling_factor for ANN_Force')
@@ -66,6 +66,7 @@ force_constant = args.force_constant
 scaling_factor = args.scaling_factor
 num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
 num_of_nodes = [int(item) for item in num_of_nodes]
+out_format = '.dcd' if args.out_traj is None else os.path.splitext(args.out_traj)[1]
 
 platform = Platform.getPlatformByName(args.platform)
 temperature = args.temperature
@@ -120,8 +121,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
     if args.starting_frame != 0:
         pdb_reporter_file = pdb_reporter_file.split('.pdb')[0] + '_ff_%d.pdb' % args.starting_frame   # 'ff' means 'from_frame'
 
-    if not args.output_pdb is None:
-        pdb_reporter_file = args.output_pdb
+    if not args.out_traj is None:
+        pdb_reporter_file = args.out_traj
 
     state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
     checkpoint_file = pdb_reporter_file.replace('output_fc', 'checkpoint_fc').replace('.pdb', '.chk')
@@ -191,7 +192,8 @@ def run_simulation(force_constant, number_of_simulation_steps):
             force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
-            force.set_scaling_factor(float(scaling_factor) / 10.0)     # factor of 10: since default unit is nm in OpenMM
+            unit_scaling = 1.0  # TODO: check unit scaling
+            force.set_scaling_factor(float(scaling_factor) / unit_scaling)  # since default unit is nm in OpenMM
 
             with open(autoencoder_info_file, 'r') as f_in:
                 content = f_in.readlines()
@@ -317,7 +319,10 @@ PRINT STRIDE=500 ARG=* FILE=COLVAR
     print("Done equilibration")
     print(datetime.datetime.now())
 
-    simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    if out_format == '.pdb':
+        simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    elif out_format == '.dcd':
+        simulation.reporters.append(DCDReporter(pdb_reporter_file.replace('.pdb', '.dcd'), record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval, time=True,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True, volume = True,density=True,

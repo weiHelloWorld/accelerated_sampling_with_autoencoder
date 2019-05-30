@@ -23,7 +23,7 @@ parser.add_argument("force_constant", type=float, help="force constants")
 parser.add_argument("folder_to_store_output_files", type=str, help="folder to store the output pdb and report files")
 parser.add_argument("autoencoder_info_file", type=str, help="file to store autoencoder information (coefficients)")
 parser.add_argument("pc_potential_center", type=str, help="potential center (should include 'pc_' as prefix)")
-parser.add_argument("--output_pdb", type=str, default=None, help="name of output pdb file")
+parser.add_argument("--out_traj", type=str, default=None, help="output trajectory file")
 parser.add_argument("--layer_types", type=str, default=str(CONFIG_27), help='layer types')
 parser.add_argument("--num_of_nodes", type=str, default=str(CONFIG_3[:3]), help='number of nodes in each layer')
 parser.add_argument("--temperature", type=int, default= CONFIG_21, help='simulation temperature')
@@ -64,6 +64,7 @@ scaling_factor = args.scaling_factor
 layer_types = re.sub("\[|\]|\"|\'| ",'', args.layer_types).split(',')
 num_of_nodes = re.sub("\[|\]|\"|\'| ",'', args.num_of_nodes).split(',')
 num_of_nodes = [int(item) for item in num_of_nodes]
+out_format = '.dcd' if args.out_traj is None else os.path.splitext(args.out_traj)[1]
 
 if float(force_constant) != 0:
     from ANN import *
@@ -74,19 +75,19 @@ autoencoder_info_file = args.autoencoder_info_file
 potential_center = list([float(x) for x in args.pc_potential_center.replace('"','')\
                                 .replace('pc_','').split(',')])   # this API is the generalization for higher-dimensional cases
 
-def run_simulation(force_constant):
-    if not os.path.exists(folder_to_store_output_files):
-        try: os.makedirs(folder_to_store_output_files)
-        except: pass
+if not os.path.exists(folder_to_store_output_files):
+    try: os.makedirs(folder_to_store_output_files)
+    except: pass
 
+def run_simulation(force_constant):
     assert(os.path.exists(folder_to_store_output_files))
     input_pdb_file_of_molecule = args.starting_pdb_file
     force_field_file = 'amber99sb.xml'
     water_field_file = 'tip3p.xml'
     pdb_reporter_file = '%s/output_fc_%f_pc_%s.pdb' %(folder_to_store_output_files, force_constant, str(potential_center).replace(' ',''))
 
-    if not args.output_pdb is None:
-        pdb_reporter_file = args.output_pdb
+    if not args.out_traj is None:
+        pdb_reporter_file = args.out_traj
 
     state_data_reporter_file = pdb_reporter_file.replace('output_fc', 'report_fc').replace('.pdb', '.txt')
 
@@ -102,7 +103,7 @@ def run_simulation(force_constant):
 
     pdb = PDBFile(input_pdb_file_of_molecule)
     modeller = Modeller(pdb.topology, pdb.getPositions(frame=args.starting_frame))
-    solvent_opt = 'explicit'
+    solvent_opt = 'no_water'
     if solvent_opt == 'explicit':
         forcefield = ForceField(force_field_file, water_field_file)
         modeller.addSolvent(forcefield, model=water_field_file.split('.xml')[0], boxSize=Vec3(3, 3, 3) * nanometers,
@@ -126,22 +127,20 @@ def run_simulation(force_constant):
             force.set_num_of_nodes(num_of_nodes)
             force.set_potential_center(potential_center)
             force.set_force_constant(float(force_constant))
-            force.set_scaling_factor(float(scaling_factor) / 10.0)     # factor of 10: since default unit is nm in OpenMM
-
-            with open(autoencoder_info_file, 'r') as f_in:
-                content = f_in.readlines()
+            unit_scaling = 1.0  # TODO: check unit scaling
+            force.set_scaling_factor(float(scaling_factor) / unit_scaling)   # since default unit is nm in OpenMM
 
             # TODO: need to fix following for multi-hidden layer cases
-            temp_coeffs = [ast.literal_eval(content[0].strip())[0], ast.literal_eval(content[1].strip())[0]]
-            temp_bias  = [ast.literal_eval(content[2].strip())[0], ast.literal_eval(content[3].strip())[0]]
+            temp_coeffs, temp_bias = np.load(autoencoder_info_file)
             for item_layer_index in [0, 1]:
                 assert (len(temp_coeffs[item_layer_index]) ==
                         num_of_nodes[item_layer_index] * num_of_nodes[item_layer_index + 1]), (len(temp_coeffs[item_layer_index]),
                                 (num_of_nodes[item_layer_index], num_of_nodes[item_layer_index + 1]))
                 assert (len(temp_bias[item_layer_index]) == num_of_nodes[item_layer_index + 1]), (len(temp_bias[item_layer_index]), num_of_nodes[item_layer_index + 1])
 
-            force.set_coeffients_of_connections(temp_coeffs)
-            force.set_values_of_biased_nodes(temp_bias)
+            # need tolist() since C++ only accepts Python list
+            force.set_coeffients_of_connections([item_w.tolist() for item_w in temp_coeffs])
+            force.set_values_of_biased_nodes([item_w.tolist() for item_w in temp_bias])
 
             system.addForce(force)
     elif args.bias_method == "US_on_phipsi":
@@ -156,7 +155,7 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
         system.addForce(PlumedForce(plumed_force_string))
     elif args.bias_method == "MTD":
         from openmmplumed import PlumedForce
-        plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed(scaling_factor=5.0)
+        plumed_force_string = Alanine_dipeptide.get_expression_script_for_plumed()
         with open(autoencoder_info_file, 'r') as f_in:
             plumed_force_string += f_in.read()
 
@@ -232,7 +231,10 @@ PRINT STRIDE=10 ARG=* FILE=COLVAR
         print('energy minimization not required')
 
     simulation.step(args.equilibration_steps)
-    simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    if out_format == '.pdb':
+        simulation.reporters.append(PDBReporter(pdb_reporter_file, record_interval))
+    elif out_format == '.dcd':
+        simulation.reporters.append(DCDReporter(pdb_reporter_file.replace('.pdb', '.dcd'), record_interval))
     simulation.reporters.append(StateDataReporter(state_data_reporter_file, record_interval,
                                     step=True, potentialEnergy=True, kineticEnergy=True, speed=True,
                                                   temperature=True, progress=True, remainingTime=True,
@@ -254,6 +256,21 @@ def get_distance_between_data_cloud_center_and_potential_center(pdb_file):
     print('offset = %s' % str(offset))
     distance = sqrt(sum([item * item for item in offset]))
     return distance
+
+
+def run_simulation_ssages(force_constant):
+    ssages_output_file = '%s/output_fc_%f_pc_%s.json' % (
+        folder_to_store_output_files, force_constant, str(potential_center).replace(' ', ''))
+    subprocess.check_output('python ../src/temp_create_json_ssages.py %s %s %s %s %s' % (
+        ssages_output_file, str(potential_center).replace(' ', ''), autoencoder_info_file.replace('.npy', '.txt'),
+        ssages_output_file.replace('.json', '.trr'), force_constant), shell=True)
+    command = "ssages " + ssages_output_file
+    subprocess.check_output(command, shell=True)
+    pdb_reporter_file = ssages_output_file.replace('.json', '.pdb')
+    subprocess.check_output('mdconvert -o %s %s -t ../resources/alanine_dipeptide.pdb' % (
+        pdb_reporter_file, pdb_reporter_file.replace('.pdb', '.trr')), shell = True)
+    return pdb_reporter_file
+
 
 if __name__ == '__main__':
     if not args.fc_adjustable:
