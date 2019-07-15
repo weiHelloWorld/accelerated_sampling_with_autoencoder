@@ -49,14 +49,14 @@ class Sutils(object):
 
     @staticmethod
     def mark_and_modify_pdb_for_calculating_RMSD_for_plumed(pdb_file, out_pdb,
-                                                            atom_index_list, item_positions=None):
+                                                            atom_index_list, start_idx, item_positions=None):
         """
         :param pdb_file: input pdb
         :param out_pdb: output reference pdb
         :param atom_index_list: index list used to calculate RMSD
         :param item_positions: reference positions of selected atoms, set it None if we do not want to modify positions
         """
-        indices = np.array(atom_index_list) - 1  # because atom_index_list starts with 1
+        indices = np.array(atom_index_list) - start_idx  # explicitly specify start_idx, to avoid confusion
         temp_sample = Universe(pdb_file)
         temp_atoms = temp_sample.select_atoms('all')
         if not item_positions is None:
