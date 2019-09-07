@@ -1,3 +1,6 @@
+[![plumID:19.065](https://www.plumed-nest.org/eggs/19/065/badge.svg)](https://www.plumed-nest.org/eggs/19/065/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Accelerated sampling with data-augmented autoencoders
 
 This is the framework for running accelerated sampling with data-augmented autoencoders.
